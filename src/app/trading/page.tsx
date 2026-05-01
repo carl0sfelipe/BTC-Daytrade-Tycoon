@@ -8,8 +8,7 @@ import OrderBook from "@/components/trading/OrderBook";
 import TradeControls from "@/components/trading/TradeControls";
 import PositionPanel from "@/components/trading/PositionPanel";
 import PnLDisplay from "@/components/trading/PnLDisplay";
-import Leaderboard from "@/components/dashboard/Leaderboard";
-import Achievements from "@/components/dashboard/Achievements";
+import TradeHistory from "@/components/trading/TradeHistory";
 import SimulationClock from "@/components/trading/SimulationClock";
 import SimulationLoader from "@/components/trading/SimulationLoader";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
@@ -79,10 +78,7 @@ export default function TradingPage() {
               currentTimeSec={engine.currentTimeSec}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Leaderboard />
-              <Achievements />
-            </div>
+            <TradeHistory />
           </div>
 
           {/* Coluna lateral — sempre visível, tudo empilhado */}

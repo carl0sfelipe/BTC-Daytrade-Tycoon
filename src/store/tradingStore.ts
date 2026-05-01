@@ -1,0 +1,203 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+interface Trade {
+  pnl: number;
+  side: "long" | "short";
+  reason: "manual" | "tp" | "sl" | "liquidation";
+}
+
+interface Position {
+  side: "long" | "short";
+  entry: number;
+  size: number;
+  leverage: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  liquidationPrice: number;
+}
+
+interface TradingStore {
+  price: number;
+  currentPrice: number;
+  volatility: number;
+  marketTrend: "bull" | "bear" | "neutral";
+  priceHistory: number[];
+  wallet: number;
+  closedTrades: Trade[];
+  position: Position | null;
+  activePositions: Position[];
+  isLoading: boolean;
+  lastCloseReason: string | null;
+
+  setPrice: (price: number) => void;
+  setCurrentPrice: (price: number) => void;
+  setVolatility: (volatility: number) => void;
+  setMarketTrend: (trend: "bull" | "bear" | "neutral") => void;
+  addPriceHistory: (price: number) => void;
+  setWallet: (wallet: number) => void;
+  addClosedTrade: (trade: Trade) => void;
+  setPosition: (position: Position | null) => void;
+  openPosition: (
+    side: "long" | "short",
+    leverage: number,
+    positionSize: number,
+    tpPrice: string,
+    slPrice: string,
+    limitPrice: string | null
+  ) => void;
+  closePosition: (reason?: Trade["reason"]) => void;
+  checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
+}
+
+function calcLiquidationPrice(entry: number, leverage: number, side: "long" | "short"): number {
+  // Simplified: liq when price moves 1/leverage against position
+  // For long: liq = entry * (1 - 1/leverage)
+  // For short: liq = entry * (1 + 1/leverage)
+  if (side === "long") {
+    return entry * (1 - 1 / leverage);
+  }
+  return entry * (1 + 1 / leverage);
+}
+
+export const useTradingStore = create<TradingStore>()(
+  persist(
+    (set, get) => ({
+      price: 45000,
+      currentPrice: 45000,
+      volatility: 1.5,
+      marketTrend: "bull",
+      priceHistory: Array.from({ length: 50 }, () => 44000 + Math.random() * 2000),
+      wallet: 10000,
+      closedTrades: [],
+      position: null,
+      activePositions: [],
+      isLoading: false,
+      lastCloseReason: null,
+
+      setPrice: (price) => set({ price, currentPrice: price }),
+      setCurrentPrice: (price) => set({ currentPrice: price, price }),
+      setVolatility: (volatility) => set({ volatility }),
+      setMarketTrend: (marketTrend) => set({ marketTrend }),
+      addPriceHistory: (price) =>
+        set((state) => ({
+          priceHistory: [...state.priceHistory.slice(-49), price],
+        })),
+      setWallet: (wallet) => set({ wallet }),
+      addClosedTrade: (trade) =>
+        set((state) => ({
+          closedTrades: [...state.closedTrades, trade],
+        })),
+      setPosition: (position) => set({ position }),
+
+      openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
+        const state = get();
+        const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
+        if (!entryPrice || entryPrice <= 0) return;
+
+        const margin = positionSize / leverage;
+        if (state.wallet < margin) return;
+
+        const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
+        const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
+        const liqPrice = calcLiquidationPrice(entryPrice, leverage, side);
+
+        const newPosition: Position = {
+          side,
+          entry: entryPrice,
+          size: positionSize,
+          leverage,
+          tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
+          slPrice: slPrice && slPrice > 0 ? slPrice : null,
+          liquidationPrice: liqPrice,
+        };
+        set({
+          position: newPosition,
+          activePositions: [...state.activePositions, newPosition],
+          wallet: state.wallet - margin,
+          lastCloseReason: null,
+        });
+      },
+
+      closePosition: (reason = "manual") => {
+        const state = get();
+        if (!state.position) return;
+
+        const { side, entry, size, leverage } = state.position;
+        const price = state.currentPrice;
+
+        // PnL = (priceDiff / entry) * positionSize
+        // For long: positive when price > entry
+        // For short: positive when price < entry
+        const priceDiff = side === "long" ? price - entry : entry - price;
+        const pnl = (priceDiff / entry) * size;
+
+        const margin = size / leverage;
+        const newWallet = state.wallet + margin + pnl;
+
+        set({
+          wallet: Math.max(0, newWallet),
+          closedTrades: [...state.closedTrades, { pnl, side, reason }],
+          position: null,
+          activePositions: state.activePositions.filter(
+            (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
+          ),
+          lastCloseReason:
+            reason === "tp"
+              ? "Take Profit atingido!"
+              : reason === "sl"
+              ? "Stop Loss atingido!"
+              : reason === "liquidation"
+              ? "Posição liquidada!"
+              : null,
+        });
+      },
+
+      checkPosition: (currentPrice) => {
+        const state = get();
+        if (!state.position) return { closed: false };
+
+        const { side, tpPrice, slPrice, liquidationPrice } = state.position;
+
+        // Check liquidation
+        if (side === "long" && currentPrice <= liquidationPrice) {
+          state.closePosition("liquidation");
+          return { closed: true, reason: "liquidation" };
+        }
+        if (side === "short" && currentPrice >= liquidationPrice) {
+          state.closePosition("liquidation");
+          return { closed: true, reason: "liquidation" };
+        }
+
+        // Check SL
+        if (slPrice) {
+          if (side === "long" && currentPrice <= slPrice) {
+            state.closePosition("sl");
+            return { closed: true, reason: "sl" };
+          }
+          if (side === "short" && currentPrice >= slPrice) {
+            state.closePosition("sl");
+            return { closed: true, reason: "sl" };
+          }
+        }
+
+        // Check TP
+        if (tpPrice) {
+          if (side === "long" && currentPrice >= tpPrice) {
+            state.closePosition("tp");
+            return { closed: true, reason: "tp" };
+          }
+          if (side === "short" && currentPrice <= tpPrice) {
+            state.closePosition("tp");
+            return { closed: true, reason: "tp" };
+          }
+        }
+
+        return { closed: false };
+      },
+    }),
+    {
+      name: "trading-storage",
+    }
+  )
+);

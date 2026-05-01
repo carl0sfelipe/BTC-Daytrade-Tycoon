@@ -29,6 +29,8 @@ interface TradingStore {
   activePositions: Position[];
   isLoading: boolean;
   lastCloseReason: string | null;
+  isLiquidated: boolean;
+  simulationRealDate: string | null;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -50,6 +52,8 @@ interface TradingStore {
   updatePositionSize: (newSize: number) => void;
   updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
+  setLiquidated: (date: string) => void;
+  clearLiquidated: () => void;
 }
 
 function calcLiquidationPrice(entry: number, leverage: number, side: "long" | "short"): number {
@@ -76,6 +80,8 @@ export const useTradingStore = create<TradingStore>()(
       activePositions: [],
       isLoading: false,
       lastCloseReason: null,
+      isLiquidated: false,
+      simulationRealDate: null,
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -86,6 +92,8 @@ export const useTradingStore = create<TradingStore>()(
           priceHistory: [...state.priceHistory.slice(-49), price],
         })),
       setWallet: (wallet) => set({ wallet }),
+      setLiquidated: (date) => set({ isLiquidated: true, simulationRealDate: date }),
+      clearLiquidated: () => set({ isLiquidated: false, simulationRealDate: null }),
       addClosedTrade: (trade) =>
         set((state) => ({
           closedTrades: [...state.closedTrades, trade],
@@ -153,6 +161,12 @@ export const useTradingStore = create<TradingStore>()(
               ? "Posição liquidada!"
               : null,
         });
+        if (reason === "liquidation") {
+          const dateStr = get().simulationRealDate;
+          if (dateStr) {
+            set({ isLiquidated: true });
+          }
+        }
       },
 
       updatePositionSize: (newSize: number) => {
@@ -263,3 +277,7 @@ export const useTradingStore = create<TradingStore>()(
     }
   )
 );
+
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as unknown as { __tradingStore?: typeof useTradingStore }).__tradingStore = useTradingStore;
+}

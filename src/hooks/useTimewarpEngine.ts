@@ -43,6 +43,7 @@ export interface UseTimewarpEngineReturn {
   currentPrice: number;
   currentTimeSec: number;
   error: string | null;
+  realDateRange: string;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -61,6 +62,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
   const historicalCandlesRef = useRef<BinanceCandle[]>([]);
   const startDateRef = useRef<Date | null>(null);
+  const originalStartDateRef = useRef<Date | null>(null);
   const simulationStartRealTimeRef = useRef<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const candlesRef = useRef<SimulatedCandle[]>([]);
@@ -94,6 +96,8 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       position: null,
       activePositions: [],
       isLoading: false,
+      isLiquidated: false,
+      simulationRealDate: null,
     });
   }, []);
 
@@ -110,6 +114,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       setLoadingMessage("Sorteando cenário histórico...");
       const startDate = randomDate();
       startDateRef.current = startDate;
+      originalStartDateRef.current = startDate;
 
       setLoadingMessage("Baixando dados históricos da Binance...");
       const historicalCandles = await fetchCandles(startDate);
@@ -201,7 +206,12 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     storeAddPriceHistory(price);
 
     // Verifica liquidação / SL / TP
-    storeCheckPosition(price);
+    const checkResult = storeCheckPosition(price);
+    if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
+      const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
+      const dateRange = `${originalStartDateRef.current.toLocaleDateString("pt-BR")} → ${endDate.toLocaleDateString("pt-BR")}`;
+      useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
+    }
   }, [storeAddPriceHistory, storeCheckPosition]);
 
   const startSimulation = useCallback(() => {
@@ -249,6 +259,13 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     };
   }, [loadSession]);
 
+  const endDate = originalStartDateRef.current
+    ? new Date(originalStartDateRef.current.getTime() + (candles.length - 1) * 60_000)
+    : null;
+  const realDateRange = originalStartDateRef.current && endDate
+    ? `${originalStartDateRef.current.toLocaleDateString("pt-BR")} → ${endDate.toLocaleDateString("pt-BR")}`
+    : "";
+
   return {
     isLoading,
     loadingMessage,
@@ -259,6 +276,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     currentPrice,
     currentTimeSec,
     error,
+    realDateRange,
     start,
     pause,
     reset,

@@ -1,15 +1,17 @@
 "use client";
 
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, Flag } from "lucide-react";
 
 interface SimulationClockProps {
   elapsedTime: string;
   speed: number;
   progressPercent: number;
   isPlaying: boolean;
+  realDateRange: string;
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
+  onEnd: () => void;
 }
 
 export default function SimulationClock({
@@ -17,9 +19,11 @@ export default function SimulationClock({
   speed,
   progressPercent,
   isPlaying,
+  realDateRange,
   onPause,
   onResume,
   onReset,
+  onEnd,
 }: SimulationClockProps) {
   return (
     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -62,6 +66,15 @@ export default function SimulationClock({
               Continuar
             </button>
           )}
+
+          <button
+            onClick={onEnd}
+            className="flex items-center gap-1 bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+            title="Encerrar simulação e ver data real"
+          >
+            <Flag className="w-4 h-4" />
+            Encerrar
+          </button>
 
           <button
             onClick={onReset}

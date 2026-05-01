@@ -47,6 +47,7 @@ interface TradingStore {
     limitPrice: string | null
   ) => void;
   closePosition: (reason?: Trade["reason"]) => void;
+  updatePositionSize: (newSize: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
 }
 
@@ -151,6 +152,39 @@ export const useTradingStore = create<TradingStore>()(
               ? "Posição liquidada!"
               : null,
         });
+      },
+
+      updatePositionSize: (newSize: number) => {
+        const state = get();
+        if (!state.position || newSize <= 0) return;
+
+        const { side, entry, size, leverage } = state.position;
+        const price = state.currentPrice;
+        const marginPerUnit = 1 / leverage;
+        const oldMargin = size * marginPerUnit;
+        const newMargin = newSize * marginPerUnit;
+        const marginDiff = newMargin - oldMargin;
+
+        if (newSize > size) {
+          // Aumentando posição
+          if (state.wallet < marginDiff) return;
+          const additionalSize = newSize - size;
+          const newEntry = (size * entry + additionalSize * price) / newSize;
+          set({
+            wallet: state.wallet - marginDiff,
+            position: { ...state.position, entry: newEntry, size: newSize },
+          });
+        } else if (newSize < size) {
+          // Diminuindo posição
+          const reducedSize = size - newSize;
+          const priceDiff = side === "long" ? price - entry : entry - price;
+          const pnlPartial = (priceDiff / entry) * reducedSize;
+          const marginReturned = reducedSize * marginPerUnit;
+          set({
+            wallet: state.wallet + marginReturned + pnlPartial,
+            position: { ...state.position, size: newSize },
+          });
+        }
       },
 
       checkPosition: (currentPrice) => {

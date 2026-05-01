@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTradingStore } from "@/store/tradingStore";
 
 export default function TradeControls() {
@@ -12,10 +12,31 @@ export default function TradeControls() {
   const [tpPrice, setTpPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
 
-  const { openPosition, closePosition, wallet, position, currentPrice } = useTradingStore();
+  const {
+    openPosition,
+    closePosition,
+    updatePositionSize,
+    wallet,
+    position,
+    currentPrice,
+  } = useTradingStore();
+
+  // Sincroniza slider com tamanho da posição aberta
+  useEffect(() => {
+    if (position) {
+      setPositionSize(position.size);
+      setLeverage(position.leverage);
+      setSide(position.side);
+    }
+  }, [position]);
 
   const margin = positionSize / leverage;
   const canOpen = wallet >= margin;
+
+  // Quando posição está aberta, o máximo é size atual + o que dá pra adicionar com saldo
+  const sliderMax = position
+    ? position.size + Math.floor(wallet * leverage)
+    : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
     if (!canOpen) return;
@@ -29,29 +50,38 @@ export default function TradeControls() {
     );
   };
 
+  const handleUpdate = () => {
+    if (!position) return;
+    updatePositionSize(positionSize);
+  };
+
+  const sizeDiff = position ? positionSize - position.size : 0;
+  const canIncrease = sizeDiff > 0 && wallet >= sizeDiff / leverage;
+  const canDecrease = sizeDiff < 0;
+
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <h3 className="text-sm font-semibold text-gray-400 mb-3">Controles de Ordem</h3>
 
-      {/* Side tabs */}
+      {/* Side tabs — desabilitado quando posição aberta */}
       <div className="flex mb-3 rounded overflow-hidden">
         <button
-          onClick={() => setSide("long")}
+          onClick={() => !position && setSide("long")}
           className={`flex-1 py-1.5 text-xs font-bold transition-colors ${
             side === "long"
               ? "bg-green-600 text-white"
               : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-          }`}
+          } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           LONG
         </button>
         <button
-          onClick={() => setSide("short")}
+          onClick={() => !position && setSide("short")}
           className={`flex-1 py-1.5 text-xs font-bold transition-colors ${
             side === "short"
               ? "bg-red-600 text-white"
               : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-          }`}
+          } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           SHORT
         </button>
@@ -62,12 +92,12 @@ export default function TradeControls() {
         {(["market", "limit"] as const).map((type) => (
           <button
             key={type}
-            onClick={() => setOrderType(type)}
+            onClick={() => !position && setOrderType(type)}
             className={`px-3 py-1 text-xs rounded transition-colors ${
               orderType === type
                 ? "bg-gray-600 text-white"
                 : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-            }`}
+            } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {type === "market" ? "Mercado" : "Limite"}
           </button>
@@ -75,7 +105,7 @@ export default function TradeControls() {
       </div>
 
       {/* Limit price */}
-      {orderType === "limit" && (
+      {orderType === "limit" && !position && (
         <div className="mb-3">
           <label className="block text-xs text-gray-400 mb-1">
             Preço Limite (USD)
@@ -93,27 +123,28 @@ export default function TradeControls() {
       {/* Alavancagem */}
       <div className="mb-3">
         <label className="block text-xs text-gray-400 mb-1">
-          Alavancagem: {leverage}x
+          Alavancagem: {leverage}x {position && "(travado)"}
         </label>
         <input
           type="range"
           min="2"
           max="100"
           value={leverage}
-          onChange={(e) => setLeverage(Number(e.target.value))}
-          className="w-full accent-green-500"
+          onChange={(e) => !position && setLeverage(Number(e.target.value))}
+          disabled={!!position}
+          className={`w-full ${position ? "opacity-50" : "accent-green-500"}`}
         />
       </div>
 
       {/* Tamanho da posição */}
       <div className="mb-3">
         <label className="block text-xs text-gray-400 mb-1">
-          Tamanho da Posição: ${positionSize.toLocaleString()}
+          {position ? "Ajustar Tamanho" : "Tamanho da Posição"}: ${positionSize.toLocaleString()}
         </label>
         <input
           type="range"
           min="100"
-          max={Math.max(100, Math.floor(wallet * leverage))}
+          max={Math.max(100, sliderMax)}
           step="100"
           value={positionSize}
           onChange={(e) => setPositionSize(Number(e.target.value))}
@@ -121,36 +152,73 @@ export default function TradeControls() {
         />
         <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
           <span>$100</span>
-          <span>${Math.floor(wallet * leverage).toLocaleString()}</span>
+          <span>${Math.floor(sliderMax).toLocaleString()}</span>
         </div>
+        {position && (
+          <div className="flex justify-between text-[10px] mt-1">
+            <span className="text-gray-400">Atual: ${position.size.toLocaleString()}</span>
+            {sizeDiff !== 0 && (
+              <span className={sizeDiff > 0 ? "text-green-400" : "text-red-400"}>
+                {sizeDiff > 0 ? "+" : ""}${sizeDiff.toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* TP/SL */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <input
-          type="number"
-          placeholder="Take Profit"
-          value={tpPrice}
-          onChange={(e) => setTpPrice(e.target.value)}
-          className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-        />
-        <input
-          type="number"
-          placeholder="Stop Loss"
-          value={slPrice}
-          onChange={(e) => setSlPrice(e.target.value)}
-          className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
-        />
-      </div>
+      {/* TP/SL — só quando abrindo nova posição */}
+      {!position && (
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <input
+            type="number"
+            placeholder="Take Profit"
+            value={tpPrice}
+            onChange={(e) => setTpPrice(e.target.value)}
+            className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+          />
+          <input
+            type="number"
+            placeholder="Stop Loss"
+            value={slPrice}
+            onChange={(e) => setSlPrice(e.target.value)}
+            className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
+          />
+        </div>
+      )}
 
       {/* Action buttons */}
       {position ? (
-        <button
-          onClick={() => closePosition("manual")}
-          className="w-full font-bold py-2 px-4 rounded bg-red-600 hover:bg-red-700 transition-colors text-white"
-        >
-          FECHAR POSIÇÃO
-        </button>
+        <div className="space-y-2">
+          {sizeDiff > 0 && (
+            <button
+              onClick={handleUpdate}
+              disabled={!canIncrease}
+              className={`w-full font-bold py-2 px-4 rounded transition-colors text-white ${
+                canIncrease
+                  ? position.side === "long"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-600 cursor-not-allowed"
+              }`}
+            >
+              AUMENTAR POSIÇÃO
+            </button>
+          )}
+          {sizeDiff < 0 && (
+            <button
+              onClick={handleUpdate}
+              className="w-full font-bold py-2 px-4 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors text-white"
+            >
+              DIMINUIR POSIÇÃO
+            </button>
+          )}
+          <button
+            onClick={() => closePosition("manual")}
+            className="w-full font-bold py-2 px-4 rounded bg-gray-700 hover:bg-gray-600 transition-colors text-white border border-gray-600"
+          >
+            FECHAR POSIÇÃO
+          </button>
+        </div>
       ) : (
         <button
           onClick={handleOpen}
@@ -170,7 +238,9 @@ export default function TradeControls() {
       {/* Margem usada */}
       <div className="mt-3 pt-3 border-t border-gray-700">
         <div className="flex justify-between text-xs">
-          <span className="text-gray-400">Margem:</span>
+          <span className="text-gray-400">
+            {position ? "Margem Total:" : "Margem:"}
+          </span>
           <span>${margin.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-xs mt-1">

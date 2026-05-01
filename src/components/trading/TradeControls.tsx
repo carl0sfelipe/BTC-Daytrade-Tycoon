@@ -16,6 +16,7 @@ export default function TradeControls() {
     openPosition,
     closePosition,
     updatePositionSize,
+    updateLeverage,
     wallet,
     position,
     currentPrice,
@@ -53,6 +54,13 @@ export default function TradeControls() {
   const handleUpdate = () => {
     if (!position) return;
     updatePositionSize(positionSize);
+  };
+
+  const handleLeverageChange = (newLeverage: number) => {
+    setLeverage(newLeverage);
+    if (position) {
+      updateLeverage(newLeverage);
+    }
   };
 
   const sizeDiff = position ? positionSize - position.size : 0;
@@ -123,16 +131,15 @@ export default function TradeControls() {
       {/* Alavancagem */}
       <div className="mb-3">
         <label className="block text-xs text-gray-400 mb-1">
-          Alavancagem: {leverage}x {position && "(travado)"}
+          Alavancagem: {leverage}x
         </label>
         <input
           type="range"
           min="2"
           max="100"
           value={leverage}
-          onChange={(e) => !position && setLeverage(Number(e.target.value))}
-          disabled={!!position}
-          className={`w-full ${position ? "opacity-50" : "accent-green-500"}`}
+          onChange={(e) => handleLeverageChange(Number(e.target.value))}
+          className="w-full accent-green-500"
         />
       </div>
 

@@ -48,6 +48,7 @@ interface TradingStore {
   ) => void;
   closePosition: (reason?: Trade["reason"]) => void;
   updatePositionSize: (newSize: number) => void;
+  updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
 }
 
@@ -185,6 +186,33 @@ export const useTradingStore = create<TradingStore>()(
             position: { ...state.position, size: newSize },
           });
         }
+      },
+
+      updateLeverage: (newLeverage: number) => {
+        const state = get();
+        if (!state.position) return;
+
+        const { size, leverage: oldLeverage } = state.position;
+        const oldMargin = size / oldLeverage;
+        const newMargin = size / newLeverage;
+        const marginDiff = newMargin - oldMargin;
+
+        if (marginDiff > 0 && state.wallet < marginDiff) return;
+
+        const newLiqPrice = calcLiquidationPrice(
+          state.position.entry,
+          newLeverage,
+          state.position.side
+        );
+
+        set({
+          wallet: state.wallet - marginDiff,
+          position: {
+            ...state.position,
+            leverage: newLeverage,
+            liquidationPrice: newLiqPrice,
+          },
+        });
       },
 
       checkPosition: (currentPrice) => {

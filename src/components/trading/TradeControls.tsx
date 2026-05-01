@@ -108,17 +108,21 @@ export default function TradeControls() {
       {/* Tamanho da posição */}
       <div className="mb-3">
         <label className="block text-xs text-gray-400 mb-1">
-          Tamanho (USD): ${positionSize}
+          Tamanho da Posição: ${positionSize.toLocaleString()}
         </label>
         <input
           type="range"
           min="100"
-          max={Math.max(100, Math.floor(wallet))}
+          max={Math.max(100, Math.floor(wallet * leverage))}
           step="100"
           value={positionSize}
           onChange={(e) => setPositionSize(Number(e.target.value))}
           className="w-full accent-green-500"
         />
+        <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
+          <span>$100</span>
+          <span>${Math.floor(wallet * leverage).toLocaleString()}</span>
+        </div>
       </div>
 
       {/* TP/SL */}

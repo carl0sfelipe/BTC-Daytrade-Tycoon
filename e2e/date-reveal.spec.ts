@@ -4,6 +4,21 @@ import { saveEvidence } from './_helper';
 const JID = 'DATE-REVEAL';
 
 test.describe('Historical date reveal', () => {
+  test('SimulationClock never shows the drawn real date range', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const clock = page.locator('.card-surface').filter({ hasText: 'Simulation Time' });
+    const clockText = await clock.innerText();
+
+    // The real date range uses "→" and Brazilian date format; it must NEVER appear in the clock
+    expect(clockText).not.toContain('→');
+    expect(clockText).not.toMatch(/\d{2}\/\d{2}\/\d{4},?\s*\d{2}:\d{2}/);
+  });
   test('End button opens modal with historical period', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));

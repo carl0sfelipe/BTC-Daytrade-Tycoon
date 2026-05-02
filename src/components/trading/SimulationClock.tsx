@@ -54,9 +54,6 @@ export default function SimulationClock({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          {realDateRange && (
-            <span className="text-[10px] font-mono text-crypto-text-muted truncate">{realDateRange}</span>
-          )}
         </div>
       </div>
 

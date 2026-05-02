@@ -18,6 +18,14 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
+    {
+      name: 'production',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        baseURL: 'https://btc-daytrade-tycoon.vercel.app',
+      },
+    },
   ],
   webServer: {
     command: 'npm run dev',

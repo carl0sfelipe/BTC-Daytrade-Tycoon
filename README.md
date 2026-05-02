@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwind-css" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Passing" />
   <img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="Tests Passing" />
-  <img src="https://img.shields.io/badge/license-Not%20Specified-lightgrey?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License Apache 2.0" />
 </p>
 
 <p align="center">
@@ -227,7 +227,9 @@ npx tsc --noEmit && npm run test && npx playwright test
 
 ## 📄 License
 
-License not yet specified.
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](./LICENSE) file for details.
+
+> Note: This license applies to the frontend code in this repository. The backend/API layer (when implemented) will be distributed under a separate commercial license.
 
 ---
 

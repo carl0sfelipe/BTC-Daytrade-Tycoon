@@ -138,7 +138,7 @@ export default function PositionPanel() {
             </span>
           </div>
           <div className="h-2.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
-            <div className="h-full rounded-full risk-gradient transition-all duration-500" style={{ width: `${distanceToLiq}%` }} />
+            <div data-testid="distance-bar" className="h-full rounded-full risk-gradient transition-all duration-500" style={{ width: `${distanceToLiq}%` }} />
           </div>
           <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
             <span>Safe</span>

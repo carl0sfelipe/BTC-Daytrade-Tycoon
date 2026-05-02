@@ -18,7 +18,7 @@ test.describe('Historical date reveal', () => {
     await saveEvidence(page, JID, '02-end-modal-with-date');
 
     const dateText = await page.locator('text=Real Historical Period').locator('..').locator('div.font-mono').textContent();
-    expect(dateText).toMatch(/\d{2}\/\d{2}\/\d{4}\s*→\s*\d{2}\/\d{2}\/\d{4}/);
+    expect(dateText).toMatch(/\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?\s*→\s*\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?/);
 
     await page.click('button:has-text("Back")');
     await page.waitForTimeout(500);
@@ -58,7 +58,7 @@ test.describe('Historical date reveal', () => {
     await saveEvidence(page, JID, '04-liquidation-modal');
 
     const liqDate = await page.locator('text=Real Historical Period').locator('..').locator('div.font-mono').textContent();
-    expect(liqDate).toMatch(/\d{2}\/\d{2}\/\d{4}\s*→\s*\d{2}\/\d{2}\/\d{4}/);
+    expect(liqDate).toMatch(/\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?\s*→\s*\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?/);
 
     await page.click('button:has-text("New Session")');
     await page.waitForTimeout(2000);

@@ -17,13 +17,23 @@ const SPEED_MULTIPLIER = 60; // 1 real min = 1 simulated hour
 const TICK_MS = 100; // updates every 100ms
 const HISTORY_OFFSET_CANDLES = 30; // pre-loaded candles as visible history
 
-// Draw window: 12/01/2017 to 12/31/2020
+// Draw window: 12/01/2017 to 12/31/2025
 const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
-const MAX_DATE = new Date("2020-12-31T00:00:00Z").getTime();
+const MAX_DATE = new Date("2025-12-31T00:00:00Z").getTime();
 
 function randomDate(): Date {
   const ts = MIN_DATE + Math.random() * (MAX_DATE - MIN_DATE);
   return new Date(ts);
+}
+
+function formatRealDate(d: Date): string {
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatElapsedTime(totalSeconds: number): string {
@@ -209,7 +219,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     const checkResult = storeCheckPosition(price);
     if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
       const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
-      const dateRange = `${originalStartDateRef.current.toLocaleDateString("pt-BR")} → ${endDate.toLocaleDateString("pt-BR")}`;
+      const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
       useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
     }
   }, [storeAddPriceHistory, storeCheckPosition]);
@@ -259,11 +269,18 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     };
   }, [loadSession]);
 
+  // Expose engine control for E2E tests
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__timewarpEngine = { pause, start, reset };
+    }
+  }, [pause, start, reset]);
+
   const endDate = originalStartDateRef.current
     ? new Date(originalStartDateRef.current.getTime() + (candles.length - 1) * 60_000)
     : null;
   const realDateRange = originalStartDateRef.current && endDate
-    ? `${originalStartDateRef.current.toLocaleDateString("pt-BR")} → ${endDate.toLocaleDateString("pt-BR")}`
+    ? `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`
     : "";
 
   return {

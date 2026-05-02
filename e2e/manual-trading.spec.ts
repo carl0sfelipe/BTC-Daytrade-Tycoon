@@ -137,4 +137,220 @@ test.describe('Manual Trading Validation', () => {
     await posPanel.locator('text=Close Position').first().click();
     await page.waitForTimeout(500);
   });
+
+  test('distance to liquidation displays correctly', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Reset store
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({
+        wallet: 10000,
+        position: null,
+        closedTrades: [],
+      });
+    });
+    await page.waitForTimeout(300);
+
+    // Open LONG 10x with 50%
+    await page.click('text=LONG');
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("10x")').click();
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("50%")').click();
+    await page.waitForTimeout(200);
+
+    await page.click('button:has-text("Open Long")');
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: 'test-results/08-distance-to-liq.png', fullPage: true });
+
+    // Verify Distance to Liquidation is visible and has a reasonable percentage
+    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
+    const panelText = await posPanel.innerText();
+    console.log('Position panel text:', panelText.substring(0, 600));
+
+    // With 10x leverage, distance should be ~10%
+    expect(panelText).toContain('DISTANCE TO LIQUIDATION');
+
+    // Parse percentage from text (e.g., "DISTANCE TO LIQUIDATION\n10.0%")
+    const match = panelText.match(/DISTANCE TO LIQUIDATION\s*\n?\s*([\d.]+)%/);
+    const pct = match ? parseFloat(match[1]) : -1;
+    console.log('Parsed distance percentage:', pct);
+
+    expect(pct).toBeGreaterThanOrEqual(5);
+    expect(pct).toBeLessThanOrEqual(15);
+
+    // Verify the progress bar exists
+    const bar = posPanel.locator('.h-full.rounded-full.risk-gradient');
+    await expect(bar).toBeVisible();
+
+    // Close position
+    await posPanel.locator('text=Close Position').first().click();
+    await page.waitForTimeout(500);
+  });
+
+  test('risk gauge bar moves as price changes', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Reset store
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({
+        wallet: 10000,
+        position: null,
+        closedTrades: [],
+      });
+    });
+    await page.waitForTimeout(300);
+
+    // Open LONG 10x with 50% ($50k position, $5k margin)
+    await page.click('text=LONG');
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("10x")').click();
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("50%")').click();
+    await page.waitForTimeout(200);
+    await page.click('button:has-text("Open Long")');
+    await page.waitForTimeout(800);
+
+    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
+
+    // Read initial bar width
+    const getBarWidth = async () => {
+      const bar = posPanel.locator('[data-testid="distance-bar"]');
+      const style = await bar.evaluate((el: HTMLElement) => el.style.width);
+      return parseFloat(style);
+    };
+
+    const width1 = await getBarWidth();
+    console.log('Initial bar width:', width1);
+
+    // Pause the simulation engine so we can control price manually
+    await page.evaluate(() => {
+      const engine = (window as any).__timewarpEngine;
+      if (engine && engine.pause) engine.pause();
+    });
+    await page.waitForTimeout(300);
+
+    // Inject a price drop to move closer to liquidation
+    await page.evaluate(() => {
+      const store = (window as any).__tradingStore;
+      const pos = store.getState().position;
+      if (pos) {
+        // Drop price by 3% to reduce distance to liquidation
+        const newPrice = pos.entry * 0.97;
+        store.setState({ currentPrice: newPrice, price: newPrice });
+      }
+    });
+    await page.waitForTimeout(600);
+
+    const width2 = await getBarWidth();
+    console.log('Bar width after price drop:', width2);
+
+    // The bar should have shrunk (price got closer to liquidation)
+    expect(width2).toBeLessThan(width1);
+
+    // Inject a price rise to move away from liquidation
+    await page.evaluate(() => {
+      const store = (window as any).__tradingStore;
+      const pos = store.getState().position;
+      if (pos) {
+        // Raise price by 5% from entry to increase distance
+        const newPrice = pos.entry * 1.05;
+        store.setState({ currentPrice: newPrice, price: newPrice });
+      }
+    });
+    await page.waitForTimeout(600);
+
+    const width3 = await getBarWidth();
+    console.log('Bar width after price rise:', width3);
+
+    // The bar should have grown (price moved away from liquidation)
+    expect(width3).toBeGreaterThan(width2);
+
+    // Resume engine before closing
+    await page.evaluate(() => {
+      const engine = (window as any).__timewarpEngine;
+      if (engine && engine.start) engine.start();
+    });
+
+    // Close position
+    await posPanel.locator('text=Close Position').first().click();
+    await page.waitForTimeout(500);
+  });
+
+  test('risk gauge updates naturally as simulation runs', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Reset store and skip high-leverage warning
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({
+        wallet: 10000,
+        position: null,
+        closedTrades: [],
+        skipHighLeverageWarning: true,
+      });
+    });
+    await page.waitForTimeout(300);
+
+    // Open LONG with 100x leverage and small size so liquidation is very close
+    // 100x leverage = 1% distance to liquidation initially
+    await page.click('text=LONG');
+    await page.waitForTimeout(200);
+    // Select 100x leverage if available, otherwise use the highest available
+    const leverageBtn = page.locator('button:has-text("100x")');
+    const has100x = await leverageBtn.isVisible().catch(() => false);
+    if (has100x) {
+      await leverageBtn.click();
+    } else {
+      // Use 50x as fallback
+      await page.locator('button:has-text("50x")').click();
+    }
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("10%")').click();
+    await page.waitForTimeout(200);
+    await page.click('button:has-text("Open Long")');
+    await page.waitForTimeout(800);
+
+    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
+
+    // Read initial bar width
+    const getBarWidth = async () => {
+      const bar = posPanel.locator('[data-testid="distance-bar"]');
+      const style = await bar.evaluate((el: HTMLElement) => el.style.width);
+      return parseFloat(style);
+    };
+
+    const width1 = await getBarWidth();
+    console.log('Initial bar width (natural):', width1);
+
+    // Wait for the simulation to naturally move price (8 seconds real time = 8 simulated minutes)
+    await page.waitForTimeout(8000);
+
+    const width2 = await getBarWidth();
+    console.log('Bar width after 8s simulation:', width2);
+
+    // The bar should have changed (price moved during simulation)
+    // Use a small tolerance since the change could be tiny with 10x leverage
+    expect(Math.abs(width2 - width1)).toBeGreaterThan(0.01);
+
+    await posPanel.locator('text=Close Position').first().click();
+    await page.waitForTimeout(500);
+  });
 });

@@ -19,6 +19,7 @@ test.describe('Historical date reveal', () => {
     expect(clockText).not.toContain('→');
     expect(clockText).not.toMatch(/\d{2}\/\d{2}\/\d{4},?\s*\d{2}:\d{2}/);
   });
+
   test('End button opens modal with historical period', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
@@ -32,8 +33,19 @@ test.describe('Historical date reveal', () => {
     await page.waitForSelector('text=Simulation Ended', { timeout: 5000 });
     await saveEvidence(page, JID, '02-end-modal-with-date');
 
-    const dateText = await page.locator('text=Real Historical Period').locator('..').locator('div.font-mono').textContent();
-    expect(dateText).toMatch(/\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?\s*→\s*\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?/);
+    // Verify modal shows the redesigned date section
+    await expect(page.locator('text=Real Historical Period')).toBeVisible();
+    await expect(page.locator('text=Start').first()).toBeVisible();
+    await expect(page.locator('text=End').first()).toBeVisible();
+
+    // Verify at least one date is present in monospaced font
+    const monoTexts = await page.locator('.font-mono').allTextContents();
+    const hasDate = monoTexts.some((t) => /\d{2}\/\d{2}\/\d{4}/.test(t));
+    expect(hasDate).toBe(true);
+
+    // Verify time stats are shown
+    await expect(page.locator('text=Your Time').first()).toBeVisible();
+    await expect(page.locator('text=Historical Data Simulated').first()).toBeVisible();
 
     await page.click('button:has-text("Back")');
     await page.waitForTimeout(500);
@@ -72,8 +84,14 @@ test.describe('Historical date reveal', () => {
     await page.waitForSelector('text=ACCOUNT LIQUIDATED', { timeout: 5000 });
     await saveEvidence(page, JID, '04-liquidation-modal');
 
-    const liqDate = await page.locator('text=Real Historical Period').locator('..').locator('div.font-mono').textContent();
-    expect(liqDate).toMatch(/\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?\s*→\s*\d{2}\/\d{2}\/\d{4}(?:,\s*\d{2}:\d{2})?/);
+    // Verify modal shows the redesigned date section
+    await expect(page.locator('text=Real Historical Period')).toBeVisible();
+    await expect(page.locator('text=Start').first()).toBeVisible();
+    await expect(page.locator('text=End').first()).toBeVisible();
+
+    const monoTexts = await page.locator('.font-mono').allTextContents();
+    const hasDate = monoTexts.some((t) => /\d{2}\/\d{2}\/\d{4}/.test(t));
+    expect(hasDate).toBe(true);
 
     await page.click('button:has-text("New Session")');
     await page.waitForTimeout(2000);

@@ -39,7 +39,6 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
         <SimulationClock
           elapsedTime={engine.elapsedTime}
           speed={60}
-          progressPercent={engine.progressPercent}
           isPlaying={engine.isPlaying}
           realDateRange={engine.realDateRange}
           onPause={engine.pause}

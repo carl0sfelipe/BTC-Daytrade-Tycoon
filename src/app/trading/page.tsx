@@ -91,6 +91,16 @@ export default function TradingPage() {
     returnPercent: ((wallet - INITIAL_WALLET) / INITIAL_WALLET) * 100,
   };
 
+  // Format elapsed time as "5h 30m 15s" from "05:30:15"
+  const formatElapsedPretty = (time: string) => {
+    const [h, m, s] = time.split(":").map(Number);
+    const parts: string[] = [];
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0) parts.push(`${m}m`);
+    if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+    return parts.join(" ");
+  };
+
   return (
     <div className="min-h-screen bg-crypto-bg text-crypto-text">
       <Header />
@@ -103,7 +113,6 @@ export default function TradingPage() {
             <SimulationClock
               elapsedTime={engine.elapsedTime}
               speed={60}
-              progressPercent={engine.progressPercent}
               isPlaying={engine.isPlaying}
               realDateRange={engine.realDateRange}
               onPause={engine.pause}
@@ -150,13 +159,20 @@ export default function TradingPage() {
 
       {/* Liquidation modal */}
       {isLiquidated && simulationRealDate && (
-        <LiquidationModal realDate={simulationRealDate} onNewSession={handleNewSession} />
+        <LiquidationModal
+          realDate={simulationRealDate}
+          elapsedTime={formatElapsedPretty(engine.elapsedTime)}
+          simulatedHistoricalTime={engine.simulatedHistoricalTime}
+          onNewSession={handleNewSession}
+        />
       )}
 
       {/* Modal de encerramento manual */}
       {showEndModal && (
         <EndSimulationModal
           realDateRange={engine.realDateRange}
+          elapsedTime={formatElapsedPretty(engine.elapsedTime)}
+          simulatedHistoricalTime={engine.simulatedHistoricalTime}
           stats={endStats}
           onClose={() => setShowEndModal(false)}
           onNewSession={handleNewSession}

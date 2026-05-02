@@ -16,6 +16,7 @@ import { useTradingStore } from "@/store/tradingStore";
 const SPEED_MULTIPLIER = 60; // 1 real min = 1 simulated hour
 const TICK_MS = 100; // updates every 100ms
 const HISTORY_OFFSET_CANDLES = 30; // pre-loaded candles as visible history
+const FETCH_AHEAD_MINUTES = 300; // fetch more data when < 5 hours remain
 
 // Draw window: 12/01/2017 to 12/31/2025
 const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
@@ -43,17 +44,28 @@ function formatElapsedTime(totalSeconds: number): string {
   return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function formatDuration(minutes: number): string {
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = Math.floor(minutes % 60);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+  return parts.join(" ");
+}
+
 export interface UseTimewarpEngineReturn {
   isLoading: boolean;
   loadingMessage: string;
   isPlaying: boolean;
   elapsedTime: string;
-  progressPercent: number;
   candles: SimulatedCandle[];
   currentPrice: number;
   currentTimeSec: number;
   error: string | null;
   realDateRange: string;
+  simulatedHistoricalTime: string;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -64,10 +76,10 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
-  const [progressPercent, setProgressPercent] = useState(0);
   const [candles, setCandles] = useState<SimulatedCandle[]>([]);
   const [currentTimeSec, setCurrentTimeSec] = useState(0);
   const [currentPrice, setCurrentPrice] = useState(0);
+  const [simulatedHistoricalTime, setSimulatedHistoricalTime] = useState("0m");
   const [error, setError] = useState<string | null>(null);
 
   const historicalCandlesRef = useRef<BinanceCandle[]>([]);
@@ -77,6 +89,8 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const candlesRef = useRef<SimulatedCandle[]>([]);
   const isPlayingRef = useRef(false);
+  const isFetchingMoreRef = useRef(false);
+  const basePriceRef = useRef<number>(0);
 
   const storeSetPrice = useTradingStore((s) => s.setPrice);
   const storeSetCurrentPrice = useTradingStore((s) => s.setCurrentPrice);
@@ -111,6 +125,44 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     });
   }, []);
 
+  const appendMoreCandles = useCallback(async () => {
+    if (isFetchingMoreRef.current) return;
+    isFetchingMoreRef.current = true;
+
+    try {
+      const lastHistCandle = historicalCandlesRef.current[historicalCandlesRef.current.length - 1];
+      if (!lastHistCandle) return;
+
+      const nextStart = new Date(lastHistCandle.closeTime + 1);
+      const newHistorical = await fetchCandles(nextStart);
+
+      if (newHistorical.length === 0) {
+        // No more historical data available — pause and show error
+        setIsPlaying(false);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setError("No more historical data available for this period.");
+        return;
+      }
+
+      // Append to historical ref
+      historicalCandlesRef.current = [...historicalCandlesRef.current, ...newHistorical];
+
+      // Normalize using the SAME base price so the chart stays continuous
+      const basePrice = basePriceRef.current;
+      const newSimulated = normalizeCandlesToBasePrice(newHistorical, basePrice);
+
+      // Append to simulated candles
+      const updated = [...candlesRef.current, ...newSimulated];
+      setCandles(updated);
+      candlesRef.current = updated;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch more data";
+      setError(msg);
+    } finally {
+      isFetchingMoreRef.current = false;
+    }
+  }, []);
+
   const loadSession = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -120,6 +172,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     try {
       setLoadingMessage("Fetching current BTC price...");
       const currentPrice = await fetchCurrentPrice();
+      basePriceRef.current = currentPrice;
 
       setLoadingMessage("Drawing historical scenario...");
       const startDate = randomDate();
@@ -156,7 +209,6 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       });
 
       setElapsedTime("00:00:00");
-      setProgressPercent(0);
       setLoadingMessage("");
       setIsLoading(false);
 
@@ -185,21 +237,21 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     const simulatedTimeSec = Math.floor(simulatedTimeMs / 1000);
 
     const lastCandle = currentCandles[currentCandles.length - 1];
-    const totalDuration = lastCandle.time - currentCandles[0].time;
-    const elapsedInData = simulatedTimeSec - currentCandles[0].time;
-    const progress = Math.min(100, Math.max(0, (elapsedInData / totalDuration) * 100));
-    setProgressPercent(progress);
+
+    // Check if we need to fetch more data (< 5 hours remaining)
+    const minutesRemaining = (lastCandle.time - simulatedTimeSec) / 60;
+    if (minutesRemaining < FETCH_AHEAD_MINUTES / SPEED_MULTIPLIER && !isFetchingMoreRef.current) {
+      appendMoreCandles();
+    }
 
     // Updates elapsed time
     const totalSeconds = Math.floor(realElapsedMs / 1000);
     setElapsedTime(formatElapsedTime(totalSeconds));
     setCurrentTimeSec(simulatedTimeSec);
 
-    if (simulatedTimeSec >= lastCandle.time) {
-      setIsPlaying(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
+    // Accumulated historical time covered (seconds of historical data simulated)
+    const historicalSeconds = simulatedTimeSec - Math.floor(startDate.getTime() / 1000);
+    setSimulatedHistoricalTime(formatDuration(Math.max(0, historicalSeconds / 60)));
 
     const price = interpolatePrice(currentCandles, simulatedTimeSec);
     const trend = calculateTrend(currentCandles, price);
@@ -222,7 +274,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
       useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
     }
-  }, [storeAddPriceHistory, storeCheckPosition]);
+  }, [storeAddPriceHistory, storeCheckPosition, appendMoreCandles]);
 
   const startSimulation = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -276,11 +328,9 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     }
   }, [pause, start, reset]);
 
-  const endDate = originalStartDateRef.current
-    ? new Date(originalStartDateRef.current.getTime() + (candles.length - 1) * 60_000)
-    : null;
-  const realDateRange = originalStartDateRef.current && endDate
-    ? `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`
+  // realDateRange now only shows the start date (no end, since it's infinite)
+  const realDateRange = originalStartDateRef.current
+    ? formatRealDate(originalStartDateRef.current)
     : "";
 
   return {
@@ -288,12 +338,12 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     loadingMessage,
     isPlaying,
     elapsedTime,
-    progressPercent,
     candles,
     currentPrice,
     currentTimeSec,
     error,
     realDateRange,
+    simulatedHistoricalTime,
     start,
     pause,
     reset,

@@ -1,9 +1,11 @@
 "use client";
 
-import { BarChart3, RotateCcw, Home } from "lucide-react";
+import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer } from "lucide-react";
 
 interface EndSimulationModalProps {
   realDateRange: string;
+  elapsedTime: string;
+  simulatedHistoricalTime: string;
   stats: { pnl: number; trades: number; winRate: number; returnPercent: number };
   onClose: () => void;
   onNewSession: () => void;
@@ -11,11 +13,16 @@ interface EndSimulationModalProps {
 
 export default function EndSimulationModal({
   realDateRange,
+  elapsedTime,
+  simulatedHistoricalTime,
   stats,
   onClose,
   onNewSession,
 }: EndSimulationModalProps) {
   const isPositive = stats.pnl >= 0;
+
+  // Parse date range into start and end
+  const [startDate, endDate] = realDateRange.split(" → ");
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
@@ -38,10 +45,41 @@ export default function EndSimulationModal({
           </div>
 
           <div className="px-6 py-5 space-y-5">
-            {/* Date reveal */}
-            <div className="text-center p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border">
-              <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Real Historical Period</span>
-              <div className="text-xl font-bold font-mono text-crypto-text">{realDateRange}</div>
+            {/* Real Historical Period — redesigned */}
+            <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-crypto-accent" />
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Real Historical Period</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-crypto-text-muted uppercase">Start</span>
+                  <span className="text-sm font-bold font-mono text-crypto-text">{startDate || "—"}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-crypto-text-muted uppercase">End</span>
+                  <span className="text-sm font-bold font-mono text-crypto-text">{endDate || "—"}</span>
+                </div>
+              </div>
+
+              {/* Time comparison */}
+              <div className="pt-2 border-t border-crypto-border/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] text-crypto-text-muted">
+                    <Clock className="w-3 h-3" />
+                    <span>Your Time</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono text-crypto-text">{elapsedTime}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] text-crypto-text-muted">
+                    <Timer className="w-3 h-3" />
+                    <span>Historical Time Covered</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono text-crypto-accent">{simulatedHistoricalTime}</span>
+                </div>
+              </div>
             </div>
 
             {/* Session stats */}

@@ -5,7 +5,6 @@ import { Clock, Pause, Play, Square, RefreshCw } from "lucide-react";
 interface SimulationClockProps {
   elapsedTime: string;
   speed: number;
-  progressPercent: number;
   isPlaying: boolean;
   realDateRange: string;
   onPause: () => void;
@@ -17,7 +16,6 @@ interface SimulationClockProps {
 export default function SimulationClock({
   elapsedTime,
   speed,
-  progressPercent,
   isPlaying,
   realDateRange,
   onPause,
@@ -42,19 +40,13 @@ export default function SimulationClock({
         {/* Divider */}
         <div className="w-px h-8 bg-crypto-border" />
 
-        {/* Progress */}
-        <div className="flex flex-col gap-1 w-48">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Progress</span>
-            <span className="text-[10px] font-bold font-mono text-crypto-accent">{progressPercent.toFixed(1)}%</span>
+        {/* Historical start date */}
+        {realDateRange && (
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Historical Start</span>
+            <span className="text-xs font-mono text-crypto-text tabular-nums truncate max-w-[200px]">{realDateRange}</span>
           </div>
-          <div className="h-1.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-crypto-accent to-crypto-cyan transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Controls */}

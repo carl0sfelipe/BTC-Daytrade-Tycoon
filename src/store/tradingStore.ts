@@ -5,6 +5,13 @@ export interface Trade {
   pnl: number;
   side: "long" | "short";
   reason: "manual" | "tp" | "sl" | "liquidation";
+  entryPrice: number;
+  exitPrice: number;
+  size: number;
+  leverage: number;
+  margin: number;
+  entryTime: string;
+  exitTime: string;
 }
 
 interface Position {
@@ -15,6 +22,7 @@ interface Position {
   tpPrice: number | null;
   slPrice: number | null;
   liquidationPrice: number;
+  entryTime: string;
 }
 
 interface TradingStore {
@@ -120,6 +128,15 @@ export const useTradingStore = create<TradingStore>()(
         const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
         const liqPrice = calcLiquidationPrice(entryPrice, leverage, side);
 
+        const now = new Date().toLocaleString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
         const newPosition: Position = {
           side,
           entry: entryPrice,
@@ -128,6 +145,7 @@ export const useTradingStore = create<TradingStore>()(
           tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
           slPrice: slPrice && slPrice > 0 ? slPrice : null,
           liquidationPrice: liqPrice,
+          entryTime: now,
         };
         set({
           position: newPosition,
@@ -153,9 +171,31 @@ export const useTradingStore = create<TradingStore>()(
         const margin = size / leverage;
         const newWallet = state.wallet + margin + pnl;
 
+        const now = new Date().toLocaleString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+        const trade: Trade = {
+          pnl,
+          side,
+          reason,
+          entryPrice: entry,
+          exitPrice: price,
+          size,
+          leverage,
+          margin,
+          entryTime: state.position.entryTime || now,
+          exitTime: now,
+        };
+
         set({
           wallet: Math.max(0, newWallet),
-          closedTrades: [...state.closedTrades, { pnl, side, reason }],
+          closedTrades: [...state.closedTrades, trade],
           position: null,
           activePositions: state.activePositions.filter(
             (p) => p.entry !== state.position!.entry || p.side !== state.position!.side

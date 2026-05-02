@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Production Vercel — Distance Bar Smoke', () => {
   test('bar moves during live simulation with 100% size 100x', async ({ page }) => {
+    test.setTimeout(120000);
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(2500);

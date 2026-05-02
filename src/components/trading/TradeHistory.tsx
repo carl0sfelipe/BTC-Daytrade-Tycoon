@@ -1,6 +1,6 @@
 "use client";
 
-import { Target, Shield, Skull, Hand } from "lucide-react";
+import { Target, Shield, Skull, Hand, ArrowRight, Clock } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 
 type TradeReason = "manual" | "tp" | "sl" | "liquidation";
@@ -57,51 +57,71 @@ export default function TradeHistory() {
         <span className="text-[10px] text-crypto-text-muted font-mono">{closedTrades.length} trades</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-[200px] max-h-[300px]">
-        <div className="relative pl-6 pr-4 py-3">
-          {/* Timeline line */}
-          <div className="absolute left-[1.85rem] top-4 bottom-4 w-px bg-crypto-border" />
-
+      <div className="flex-1 overflow-y-auto min-h-[200px] max-h-[400px]">
+        <div className="divide-y divide-crypto-border/50">
           {trades.map((trade, idx) => {
             const isProfit = trade.pnl >= 0;
-            return (
-              <div key={idx} className="relative flex items-start gap-3 mb-4 last:mb-0">
-                {/* Timeline dot */}
-                <div
-                  className={`absolute left-[1.4rem] mt-1.5 w-2.5 h-2.5 rounded-full border-2 z-10 ${
-                    trade.reason === "liquidation"
-                      ? "bg-crypto-short border-crypto-short"
-                      : isProfit
-                      ? "bg-crypto-long border-crypto-long"
-                      : "bg-crypto-short border-crypto-short"
-                  }`}
-                />
+            const pnlPercent = (trade.pnl / trade.margin) * 100;
+            const priceChange = trade.side === "long"
+              ? ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100
+              : ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100;
 
-                {/* Content */}
-                <div className="flex-1 ml-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                          trade.side === "long"
-                            ? "bg-crypto-long-dim text-crypto-long"
-                            : "bg-crypto-short-dim text-crypto-short"
-                        }`}
-                      >
-                        {trade.side === "long" ? "LONG" : "SHORT"}
-                      </span>
-                      <div className="flex items-center gap-1 text-[10px] text-crypto-text-muted">
-                        {getReasonIcon(trade.reason)}
-                        <span>{getReasonLabel(trade.reason)}</span>
-                      </div>
+            return (
+              <div key={idx} className="px-4 py-3 hover:bg-crypto-surface-elevated/30 transition-colors">
+                {/* Row 1: Side + Leverage | Reason | P&L */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                        trade.side === "long"
+                          ? "bg-crypto-long-dim text-crypto-long"
+                          : "bg-crypto-short-dim text-crypto-short"
+                      }`}
+                    >
+                      {trade.side === "long" ? "LONG" : "SHORT"}
+                    </span>
+                    <span className="text-[10px] font-bold font-mono text-crypto-accent">{trade.leverage}x</span>
+                    <div className="flex items-center gap-1 text-[10px] text-crypto-text-muted">
+                      {getReasonIcon(trade.reason)}
+                      <span>{getReasonLabel(trade.reason)}</span>
                     </div>
                   </div>
+                  <span
+                    className={`text-sm font-bold font-mono tabular-nums ${isProfit ? "text-crypto-long" : "text-crypto-short"}`}
+                  >
+                    {isProfit ? "+" : ""}${trade.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-sm font-bold font-mono tabular-nums ${isProfit ? "text-crypto-long" : "text-crypto-short"}`}
-                    >
-                      {isProfit ? "+" : ""}${trade.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                {/* Row 2: Entry Price → Exit Price | Price change % */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-crypto-text tabular-nums">
+                    <span>${trade.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    <ArrowRight className="w-3 h-3 text-crypto-text-muted" />
+                    <span>${trade.exitPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <span className={`text-[10px] font-bold font-mono ${isProfit ? "text-crypto-long" : "text-crypto-short"}`}>
+                    {isProfit ? "+" : ""}{priceChange.toFixed(2)}%
+                  </span>
+                </div>
+
+                {/* Row 3: Times | Size | Margin | P&L% */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 text-[10px] text-crypto-text-muted">
+                      <Clock className="w-3 h-3" />
+                      <span>{trade.entryTime}</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-crypto-border" />
+                      <span>{trade.exitTime}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-crypto-text-muted">
+                    <span>Size: ${trade.size.toLocaleString()}</span>
+                    <span className="text-crypto-border">|</span>
+                    <span>Margin: ${trade.margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    <span className="text-crypto-border">|</span>
+                    <span className={isProfit ? "text-crypto-long" : "text-crypto-short"}>
+                      {isProfit ? "+" : ""}{pnlPercent.toFixed(2)}%
                     </span>
                   </div>
                 </div>

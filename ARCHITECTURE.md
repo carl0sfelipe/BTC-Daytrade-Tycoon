@@ -1,308 +1,462 @@
-# Crypto Tycoon Pro — Análise Arquitetural dos Componentes
+# BTC Daytrade Tycoon — Technical Architecture
 
-> Data: 2026-05-01
-> Contexto: Projeto saiu de um estado híbrido (Neural Cortex + Trading) para um simulador puro. Este documento explica o que cada componente faz, como se comunica (ou não) com os outros, e por que a tela parece "morta" exceto pelo feed de notícias.
-
----
-
-## 1. O Problema Central
-
-**Nada se move porque ninguém atualiza o preço.**
-
-O `tradingStore.ts` inicializa o BTC a **$45.000,00** e a volatilidade a **1,5%**. Esses valores são *imutáveis* em runtime. Não existe nenhum `setInterval`, nenhum WebSocket e nenhum hook conectado ao store que faça o preço oscilar. O resultado: o `MarketStatus` mostra $45.000 pra sempre, o `ChartCanvas` desenha uma linha reta, e o `OrderBook` gera bids/asks em torno de $45.000 sem nunca mudar.
-
-O único componente com "vida" é o `NewsFeed`, que troca notícias hardcoded a cada 30 segundos via `setInterval` próprio. Daí o usuário olhar e pensar: "só as notícias funcionam".
+> **Version:** May 2026  
+> **Stack:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS v3, Zustand, lightweight-charts v5, Playwright (E2E)  
+> **Target Audience:** Developers contributing to or maintaining the codebase.
 
 ---
 
-## 2. A Pilha de Estado — `tradingStore.ts` (Zustand + Persist)
+## Table of Contents
 
-### 2.1 O que é
+1. [Overview & Core Concept](#overview--core-concept)
+2. [Tech Stack](#tech-stack)
+3. [Project Structure](#project-structure)
+4. [Data Flow & Simulation Engine](#data-flow--simulation-engine)
+5. [State Management (Zustand)](#state-management-zustand)
+6. [Position Mechanics](#position-mechanics)
+7. [Component Architecture](#component-architecture)
+8. [Modals & UX Flows](#modals--ux-flows)
+9. [Authentication](#authentication)
+10. [E2E Testing](#e2e-testing)
+11. [Important Technical Notes](#important-technical-notes)
 
-O coração da aplicação é um store Zustand com middleware de persistência no `localStorage` (chave: `trading-storage`). Isso significa que, se você abrir uma posição, fechar o browser e voltar amanhã, sua carteira e suas trades ainda estarão lá.
+---
 
-### 2.2 Estado inicial
+## Overview & Core Concept
+
+**TimeWarp Trading Simulator** drops the user into a random, real Bitcoin trading day between December 2017 and December 2020. The historical date is intentionally hidden — there is no time axis, no calendar, and no date labels on the chart. The goal is pure price-action trading without temporal bias.
+
+| Parameter | Value |
+|-----------|-------|
+| Speed | 60× (1 real second = 1 simulated minute) |
+| Tick interval | 100 ms |
+| Data source | Binance 1-minute candle API (`BTCUSDT`) |
+| Candle batch | 2 × 1000 candles ≈ 2000 candles ≈ ~33 hours of data |
+| Price normalization | Historical percentage returns preserved, but prices scaled to current live BTC price |
+| Starting wallet | $10,000 |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14 (App Router) |
+| UI Library | React 18 |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS v3 + `tailwindcss-animate` |
+| State | Zustand 4 + `persist` middleware |
+| Charts | `lightweight-charts` v5 |
+| UI Primitives | Radix UI (Dialog, Slider, ScrollArea, Tooltip, etc.) |
+| Animation | Framer Motion |
+| Icons | Lucide React |
+| Forms | React Hook Form + Zod |
+| E2E Tests | Playwright |
+| Unit Tests | Vitest + React Testing Library |
+
+---
+
+## Project Structure
 
 ```
-price:           45000        // Preço BTC exibido no MarketStatus
-currentPrice:    45000        // Mesmo valor, usado pelos componentes de trading
-volatility:      1.5          // % de volatilidade (estático)
-marketTrend:     "bull"       // Trend fixo pra sempre
-priceHistory:    Array(50)    // 50 pontos aleatórios entre 44k e 46k
-wallet:          10000        // Saldo inicial em USD
-closedTrades:    []           // Nenhuma trade fechada ainda
-position:        null         // Sem posição aberta
-activePositions: []           // Lista vazia
-isLoading:       false        // Flag de carregamento
+BTC-Daytrade-Tycoon/
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── trading/page.tsx    # Main simulation page (mounted guard)
+│   │   ├── auth/               # Login / signup pages
+│   │   ├── leaderboard/        # Rankings page
+│   │   ├── achievements/       # Achievements page
+│   │   ├── layout.tsx          # Root layout (lang="en")
+│   │   └── globals.css         # Tailwind + custom crypto theme vars
+│   ├── components/
+│   │   ├── layout/             # Header, MarketStatus
+│   │   ├── trading/            # Core trading UI components
+│   │   └── ui/                 # shadcn/ui primitives (Button, Dialog, Slider, etc.)
+│   ├── hooks/
+│   │   ├── useTimewarpEngine.ts   # Simulation loop & data fetch
+│   │   ├── useTradingEngine.ts    # (legacy compat)
+│   │   ├── useBinancePrice.ts
+│   │   ├── useMarketVolatility.ts
+│   │   ├── useKeyboardShortcuts.ts
+│   │   └── use-mobile.tsx
+│   ├── store/
+│   │   └── tradingStore.ts     # Zustand store + persist
+│   ├── lib/
+│   │   ├── binance-api.ts      # Fetch + normalize + interpolate candles
+│   │   ├── fake-auth.ts        # Client-side fake auth
+│   │   └── utils.ts            # cn() helper
+│   ├── types/
+│   │   └── trading.ts          # Shared type definitions
+│   └── utils/
+│       ├── priceCalc.ts
+│       ├── formatCurrency.ts
+│       ├── volatilityEngine.ts
+│       └── streak.ts
+├── e2e/                        # Playwright specs
+│   ├── trading.spec.ts
+│   ├── date-reveal.spec.ts
+│   ├── manual-trading.spec.ts
+│   └── _helper.ts
+├── public/
+│   └── chatgpt-extractor.js
+├── next.config.mjs
+├── tailwind.config.ts
+├── playwright.config.ts
+└── package.json
 ```
 
-### 2.3 O fluxo de uma trade completa
+---
 
-1. **Abertura** — `TradeControls` chama `openPosition(leverage, size, tp, sl)`
-   - Cria um objeto `Position` com `entry = currentPrice` (45000), `type = "long"`, `size`, `leverage`
-   - Deduz da carteira: `wallet -= size / leverage` (margem)
-   - Guarda em `position` e `activePositions`
+## Data Flow & Simulation Engine
 
-2. **Acompanhamento** — `PositionPanel` calcula P&L não-realizado em tempo real:
+The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data fetching, the game loop, and store updates.
+
+### High-Level Flow
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  Binance API    │────▶│  useTimewarpEngine│────▶│  Zustand Store      │
+│  (BTCUSDT 1m)   │     │  (game loop)      │     │  (price, trend,     │
+└─────────────────┘     └──────────────────┘     │   volatility, ...)  │
+                                                  └──────────┬──────────┘
+                                                             │
+                              ┌──────────────────────────────┼──────────┐
+                              ▼                              ▼          ▼
+                    ┌─────────────────┐            ┌─────────────────┐  ┌──────────────┐
+                    │  TradingChart   │            │  PositionPanel  │  │  OrderBook   │
+                    │  (lightweight-  │            │  (PnL / Risk)   │  │  (synthetic) │
+                    │   charts v5)    │            └─────────────────┘  └──────────────┘
+                    └─────────────────┘
+```
+
+### Step-by-Step Engine Lifecycle
+
+1. **Random Date Draw**
+   ```ts
+   const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
+   const MAX_DATE = new Date("2020-12-31T00:00:00Z").getTime();
    ```
-   unrealizedPnL = (currentPrice - entry) * (size / leverage)
+   A random timestamp between these bounds is chosen.
+
+2. **Data Fetch**
+   - `fetchCurrentPrice()` gets live BTC price from Binance.
+   - `fetchCandles(startDate)` performs **2 sequential API calls** (`limit=1000` each) to retrieve ~2000 1-minute candles (~33 hours).
+
+3. **Normalization**
+   ```ts
+   normalizeCandlesToBasePrice(historicalCandles, currentLivePrice)
    ```
-   - Se o preço sobesse para 46.000, o P&L seria positivo.
-   - **Mas o preço nunca sobe.** Então o P&L fica zero pra sempre.
+   Each candle's OHLC is divided by the first candle's open to get percentage ratios, then multiplied by the live BTC price. This preserves historical volatility and returns while making prices feel current.
 
-3. **Fechamento** — `TradeControls` chama `closePosition()`
-   - Calcula P&L final: `(currentPrice - entry) * (size / leverage)`
-   - Devolve margem + lucro/prejuízo para `wallet`
-   - Adiciona `{ pnl }` ao array `closedTrades`
-   - Limpa `position` e `activePositions`
+4. **History Offset**
+   The first 30 candles are pre-consumed so the chart is already populated when the user sees it:
+   ```ts
+   const HISTORY_OFFSET_CANDLES = 30;
+   ```
 
-4. **Histórico** — `PnLDisplay` lê `closedTrades` e mostra:
-   - Total de trades fechadas
-   - Win rate (% de trades positivas)
-   - Maior lucro / maior prejuízo
+5. **Game Loop**
+   ```ts
+   const SPEED_MULTIPLIER = 60; // 1 real sec = 1 simulated min
+   const TICK_MS = 100;
+   ```
+   `setInterval(tick, 100)` runs while `isPlaying` is true.
 
-### 2.4 O elefante na sala: `price` vs `currentPrice`
+   On each tick:
+   ```ts
+   const realElapsedMs = Date.now() - simulationStartRealTimeRef.current;
+   const simulatedElapsedMs = realElapsedMs * SPEED_MULTIPLIER;
+   const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
+   ```
 
-O store mantém **duas propriedades com o mesmo valor** (`price` e `currentPrice`). Isso é um vestígio de refatoração. O `MarketStatus` e `OrderBook` leem `price`. O `ChartCanvas`, `PositionPanel`, `PnLDisplay` e `TradeControls` leem `currentPrice`. O `setPrice()` e `setCurrentPrice()` atualizam ambas ao mesmo tempo. Não é um bug, é redundância técnica.
+6. **Interpolation**
+   `interpolatePrice(candles, simulatedTimeSec)` finds the two surrounding candles and linearly interpolates the price between their open values.
 
----
+7. **Metrics Update**
+   - **Trend:** `calculateTrend` computes a 20-candle SMA and labels `bull` / `bear` / `neutral` (±1% threshold).
+   - **Volatility:** `calculateVolatility` computes `(max - min) / avg * 100` over the last 24 candles.
+   - **History:** Rolling `priceHistory` array (last 50 closes) is maintained for sparklines.
 
-## 3. Análise Componente por Componente
-
-### 3.1 `NewsFeed.tsx` — O Único que "Funciona"
-
-**Por que funciona:** é 100% autônomo. Tem um array `NEWS_ITEMS` hardcoded com 6 notícias de crypto. Usa `useEffect` para:
-1. Inicializar o estado com 3 notícias aleatórias.
-2. Rodar um `setInterval` de 30s que pega uma notícia aleatória do array e coloca no topo.
-
-**Dependências externas:** zero. Não lê o Zustand store. Não lê API. Não lê localStorage (exceto se fosse persistente, mas não é).
-
-**Problema:** as notícias são sempre as mesmas 6. Em feriado ou não, o feed mostra "Elon Musk twitta sobre Dogecoin" independente da realidade do mercado.
-
----
-
-### 3.2 `MarketStatus.tsx` — O Termômetro Morto
-
-**O que faz:** lê `price`, `volatility` e `marketTrend` do store e renderiza uma barra colorida.
-
-**Por que parece morto:**
-- `price` = 45000 pra sempre.
-- `volatility` = 1.5 pra sempre.
-- `marketTrend` = "bull" pra sempre.
-
-O componente usa Tailwind para pintar a barra de verde (`bg-green-900/20`) quando `marketTrend === "bull"`. Como nunca muda, a barra nunca fica vermelha. O pulsar do indicador (`animate-pulse`) funciona, mas é CSS puro — não reflete movimento de mercado.
-
-**Como deveria funcionar:** algum hook externo (ex: `useBinancePrice`) deveria chamar `setPrice()` e `setMarketTrend()` a cada tick do WebSocket.
+8. **Position Checks**
+   Every tick calls `store.checkPosition(price)`, which evaluates TP, SL, and liquidation conditions.
 
 ---
 
-### 3.3 `ChartCanvas.tsx` — Canvas Estático
+## State Management (Zustand)
 
-**O que faz:** usa a API HTML5 Canvas para desenhar um gráfico de linha.
+The store lives in `src/store/tradingStore.ts`. It uses Zustand's `persist` middleware with the key `trading-storage`.
 
-**O algoritmo de desenho:**
-1. Limpa o canvas com cor `#1f2937` (cinza escuro).
-2. Desenha linhas de grid horizontais a cada 40px.
-3. Pega os últimos 50 pontos de `priceHistory`.
-4. Calcula `minPrice` e `maxPrice` desses 50 pontos.
-5. Mapeia cada ponto para coordenadas X/Y do canvas.
-6. Desenha uma linha verde (`#22c55e`) conectando os pontos.
-7. Desenha um círculo verde no último ponto + label de preço.
+### Store Shape
 
-**Por que parece morto:**
-- `priceHistory` é gerado **uma única vez** na inicialização do store (50 números aleatórios entre 44k e 46k).
-- Depois disso, nunca é atualizado. O `useEffect` do Canvas só re-executa quando `priceHistory`, `currentPrice` ou `dimensions` mudam.
-- Como nenhum desses três muda, o canvas é desenhado **uma vez** e congela.
+```ts
+interface TradingStore {
+  price: number;                    // Current simulated BTC price
+  currentPrice: number;             // Alias synced with price
+  volatility: number;               // Computed over last 24 candles
+  marketTrend: "bull" | "bear" | "neutral";
+  priceHistory: number[];           // Last 50 prices for sparklines
 
-**Problema de layout secundário:** o componente usa `containerRef.current.clientHeight` para definir a altura do canvas. Se o container não tiver altura explícita no primeiro render, `clientHeight` pode ser 0 ou 350px (do `minHeight`). O canvas pode estar desenhando "achatado" ou com proporções estranhas.
+  wallet: number;                   // Free balance (starts at $10,000)
+  position: Position | null;        // Active position
+  activePositions: Position[];      // Historical array of open positions
+  closedTrades: Trade[];            // Closed trade history
 
----
+  isLiquidated: boolean;
+  simulationRealDate: string | null; // Revealed on end/liquidation
+  hasSeenOnboarding: boolean;
+  lastCloseReason: string | null;
 
-### 3.4 `OrderBook.tsx` — Book Sintético Congelado
+  // Actions
+  openPosition(side, leverage, size, tpPrice, slPrice, limitPrice): void;
+  closePosition(reason?): void;
+  updatePositionSize(newSize): void;
+  updateLeverage(newLeverage): void;
+  checkPosition(currentPrice): { closed: boolean; reason? };
+  setLiquidated(date): void;
+  clearLiquidated(): void;
+  setOnboardingSeen(): void;
+}
+```
 
-**O que faz:** simula um book de ordens (bids e asks) em 5 níveis.
+### Position Interface
 
-**O algoritmo:**
-- Bids: `currentPrice - i * 2` para i = 5, 4, 3, 2, 1
-- Asks: `currentPrice + i * 2` para i = 1, 2, 3, 4, 5
-- Quantidades: `Math.random() * 0.5 + 0.1` BTC
-- Atualiza a cada 2 segundos via `setInterval`
+```ts
+interface Position {
+  side: "long" | "short";
+  entry: number;
+  size: number;
+  leverage: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  liquidationPrice: number;
+}
+```
 
-**Por que parece morto:**
-- As quantidades (segunda coluna) mudam a cada 2s porque usam `Math.random()`.
-- **Mas os preços (primeira coluna) NÃO mudam** porque dependem de `currentPrice`, que é 45000 pra sempre.
-- O usuário vê números piscando na coluna da direita, mas a coluna da esquerda é uma tabela estática: 44990, 44992, 44994, 44996, 44998, 45000, 45002, 45004, 45006, 45008.
+### Dev Debug Hook
 
-**Dependência externa:** lê `state.price` do Zustand store via selector `useTradingStore((state) => state.price)`.
+In non-production builds, the store is exposed globally:
 
----
+```ts
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as any).__tradingStore = useTradingStore;
+}
+```
 
-### 3.5 `PnLDisplay.tsx` — Carteira e Estatísticas
-
-**O que faz:** mostra o saldo da carteira, P&L da sessão, número de trades, win rate, e melhor/pior trade.
-
-**O algoritmo:**
-- `sessionPnL = closedTrades.reduce((acc, trade) => acc + trade.pnl, 0)`
-- Win rate = `trades positivas / total trades * 100`
-
-**Por que parece vazio:**
-- `wallet` começa em $10.000,00. Mostra isso corretamente.
-- `closedTrades` é um array vazio `[]`.
-- Portanto: P&L = $0.00, trades = 0, win rate = 0%, sem maiores lucros/prejuízos.
-
-**Quando encheria de dados:** depois que o usuário abrir e fechar uma posição via `TradeControls`. Mas como o preço nunca muda, toda trade fechada dá P&L = 0. O histórico teria trades, mas todas com lucro zero.
-
----
-
-### 3.6 `PositionPanel.tsx` — Painel de Posição
-
-**O que faz:** mostra a posição aberta atual (se houver).
-
-**Dois estados:**
-1. **Sem posição:** mostra "Sem posição aberta" em cinza.
-2. **Com posição:** mostra tipo (LONG/SHORT), preço de entrada, preço atual, tamanho, P&L não-realizado e preço de liquidação.
-
-**Por que parece morto:**
-- `position` inicial é `null`, então sempre mostra o estado 1.
-- Mesmo que o usuário clique em "ABRIR LONG", o preço não muda, então o P&L não-realizado será sempre zero.
-- A fórmula de liquidação: `entry * (1 - 1/leverage)`. Com entry=45000 e leverage=10x, liquidação = 45000 * 0.9 = 40500. O preço nunca chega lá, então ninguém é liquidado.
+This is actively used by E2E tests to inject positions for liquidation scenarios.
 
 ---
 
-### 3.7 `TradeControls.tsx` — Controles de Ordem
+## Position Mechanics
 
-**O que faz:** slider de alavancagem (2x–100x), slider de tamanho da posição, inputs de TP/SL, e botão de ação.
+### Opening a Position
 
-**O algoritmo do botão:**
-- Se `!position` -> chama `openPosition(leverage, positionSize, tpPrice, slPrice)`
-- Se `position` -> chama `closePosition()`
+```ts
+const margin = positionSize / leverage;
+// Deducts margin from wallet
+```
 
-**Por que parece morto:**
-- O botão diz "ABRIR LONG" porque `position` é `null`.
-- O slider de tamanho vai de 100 até `wallet` (10.000).
-- O slider de alavancagem vai de 2 até 100.
-- **Funciona** — clicar em "ABRIR LONG" abre uma posição, muda o botão para "FECHAR POSIÇÃO", e deduz a margem da carteira.
-- **Mas a experiência é sem graça** porque, após abrir, o P&L fica em zero eternamente e o preço não se move.
+### Liquidation Price
 
-**Bug conhecido:** os parâmetros `tpPrice` e `slPrice` são passados para `openPosition` como strings, mas a função os recebe como `_tpPrice` e `_slPrice` (prefixo underscore = ignorados). Não existe lógica de stop-loss ou take-profit no store.
+Simplified model: liquidation occurs when price moves `1 / leverage` against the position.
 
----
+```ts
+// Long
+liquidationPrice = entry * (1 - 1 / leverage);
 
-### 3.8 `Leaderboard.tsx` — Ranking Fake
+// Short
+liquidationPrice = entry * (1 + 1 / leverage);
+```
 
-**O que faz:** mostra uma lista hardcoded de 5 traders fictícios com P&L positivo.
+### PnL Calculation
 
-**Por que parece morto:** é literalmente um array fixo no código-fonte. Não lê API, não lê store, não lê localStorage. Os nomes (WhaleBot_α, CryptoKing99, etc.) e os valores ($25.430, $18.750, etc.) estão hardcoded. O botão "Copiar Robô IA" dispara um `alert()`.
+```ts
+const priceDiff = side === "long" ? price - entry : entry - price;
+const pnl = (priceDiff / entry) * size;
+```
 
-**Dependências externas:** zero.
+On close:
+```ts
+wallet += margin + pnl;
+```
 
----
+### Increasing Position Size
 
-### 3.9 `Achievements.tsx` — Conquistas Locais
+- New entry = weighted average: `(oldSize * oldEntry + additionalSize * currentPrice) / newSize`
+- Additional margin is deducted from wallet.
 
-**O que faz:** exibe 4 conquistas. Usa `localStorage` (chave: `crypto_tycoon_achievements`) para persistir quais foram desbloqueadas.
+### Decreasing Position Size
 
-**O algoritmo:**
-- No mount, lê `localStorage.getItem("crypto_tycoon_achievements")`.
-- Se existir, marca as conquistas correspondentes como `unlocked: true`.
-- Cada conquista tem um botão "Testar" que permite desbloqueá-la manualmente.
+- Returns margin for the reduced portion + proportional unrealized PnL.
 
-**Por que parece morto:**
-- Inicialmente 1/4 desbloqueada ("Primeira Trade" está hardcoded como `unlocked: true`).
-- As outras 3 aparecem bloqueadas (cinza/opaco).
-- O usuário pode clicar em "Testar" para desbloquear, mas isso não acontece automaticamente — a lógica de desbloqueio real (ex: detectar lucro > $1000) não está implementada no store.
+### Updating Leverage
 
----
-
-### 3.10 `Header.tsx` — Cabeçalho
-
-**O que faz:** barra de navegação com links para `/trading`, `/leaderboard`, `/achievements`.
-
-**Estado atual:** os links funcionam porque as páginas existem. O botão "Exportar CSV" é um `console.log()` vazio.
+- Recalculates margin requirement: `newMargin = size / newLeverage`
+- If margin decreases, difference is returned to wallet.
+- If margin increases, difference is deducted from wallet.
+- Liquidation price is recalculated.
 
 ---
 
-## 4. O Que Existe Mas Não Está Conectado
+## Component Architecture
 
-### 4.1 `useBinancePrice.ts`
+### Layout Components
 
-Este hook existe em `src/hooks/useBinancePrice.ts` e **não é usado por ninguém**. Ele abre uma conexão WebSocket real com a Binance (`wss://stream.binance.com:9443/ws/btcusdt@ticker`) e retorna:
-- `price` (preço atual)
-- `priceChange` (variação 24h)
-- `priceChangePercent` (variação % 24h)
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| `Header` | `components/layout/Header.tsx` | App header, navigation links |
+| `MarketStatus` | `components/layout/MarketStatus.tsx` | Current price sparkline, volatility badge, trend indicator |
 
-**Se estivesse conectado:** o preço do BTC seria atualizado em tempo real a cada ~1s, e o gráfico, o book e o P&L ganhariam vida.
+### Core Trading Components
 
-### 4.2 `useTradingEngine.ts`
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| `TradingChart` | `components/trading/TradingChart.tsx` | `lightweight-charts` candlestick chart. Crypto-themed colors (green long, red short). Dynamic liquidation price line. |
+| `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs, open/close/increase/decrease buttons. |
+| `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, entry/size/leverage/margin/liquidation display. |
+| `PnLDisplay` | `components/trading/PnLDisplay.tsx` | Total equity (wallet + margin + unrealizedPnL), session PnL, win rate, best/worst trade. |
+| `SimulationClock` | `components/trading/SimulationClock.tsx` | Elapsed time, progress %, play/pause/end/reset buttons. |
+| `OrderBook` | `components/trading/OrderBook.tsx` | Synthetic depth bars around current price. |
+| `TradeHistory` | `components/trading/TradeHistory.tsx` | Timeline of closed trades. |
+| `MobileTradingView` | `components/trading/MobileTradingView.tsx` | Bottom-sheet tabs for mobile (Chart, History, Your Position, Order Controls). |
+| `SimulationLoader` | `components/trading/SimulationLoader.tsx` | Loading overlay with status messages. |
 
-Outro hook órfão. É uma engine alternativa de trading com `localStorage` próprio. Tem lógica de LONG e SHORT, mas os componentes atuais só usam o `tradingStore.ts`.
+### Page Composition (`/trading/page.tsx`)
 
-### 4.3 `useMarketVolatility.ts`
+```
+┌─────────────────────────────────────────────┐
+│                   Header                      │
+├─────────────────────────────────────────────┤
+│              SimulationClock                  │
+├─────────────────────────────────────────────┤
+│                MarketStatus                   │
+├─────────────────────────────────────────────┤
+│  ┌─────────────────────┐ ┌────────────────┐ │
+│  │                     │ │   OrderBook    │ │
+│  │    TradingChart     │ ├────────────────┤ │
+│  │                     │ │ PositionPanel  │ │
+│  │                     │ ├────────────────┤ │
+│  │                     │ │  TradeControls │ │
+│  ├─────────────────────┤ ├────────────────┤ │
+│  │    TradeHistory     │ │   PnLDisplay   │ │
+│  └─────────────────────┘ └────────────────┘ │
+└─────────────────────────────────────────────┘
+```
 
-Hook que simula volatilidade (gera números aleatórios entre 2% e 7%). Não está conectado a nenhum componente.
-
-### 4.4 `useKeyboardShortcuts.ts`
-
-Hook que escuta teclas `L` (long), `S` (short), `X` (close). Não está conectado a nenhum componente.
-
----
-
-## 5. Resumo do Diagnóstico
-
-| Componente | Renderiza? | Por que parece morto? |
-|---|---|---|
-| `NewsFeed` | ✅ Sim | É o único com `setInterval` próprio atualizando estado |
-| `MarketStatus` | ✅ Sim, mas estático | `price`, `volatility`, `marketTrend` nunca mudam |
-| `ChartCanvas` | ✅ Sim, uma vez | `priceHistory` nunca é atualizado depois do mount |
-| `OrderBook` | ✅ Sim, mas preços fixos | Preços dependem de `currentPrice` que é estático |
-| `PnLDisplay` | ✅ Sim, mas vazio | `closedTrades` vazio, nenhuma trade foi fechada |
-| `PositionPanel` | ✅ Sim, "Sem posição" | `position` começa `null` e o preço nunca move pra criar P&L |
-| `TradeControls` | ✅ Sim | Funciona, mas abrir posição é sem graça sem movimento de preço |
-| `Leaderboard` | ✅ Sim | Hardcoded, não é "vivo" mas renderiza |
-| `Achievements` | ✅ Sim | 1/4 desbloqueada, o resto requer interação manual |
-| `Header` | ✅ Sim | Links funcionam |
-
-**Conclusão:** todos os componentes renderizam. O problema não é que eles estão quebrados — é que **não existe uma fonte de dados atualizando o preço do BTC**. O simulador simula trades, mas não simula o mercado.
-
----
-
-## 6. Como Fazer Funcionar de Verdade (Roadmap Técnico)
-
-### Opção A: Conectar o WebSocket da Binance (Real)
-1. Importar `useBinancePrice` em `src/app/trading/page.tsx`.
-2. A cada tick do WebSocket, chamar `tradingStore.setPrice(newPrice)`.
-3. O `priceHistory` precisaria de um `setInterval` separado que chame `addPriceHistory(currentPrice)` a cada 1s para alimentar o gráfico.
-4. O `MarketStatus` ganharia vida automaticamente.
-
-### Opção B: Simulador Puro (Sem Internet)
-1. Criar um hook `usePriceSimulator()` que rode `setInterval` a cada 500ms.
-2. A cada tick, aplicar um random walk no preço: `newPrice = oldPrice * (1 + (Math.random() - 0.5) * volatility)`.
-3. Atualizar `price`, `currentPrice`, `priceHistory`, e calcular `marketTrend` comparando com a média móvel.
-4. Dá pra fazer tudo offline, sem depender de API externa.
-
-### Opção C: Híbrido (Recomendado)
-- Usar WebSocket da Binance quando online.
-- Fallback para simulador random walk quando offline ou em erro de conexão.
-- Isso é o que a maioria dos simuladores profissionais faz.
+On mobile (`useIsMobile`), the grid collapses into `MobileTradingView` with tabbed bottom sheets.
 
 ---
 
-## 7. Notas Técnicas de Implementação
+## Modals & UX Flows
 
-### Hydration Mismatch
-A página `/trading/page.tsx` tem:
+| Modal | Trigger | Purpose |
+|-------|---------|---------|
+| `OnboardingModal` | First visit (`hasSeenOnboarding === false`) | 3-step tutorial: TimeWarp concept, Blind Date (no dates), Leverage warning. |
+| `ConfirmHighLeverageModal` | Opening position with leverage ≥ 50× | Risk warning requiring explicit confirmation. |
+| `LiquidationModal` | `checkPosition` detects liquidation | Red shake animation (Framer Motion). Reveals real historical date range. |
+| `EndSimulationModal` | User clicks **End** button | Session summary: real date range, total PnL, return %. |
+
+### Date Reveal Logic
+
+The real historical date range (e.g., `01/12/2017 → 02/01/2018`) is stored as `simulationRealDate` in the store. It is only revealed in:
+- `EndSimulationModal` (manual end)
+- `LiquidationModal` (forced end)
+
+The format uses `pt-BR` locale: `DD/MM/YYYY → DD/MM/YYYY`.
+
+---
+
+## Authentication
+
+Fake auth using `localStorage` key `ctp-auth-user`. No backend session.
+
+```ts
+// src/lib/fake-auth.ts
+export function getUser() {
+  if (typeof window === "undefined") return null;
+  return JSON.parse(localStorage.getItem("ctp-auth-user") || "null");
+}
+```
+
+All `localStorage` / `window` access is guarded with `typeof window !== "undefined"` for SSR safety.
+
+---
+
+## E2E Testing
+
+Playwright tests live in `e2e/`.
+
+| Spec | ID | Coverage |
+|------|----|----------|
+| `trading.spec.ts` | `TRADING-01` | Full simulation journey: skip onboarding, loader, chart advancing, pause, new session. |
+| `date-reveal.spec.ts` | `DATE-REVEAL` | End button reveals date modal; liquidation modal reveals date via `__tradingStore` injection. |
+| `manual-trading.spec.ts` | — | Position lifecycle: open LONG 10× at 50%, increase via slider, decrease via slider, close via panel. |
+
+### Test Helpers
+
+- `_helper.ts` provides `saveEvidence(page, jid, step)` for screenshot capture during CI.
+- Tests seed `localStorage` with `hasSeenOnboarding: true` to bypass the tutorial.
+- `__tradingStore` global is used to inject a 100× long position with a liquidation price above current market to force liquidation in under 5 seconds.
+
+---
+
+## Important Technical Notes
+
+### Hydration Safety
+
+`/trading/page.tsx` uses a `mounted` state guard to prevent SSR/client mismatch with Zustand `persist`:
+
 ```tsx
-const [mounted, setMounted] = useState(false);
-useEffect(() => setMounted(true), []);
-if (!mounted) return null;
+export default function TradingPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  // ... rest of render
+}
 ```
-Isso evita hydration mismatch entre server e client (o Zustand persist só existe no browser). O efeito colateral é um flash de tela branca no primeiro load. Em produção, isso deveria ser substituído por um skeleton loader.
 
-### Persistência do Zustand
-O store usa `persist` com `name: "trading-storage"`. Se o usuário já abriu o app antes, o `localStorage` pode conter dados antigos (ex: posição aberta, carteira zerada). Para "resetar", é necessário limpar o localStorage do browser ou mudar a chave do persist.
+Without this, the server-rendered HTML differs from the client-side hydrated HTML (because persisted store state is only available in the browser), causing React hydration errors.
 
-### O Canvas e o Resize
-O `ChartCanvas` lê `containerRef.current.clientWidth/Height`. Se o usuário redimensionar a janela, o canvas é redesenhado. Mas se o container pai não tem altura definida (ex: flexbox sem `flex-1`), o `clientHeight` pode ser 0 e o canvas não desenha nada.
+### SSR & `window` Guards
 
-### Type Safety
-O projeto usa TypeScript strict. Todas as interfaces de trading estão em `src/types/trading.ts`. O store é fortemente tipado, o que é bom, mas a duplicação `price`/`currentPrice` é um débito técnico.
+Every file that accesses `window`, `localStorage`, or `document` is marked `"use client"` and/or wraps access in `typeof window !== "undefined"`.
+
+### Language
+
+Root layout sets `lang="en"`:
+
+```tsx
+// src/app/layout.tsx
+<html lang="en">
+```
+
+### Git Ignore
+
+```gitignore
+.next/
+node_modules/
+test-results/
+Kimi_Agent_BTC Daytrade Tycoon Redesign/
+```
+
+### Chart Performance
+
+`TradingChart` receives the full `candles` array from the engine but should avoid re-rendering the `lightweight-charts` instance on every tick. Price updates are pushed via the chart's API rather than destroying/recreating the series.
+
+### Binance API Resilience
+
+`fetchCandles` fetches in batches. If a batch returns fewer than 1000 candles, the loop breaks early. If no candles are returned at all, an explicit error is thrown and surfaced in the UI via `engine.error`.
+
+---
+
+## Glossary
+
+| Term | Meaning |
+|------|---------|
+| **TimeWarp** | The core simulation concept — trading inside a hidden historical window at 60× speed. |
+| **Blind Date** | UX principle of hiding all calendar dates/times so the user cannot identify the historical period. |
+| **Normalized Price** | Historical candles scaled proportionally to the current live BTC price, preserving percentage returns. |
+| **Offset Candles** | First 30 candles consumed before the simulation becomes visible, so the chart is not empty on load. |
+| **SMA20** | Simple Moving Average over 20 candles; used for trend classification. |
+
+---
+
+*End of Architecture Document*

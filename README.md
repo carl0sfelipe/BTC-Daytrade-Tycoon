@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwind-css" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Passing" />
   <img src="https://img.shields.io/badge/tests-passing-brightgreen?style=flat-square" alt="Tests Passing" />
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License MIT" />
+  <img src="https://img.shields.io/badge/license-Not%20Specified-lightgrey?style=flat-square" alt="License" />
 </p>
 
 <p align="center">
@@ -227,7 +227,7 @@ npx tsc --noEmit && npm run test && npx playwright test
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
+License not yet specified.
 
 ---
 

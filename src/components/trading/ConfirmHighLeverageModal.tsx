@@ -27,8 +27,8 @@ export default function ConfirmHighLeverageModal({
                 <AlertTriangle className="w-5 h-5 text-black" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-crypto-warning">Alto Risco Detectado</h2>
-                <p className="text-xs text-crypto-text-muted">Confirmação necessária</p>
+                <h2 className="text-lg font-bold text-crypto-warning">High Risk Detected</h2>
+                <p className="text-xs text-crypto-text-muted">Confirmation required</p>
               </div>
             </div>
           </div>
@@ -37,14 +37,14 @@ export default function ConfirmHighLeverageModal({
             {/* Warning message */}
             <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-crypto-text-secondary">Alavancagem selecionada</span>
+                <span className="text-sm text-crypto-text-secondary">Selected Leverage</span>
                 <span className="text-2xl font-bold font-mono text-crypto-warning">{leverage}x</span>
               </div>
               <div className="h-px bg-crypto-border" />
               <p className="text-sm text-crypto-text leading-relaxed">
-                Você está prestes a abrir uma posição com alavancagem extrema.
-                <span className="text-crypto-warning font-semibold"> Potencial de liquidação rápida. </span>
-                Uma movimentação de <span className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> contra sua posição resultará em perda total da margem.
+                You are about to open a position with extreme leverage.
+                <span className="text-crypto-warning font-semibold"> Potential for quick liquidation. </span>
+                A movement of <span className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> against your position will result in total margin loss.
               </p>
             </div>
 
@@ -52,15 +52,15 @@ export default function ConfirmHighLeverageModal({
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">Liquidação automática sem aviso prévio</span>
+                <span className="text-xs text-crypto-text-secondary">Automatic liquidation without prior warning</span>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">Perda potencial de 100% da margem alocada</span>
+                <span className="text-xs text-crypto-text-secondary">Potential loss of 100% of allocated margin</span>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">Volatilidade do BTC pode liquidar em segundos</span>
+                <span className="text-xs text-crypto-text-secondary">BTC volatility can liquidate in seconds</span>
               </div>
             </div>
 
@@ -70,13 +70,13 @@ export default function ConfirmHighLeverageModal({
                 onClick={onCancel}
                 className="py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={onConfirm}
                 className="py-3 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-all text-sm font-bold shadow-glow-warning"
               >
-                Sim, entendo o risco
+                I understand the risks
               </button>
             </div>
           </div>

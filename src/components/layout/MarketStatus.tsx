@@ -13,7 +13,7 @@ export default function MarketStatus() {
   const isHighVol = volatility > 3;
 
   const trendLabel =
-    marketTrend === "bull" ? "ALTA" : marketTrend === "bear" ? "BAIXA" : "NEUTRO";
+    marketTrend === "bull" ? "UP" : marketTrend === "bear" ? "DOWN" : "NEUTRAL";
 
   const change = useMemo(() => {
     if (priceHistory.length < 2) return 0;
@@ -93,7 +93,7 @@ export default function MarketStatus() {
         {isHighVol && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20">
             <AlertTriangle className="w-3.5 h-3.5 text-crypto-warning" />
-            <span className="text-xs font-bold text-crypto-warning uppercase tracking-wider">Alta Volatilidade</span>
+            <span className="text-xs font-bold text-crypto-warning uppercase tracking-wider">High Volatility</span>
           </div>
         )}
 

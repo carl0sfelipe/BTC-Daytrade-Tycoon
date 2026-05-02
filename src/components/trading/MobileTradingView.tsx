@@ -61,7 +61,7 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
                 : "text-crypto-text-muted"
             }`}
           >
-            Gráfico
+            Chart
           </button>
           <button
             onClick={() => setActiveTab("history")}
@@ -71,7 +71,7 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
                 : "text-crypto-text-muted"
             }`}
           >
-            Histórico
+            History
           </button>
         </div>
 
@@ -104,7 +104,7 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
           className="w-full py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border flex items-center justify-center gap-2"
         >
           <span className="text-sm font-semibold text-crypto-text">
-            {showControls ? "Fechar Controles" : "Abrir Posição"}
+            {showControls ? "Close Controls" : "Open Position"}
           </span>
           {showControls ? (
             <ChevronDown className="w-4 h-4 text-crypto-text-secondary" />
@@ -124,7 +124,7 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
           <div className="mt-2 card-surface p-3">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-[10px] text-crypto-text-muted uppercase">Saldo</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase">Balance</span>
                 <span className="text-sm font-bold font-mono text-crypto-text">
                   ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
@@ -161,7 +161,7 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg hover:bg-crypto-surface-elevated"
           >
             <Award className="w-4 h-4 text-crypto-text-muted" />
-            <span className="text-[9px] text-crypto-text-muted font-medium">Conquistas</span>
+            <span className="text-[9px] text-crypto-text-muted font-medium">Achievements</span>
           </Link>
         </div>
       </div>

@@ -7,7 +7,7 @@ export function useMarketVolatility() {
   const [trend, setTrend] = useState<"BULLISH" | "BEARISH" | "NEUTRAL">("NEUTRAL");
 
   useEffect(() => {
-    // Simula engine de volatilidade baseada no preço atual
+    // Simulates volatility engine based on current price
     const calculateVolatility = (basePrice: number) => {
       return Math.random() * 5 + 2; // Volatilidade entre 2-7%
     };

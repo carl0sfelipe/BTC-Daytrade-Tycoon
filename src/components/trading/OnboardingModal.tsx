@@ -15,21 +15,21 @@ const steps = [
     title: "TimeWarp",
     color: "crypto-accent",
     description:
-      "Você foi jogado em um dia aleatório entre 2017 e 2020. O tempo passa 60x mais rápido — 1 segundo real = 1 minuto de mercado.",
+      "You've been dropped on a random day between 2017 and 2020. Time runs 60x faster — 1 real second = 1 market minute.",
   },
   {
     icon: EyeOff,
     title: "Blind Date",
     color: "crypto-cyan",
     description:
-      "A data fica completamente escondida. Sem eixo de tempo no gráfico, sem calendário. Você lê o mercado às cegas, sem viés.",
+      "The date is completely hidden. No time axis on the chart, no calendar. You read the market blindly, without bias.",
   },
   {
     icon: Gauge,
-    title: "Alavancagem",
+    title: "Leverage",
     color: "crypto-warning",
     description:
-      "De 2x a 100x. Quanto maior a alavancagem, mais perto da liquidação. O Risk Gauge mostra sua distância do perigo em tempo real.",
+      "From 2x to 100x. The higher the leverage, the closer to liquidation. The Risk Gauge shows your distance from danger in real time.",
   },
 ];
 
@@ -56,13 +56,13 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-crypto-accent to-crypto-cyan flex items-center justify-center">
                 <Zap className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-bold text-crypto-text">Bem-vindo ao TimeWarp</span>
+              <span className="text-sm font-bold text-crypto-text">Welcome to TimeWarp</span>
             </div>
             <button
               onClick={onStart}
               className="text-xs font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
             >
-              Pular
+              Skip
             </button>
           </div>
 
@@ -99,7 +99,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
               className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-crypto-text-secondary hover:text-crypto-text hover:bg-crypto-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
-              Anterior
+              Previous
             </button>
 
             {step < steps.length - 1 ? (
@@ -107,7 +107,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
                 onClick={() => setStep(step + 1)}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-crypto-accent text-white text-sm font-semibold hover:bg-crypto-accent/90 transition-all"
               >
-                Próximo
+                Next
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
@@ -116,7 +116,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-crypto-long text-black text-sm font-bold hover:bg-crypto-long/90 transition-all shadow-glow-long"
               >
                 <Zap className="w-4 h-4" />
-                Iniciar Simulação
+                Start Simulation
               </button>
             )}
           </div>

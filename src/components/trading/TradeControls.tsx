@@ -31,7 +31,7 @@ export default function TradeControls() {
   const updatePositionSize = useTradingStore((s) => s.updatePositionSize);
   const updateLeverage = useTradingStore((s) => s.updateLeverage);
 
-  // Sincroniza slider com tamanho da posição aberta
+  // Sync slider with open position size
   useEffect(() => {
     if (position) {
       setPositionSize(position.size);
@@ -101,13 +101,13 @@ export default function TradeControls() {
       <div className="card-surface overflow-hidden">
         {/* Header with mode toggle */}
         <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Controles de Ordem</h3>
+          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Order Controls</h3>
           <button
             onClick={() => setMode(mode === "simple" ? "advanced" : "simple")}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
             <Settings2 className="w-3 h-3" />
-            {mode === "simple" ? "Modo Avançado" : "Modo Simples"}
+            {mode === "simple" ? "Advanced Mode" : "Simple Mode"}
           </button>
         </div>
 
@@ -149,7 +149,7 @@ export default function TradeControls() {
                   : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
               } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              Mercado
+              Market
             </button>
             <button
               onClick={() => !position && setOrderType("limit")}
@@ -160,7 +160,7 @@ export default function TradeControls() {
                   : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
               } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              Limite
+              Limit
             </button>
           </div>
 
@@ -168,7 +168,7 @@ export default function TradeControls() {
             <>
               {/* Leverage Pills */}
               <div className="space-y-2">
-                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Leverage</span>
                 <div className="grid grid-cols-6 gap-1.5">
                   {leverageOptions.map((opt) => (
                     <button
@@ -188,7 +188,7 @@ export default function TradeControls() {
                 </div>
                 {leverage >= 50 && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20">
-                    <span className="text-[10px] text-crypto-warning font-semibold">⚠️ Alto risco de liquidação rápida</span>
+                    <span className="text-[10px] text-crypto-warning font-semibold">⚠️ High risk of quick liquidation</span>
                   </div>
                 )}
               </div>
@@ -197,8 +197,8 @@ export default function TradeControls() {
               {position ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Ajustar Tamanho</span>
-                    <span className="text-[10px] font-mono text-crypto-text-secondary">Atual: ${Math.floor(position.size).toLocaleString()}</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Adjust Size</span>
+                    <span className="text-[10px] font-mono text-crypto-text-secondary">Current: ${Math.floor(position.size).toLocaleString()}</span>
                   </div>
                   <input
                     type="range"
@@ -216,14 +216,14 @@ export default function TradeControls() {
                   </div>
                   {sizeDiff !== 0 && (
                     <div className={`text-[10px] font-mono text-center ${sizeDiff > 0 ? 'text-crypto-long' : 'text-crypto-short'}`}>
-                      {sizeDiff > 0 ? '+' : ''}${sizeDiff.toLocaleString()} vs atual
+                      {sizeDiff > 0 ? '+' : ''}${sizeDiff.toLocaleString()} vs current
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho da Posição</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Position Size</span>
                     <span className="text-[10px] font-mono text-crypto-text-secondary">Max: ${Math.floor(wallet).toLocaleString()}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
@@ -252,7 +252,7 @@ export default function TradeControls() {
               {/* Advanced: Leverage Slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Leverage</span>
                   <span className="text-sm font-bold font-mono text-crypto-accent">{leverage}x</span>
                 </div>
                 <input
@@ -274,7 +274,7 @@ export default function TradeControls() {
               {/* Advanced: Size Slider */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Size</span>
                   <span className="text-sm font-bold font-mono text-crypto-text">${positionSize.toLocaleString()}</span>
                 </div>
                 <input
@@ -328,7 +328,7 @@ export default function TradeControls() {
               {/* Limit Price (only if limit order) */}
               {!position && orderType === "limit" && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Preço Limite</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>
                   <div className="relative">
                     <input
                       type="text"
@@ -347,11 +347,11 @@ export default function TradeControls() {
           {/* Summary */}
           <div className="space-y-1.5 pt-2 border-t border-crypto-border">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-crypto-text-muted">Margem necessária:</span>
+              <span className="text-crypto-text-muted">Required Margin:</span>
               <span className="font-mono font-semibold text-crypto-text">${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-crypto-text-muted">Disponível após:</span>
+              <span className="text-crypto-text-muted">Available after:</span>
               <span className="font-mono font-semibold text-crypto-text">
                 ${(wallet - margin).toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
@@ -373,7 +373,7 @@ export default function TradeControls() {
                       : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
                   }`}
                 >
-                  AUMENTAR POSIÇÃO
+                  INCREASE POSITION
                 </button>
               )}
               {sizeDiff < 0 && (
@@ -381,14 +381,14 @@ export default function TradeControls() {
                   onClick={handleUpdate}
                   className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-colors text-sm"
                 >
-                  DIMINUIR POSIÇÃO
+                  DECREASE POSITION
                 </button>
               )}
               <button
                 onClick={() => closePosition("manual")}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
               >
-                FECHAR POSIÇÃO
+                CLOSE POSITION
               </button>
             </div>
           ) : (
@@ -403,7 +403,7 @@ export default function TradeControls() {
                   : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
               }`}
             >
-              {mode === "simple" ? `Abrir ${isLong ? "Long" : "Short"}` : `Abrir ${isLong ? "Long" : "Short"} a Mercado`}
+              {mode === "simple" ? `Open ${isLong ? "Long" : "Short"}` : `Open ${isLong ? "Long" : "Short"} Market`}
             </button>
           )}
         </div>

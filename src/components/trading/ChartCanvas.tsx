@@ -55,7 +55,7 @@ export default function ChartCanvas() {
 
     if (priceHistory.length === 0) return;
 
-    // Desenhar linha de preço
+    // Draw price line
     ctx.strokeStyle = "#22c55e";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -73,7 +73,7 @@ export default function ChartCanvas() {
 
     ctx.stroke();
 
-    // Ponto atual do preço
+    // Current price point
     const lastX = dimensions.width - 10;
     const lastY = dimensions.height - ((currentPrice - minPrice) / priceRange) * dimensions.height;
     
@@ -82,7 +82,7 @@ export default function ChartCanvas() {
     ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Preço label
+    // Price label
     ctx.fillStyle = "#fff";
     ctx.font = "12px monospace";
     ctx.fillText(`$${currentPrice.toFixed(2)}`, lastX + 8, lastY - 8);
@@ -95,7 +95,7 @@ export default function ChartCanvas() {
       className="bg-gray-800 rounded-lg p-4 relative"
       style={{ minHeight: "350px", height: "400px" }}
     >
-      <h2 className="text-sm font-semibold text-gray-400 mb-2">Gráfico em Tempo Real</h2>
+      <h2 className="text-sm font-semibold text-gray-400 mb-2">Real-Time Chart</h2>
       <canvas 
         ref={canvasRef} 
         width={dimensions.width} 

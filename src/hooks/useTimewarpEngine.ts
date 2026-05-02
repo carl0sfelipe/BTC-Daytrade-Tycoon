@@ -13,11 +13,11 @@ import {
 } from "@/lib/binance-api";
 import { useTradingStore } from "@/store/tradingStore";
 
-const SPEED_MULTIPLIER = 60; // 1 min real = 1 hora simulada
-const TICK_MS = 100; // atualiza a cada 100ms
-const HISTORY_OFFSET_CANDLES = 30; // candles pré-carregados como histórico visível
+const SPEED_MULTIPLIER = 60; // 1 real min = 1 simulated hour
+const TICK_MS = 100; // updates every 100ms
+const HISTORY_OFFSET_CANDLES = 30; // pre-loaded candles as visible history
 
-// Janela de sorteio: 01/12/2017 a 31/12/2020
+// Draw window: 12/01/2017 to 12/31/2020
 const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
 const MAX_DATE = new Date("2020-12-31T00:00:00Z").getTime();
 
@@ -75,7 +75,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const storeAddPriceHistory = useTradingStore((s) => s.addPriceHistory);
   const storeCheckPosition = useTradingStore((s) => s.checkPosition);
 
-  // Mantém ref sincronizado com o state
+  // Keeps ref synchronized with state
   useEffect(() => {
     candlesRef.current = candles;
   }, [candles]);
@@ -108,28 +108,28 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     try {
-      setLoadingMessage("Buscando preço atual do BTC...");
+      setLoadingMessage("Fetching current BTC price...");
       const currentPrice = await fetchCurrentPrice();
 
-      setLoadingMessage("Sorteando cenário histórico...");
+      setLoadingMessage("Drawing historical scenario...");
       const startDate = randomDate();
       startDateRef.current = startDate;
       originalStartDateRef.current = startDate;
 
-      setLoadingMessage("Baixando dados históricos da Binance...");
+      setLoadingMessage("Downloading historical data from Binance...");
       const historicalCandles = await fetchCandles(startDate);
       historicalCandlesRef.current = historicalCandles;
 
       if (historicalCandles.length === 0) {
-        throw new Error("Nenhum dado retornado pela Binance");
+        throw new Error("No data returned by Binance");
       }
 
-      setLoadingMessage("Preparando simulação...");
+      setLoadingMessage("Preparing simulation...");
       const simulated = normalizeCandlesToBasePrice(historicalCandles, currentPrice);
       setCandles(simulated);
       candlesRef.current = simulated;
 
-      // Começa a simulação com histórico já visível (offset candles já formados)
+      // Starts simulation with history already visible (offset candles already formed)
       const offsetIdx = Math.min(HISTORY_OFFSET_CANDLES, simulated.length - 1);
       const simStartDate = new Date(simulated[offsetIdx].time * 1000);
       startDateRef.current = simStartDate;
@@ -150,14 +150,14 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       setLoadingMessage("");
       setIsLoading(false);
 
-      // Auto-start (com delay para React renderizar o estado inicial)
+      // Auto-start (with delay for React to render the initial state)
       setTimeout(() => {
         if (candlesRef.current.length > 0) {
           startSimulation();
         }
       }, 500);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
       setLoadingMessage("");
       setIsLoading(false);
@@ -180,7 +180,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     const progress = Math.min(100, Math.max(0, (elapsedInData / totalDuration) * 100));
     setProgressPercent(progress);
 
-    // Atualiza tempo decorrido
+    // Updates elapsed time
     const totalSeconds = Math.floor(realElapsedMs / 1000);
     setElapsedTime(formatElapsedTime(totalSeconds));
     setCurrentTimeSec(simulatedTimeSec);
@@ -205,7 +205,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
     storeAddPriceHistory(price);
 
-    // Verifica liquidação / SL / TP
+    // Checks liquidation / SL / TP
     const checkResult = storeCheckPosition(price);
     if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
       const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);

@@ -34,7 +34,7 @@ export default function TradingChart({
 
   const position = useTradingStore((s) => s.position);
 
-  // Inicializa o chart uma vez
+  // Initialize chart once
   useEffect(() => {
     if (!containerRef.current || initializedRef.current) return;
     initializedRef.current = true;
@@ -71,7 +71,7 @@ export default function TradingChart({
       color: "#7c5cff",
       lineWidth: 1,
       lineStyle: 2,
-      title: "ATUAL",
+      title: "CURRENT",
     });
 
     chartRef.current = chart;
@@ -85,7 +85,7 @@ export default function TradingChart({
     };
   }, []);
 
-  // Limpa quando candles mudam (nova sessão)
+  // Clear when candles change (new session)
   useEffect(() => {
     if (seriesRef.current) {
       seriesRef.current.setData([]);
@@ -93,7 +93,7 @@ export default function TradingChart({
     }
   }, [candles]);
 
-  // Renderiza candles visíveis
+  // Render visible candles
   useEffect(() => {
     if (!seriesRef.current || candles.length === 0) return;
 
@@ -126,7 +126,7 @@ export default function TradingChart({
       priceLineRef.current.applyOptions({ price: currentPrice });
     }
 
-    // Scroll automático
+    // Auto scroll
     if (chartRef.current) {
       const ts = chartRef.current.timeScale();
       const range = ts.getVisibleLogicalRange();
@@ -138,7 +138,7 @@ export default function TradingChart({
     }
   }, [currentPrice, currentTimeSec, candles]);
 
-  // priceLine de liquidação
+  // liquidation priceLine
   useEffect(() => {
     if (!seriesRef.current) return;
     if (liqPriceLineRef.current) {
@@ -162,7 +162,7 @@ export default function TradingChart({
       {/* Chart Header */}
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-crypto-text-secondary">BTC/USDT — 1M Simulação</span>
+          <span className="text-xs font-semibold text-crypto-text-secondary">BTC/USDT — 1M Simulation</span>
         </div>
         <button className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text">
           <Maximize2 className="w-3.5 h-3.5" />

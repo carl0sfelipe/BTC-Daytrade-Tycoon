@@ -35,13 +35,13 @@ export default function PnLDisplay() {
   return (
     <div className="card-surface overflow-hidden">
       <div className="px-4 py-3 border-b border-crypto-border">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Carteira & P&L</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Wallet & P&L</h3>
       </div>
 
       <div className="p-4 space-y-4">
         {/* Hero Balance */}
         <div className="text-center py-2">
-          <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Saldo Atual</span>
+          <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Current Balance</span>
           <div className="flex items-baseline justify-center gap-2 mt-1">
             <span className="text-3xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
               ${totalEquity.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -80,14 +80,14 @@ export default function PnLDisplay() {
           </div>
 
           <div className="flex flex-col p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Média P&L</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Avg P&L</span>
             <span className={`text-lg font-bold font-mono tabular-nums ${avgPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
               {avgPnL >= 0 ? "+" : ""}${avgPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
 
           <div className="flex flex-col p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Melhor Trade</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Best Trade</span>
             <span className={`text-lg font-bold font-mono tabular-nums ${bestTrade >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
               {bestTrade >= 0 ? "+" : ""}${bestTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
@@ -96,7 +96,7 @@ export default function PnLDisplay() {
 
         {/* Worst trade */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
-          <span className="text-xs font-semibold text-crypto-text-secondary">Pior Trade</span>
+          <span className="text-xs font-semibold text-crypto-text-secondary">Worst Trade</span>
           <span className="text-sm font-bold font-mono text-crypto-short tabular-nums">
             -${Math.abs(worstTrade).toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </span>

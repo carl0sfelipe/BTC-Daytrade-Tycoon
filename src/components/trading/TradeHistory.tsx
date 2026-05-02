@@ -25,7 +25,7 @@ function getReasonLabel(reason: TradeReason) {
     case "sl":
       return "Stop Loss";
     case "liquidation":
-      return "Liquidada";
+      return "Liquidated";
     case "manual":
       return "Manual";
   }
@@ -38,11 +38,11 @@ export default function TradeHistory() {
     return (
       <div className="card-surface overflow-hidden flex flex-col">
         <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Histórico de Trades</h3>
+          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Trade History</h3>
           <span className="text-[10px] text-crypto-text-muted font-mono">0 trades</span>
         </div>
         <div className="flex-1 min-h-[120px] flex items-center justify-center">
-          <p className="text-sm text-crypto-text-muted">Nenhum trade ainda</p>
+          <p className="text-sm text-crypto-text-muted">No trades yet</p>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ export default function TradeHistory() {
   return (
     <div className="card-surface overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Histórico de Trades</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Trade History</h3>
         <span className="text-[10px] text-crypto-text-muted font-mono">{closedTrades.length} trades</span>
       </div>
 

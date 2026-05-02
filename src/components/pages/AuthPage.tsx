@@ -38,7 +38,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           className="flex items-center gap-2 text-sm text-crypto-text-secondary hover:text-crypto-text transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar
+          Back
         </button>
       </div>
 
@@ -51,7 +51,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
             </div>
             <h1 className="text-2xl font-bold">BTC Daytrade Tycoon</h1>
             <p className="text-sm text-crypto-text-secondary mt-1">
-              {authMode === "login" ? "Bem-vindo de volta" : "Crie sua conta gratuita"}
+              {authMode === "login" ? "Welcome back" : "Create your free account"}
             </p>
           </div>
 
@@ -66,7 +66,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 authMode === "login" ? "bg-crypto-accent text-white shadow-glow-accent" : "text-crypto-text-secondary hover:text-crypto-text"
               }`}
             >
-              Entrar
+              Login
             </button>
             <button
               onClick={() => {
@@ -77,7 +77,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 authMode === "signup" ? "bg-crypto-accent text-white shadow-glow-accent" : "text-crypto-text-secondary hover:text-crypto-text"
               }`}
             >
-              Criar Conta
+              Create Account
             </button>
           </div>
 
@@ -85,12 +85,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {authMode === "signup" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Nome de Usuário</label>
+                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Username</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                   <input
                     type="text"
-                    placeholder="Seu apelido"
+                    placeholder="Your nickname"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
@@ -105,7 +105,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                 <input
                   type="email"
-                  placeholder="voce@email.com"
+                  placeholder="you@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
@@ -114,7 +114,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Senha</label>
+              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                 <input
@@ -134,7 +134,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
             {authMode === "signup" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Confirmar Senha</label>
+                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                   <input
@@ -155,7 +155,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {authMode === "login" ? "Entrar" : "Criar Conta"}
+                  {authMode === "login" ? "Login" : "Create Account"}
                   <ChevronRight className="w-4 h-4" />
                 </>
               )}
@@ -165,7 +165,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-crypto-border" />
-            <span className="text-xs text-crypto-text-muted">ou</span>
+            <span className="text-xs text-crypto-text-muted">or</span>
             <div className="h-px flex-1 bg-crypto-border" />
           </div>
 
@@ -174,23 +174,23 @@ export default function AuthPage({ mode }: AuthPageProps) {
             onClick={() => router.push("/trading")}
             className="w-full py-3 rounded-xl bg-crypto-surface-elevated border border-crypto-border text-sm font-semibold text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
-            Continuar como Visitante (Demo)
+            Continue as Guest (Demo)
           </button>
 
           {/* Footer hint */}
           <p className="text-center text-xs text-crypto-text-muted mt-6">
             {authMode === "login" ? (
               <>
-                Não tem conta?{" "}
+                Don't have an account?{" "}
                 <button onClick={() => router.push("/auth/signup")} className="text-crypto-accent hover:underline">
-                  Criar agora
+                  Create now
                 </button>
               </>
             ) : (
               <>
-                Já tem conta?{" "}
+                Already have an account?{" "}
                 <button onClick={() => router.push("/auth/login")} className="text-crypto-accent hover:underline">
-                  Entrar
+                  Login
                 </button>
               </>
             )}

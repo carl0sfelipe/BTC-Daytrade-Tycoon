@@ -63,13 +63,13 @@ export default function TradingPage() {
       <div className="min-h-screen bg-crypto-bg flex flex-col items-center justify-center text-crypto-text">
         <div className="text-center space-y-4">
           <div className="text-4xl">⚠️</div>
-          <h2 className="text-xl font-bold text-crypto-short">Erro na Simulação</h2>
+          <h2 className="text-xl font-bold text-crypto-short">Simulation Error</h2>
           <p className="text-crypto-text-secondary">{engine.error}</p>
           <button
             onClick={engine.reset}
             className="bg-crypto-long text-black hover:bg-crypto-long/90 px-4 py-2 rounded-lg font-bold transition-colors"
           >
-            Tentar Novamente
+            Try Again
           </button>
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function TradingPage() {
 
           <main className="container mx-auto px-4 py-4">
             <div className="grid grid-cols-12 gap-4">
-              {/* Coluna principal — gráfico + cards de baixo */}
+              {/* Main column — chart + bottom cards */}
               <div className="col-span-12 lg:col-span-8 space-y-4">
                 <TradingChart
                   candles={engine.candles}
@@ -127,7 +127,7 @@ export default function TradingPage() {
                 <TradeHistory />
               </div>
 
-              {/* Coluna lateral */}
+              {/* Side column */}
               <div className="col-span-12 lg:col-span-4 space-y-4">
                 <OrderBook />
                 <PositionPanel />
@@ -149,7 +149,7 @@ export default function TradingPage() {
         />
       )}
 
-      {/* Modal de liquidação */}
+      {/* Liquidation modal */}
       {isLiquidated && simulationRealDate && (
         <LiquidationModal realDate={simulationRealDate} onNewSession={handleNewSession} />
       )}

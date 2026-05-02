@@ -17,7 +17,7 @@ export function useTradingEngine() {
         setBalance(parsed.balance || 10000);
         setPositions(parsed.positions || []);
       } catch {
-        // Fallback para valores padrão
+        // Fallback to default values
       }
     }
   }, []);

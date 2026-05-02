@@ -158,11 +158,11 @@ export const useTradingStore = create<TradingStore>()(
           ),
           lastCloseReason:
             reason === "tp"
-              ? "Take Profit atingido!"
+              ? "Take Profit hit!"
               : reason === "sl"
-              ? "Stop Loss atingido!"
+              ? "Stop Loss hit!"
               : reason === "liquidation"
-              ? "Posição liquidada!"
+              ? "Position liquidated!"
               : null,
         });
         if (reason === "liquidation") {
@@ -185,7 +185,7 @@ export const useTradingStore = create<TradingStore>()(
         const marginDiff = newMargin - oldMargin;
 
         if (newSize > size) {
-          // Aumentando posição
+          // Increasing position
           if (state.wallet < marginDiff) return;
           const additionalSize = newSize - size;
           const newEntry = (size * entry + additionalSize * price) / newSize;
@@ -194,7 +194,7 @@ export const useTradingStore = create<TradingStore>()(
             position: { ...state.position, entry: newEntry, size: newSize },
           });
         } else if (newSize < size) {
-          // Diminuindo posição
+          // Decreasing position
           const reducedSize = size - newSize;
           const priceDiff = side === "long" ? price - entry : entry - price;
           const pnlPartial = (priceDiff / entry) * reducedSize;

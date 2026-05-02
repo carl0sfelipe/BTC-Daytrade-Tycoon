@@ -8,36 +8,36 @@ interface Achievement {
   title: string;
   description: string;
   icon: React.ElementType;
-  rarity: "comum" | "raro" | "epico" | "lendario";
+  rarity: "common" | "rare" | "epic" | "legendary";
   unlocked: boolean;
   progress?: number;
   maxProgress?: number;
 }
 
 const achievements: Achievement[] = [
-  { id: 1, title: "Primeiros Passos", description: "Complete sua primeira simulação", icon: Zap, rarity: "comum", unlocked: true },
-  { id: 2, title: "Sem Liquidar", description: "Complete 10 trades sem ser liquidado", icon: Shield, rarity: "comum", unlocked: true, progress: 10, maxProgress: 10 },
-  { id: 3, title: "Lucrativo", description: "Alcance +100% de retorno em uma sessão", icon: TrendingUp, rarity: "raro", unlocked: true },
-  { id: 4, title: "On Fire", description: "Acerte 5 trades positivos consecutivos", icon: Flame, rarity: "raro", unlocked: true, progress: 5, maxProgress: 5 },
-  { id: 5, title: "Cem Por Cento", description: "Alcance +1000% de retorno em uma sessão", icon: Star, rarity: "epico", unlocked: false, progress: 847, maxProgress: 1000 },
-  { id: 6, title: "Sobrevivente", description: "Complete 50 simulações sem liquidação", icon: Target, rarity: "epico", unlocked: false, progress: 23, maxProgress: 50 },
-  { id: 7, title: "O Educativo", description: "Seja liquidado pela primeira vez", icon: Skull, rarity: "comum", unlocked: true },
-  { id: 8, title: "TimeWarp Master", description: "Complete 100 simulações no total", icon: Trophy, rarity: "lendario", unlocked: false, progress: 67, maxProgress: 100 },
-  { id: 9, title: "Day Trader Pro", description: "Mantenha win rate acima de 70% em 20+ trades", icon: Award, rarity: "epico", unlocked: false, progress: 68, maxProgress: 70 },
+  { id: 1, title: "First Steps", description: "Complete your first simulation", icon: Zap, rarity: "common", unlocked: true },
+  { id: 2, title: "Without Liquidation", description: "Complete 10 trades without being liquidated", icon: Shield, rarity: "common", unlocked: true, progress: 10, maxProgress: 10 },
+  { id: 3, title: "Profitable", description: "Reach +100% return in one session", icon: TrendingUp, rarity: "rare", unlocked: true },
+  { id: 4, title: "On Fire", description: "Hit 5 consecutive positive trades", icon: Flame, rarity: "rare", unlocked: true, progress: 5, maxProgress: 5 },
+  { id: 5, title: "Centurion", description: "Reach +1000% return in one session", icon: Star, rarity: "epic", unlocked: false, progress: 847, maxProgress: 1000 },
+  { id: 6, title: "Survivor", description: "Complete 50 simulations without liquidation", icon: Target, rarity: "epic", unlocked: false, progress: 23, maxProgress: 50 },
+  { id: 7, title: "The Lesson", description: "Get liquidated for the first time", icon: Skull, rarity: "common", unlocked: true },
+  { id: 8, title: "TimeWarp Master", description: "Complete 100 simulations in total", icon: Trophy, rarity: "legendary", unlocked: false, progress: 67, maxProgress: 100 },
+  { id: 9, title: "Day Trader Pro", description: "Maintain a win rate above 70% on 20+ trades", icon: Award, rarity: "epic", unlocked: false, progress: 68, maxProgress: 70 },
 ];
 
 const rarityConfig = {
-  comum: { color: "text-gray-400", border: "border-gray-400/30", bg: "bg-gray-400/10", glow: "" },
-  raro: { color: "text-crypto-accent", border: "border-crypto-accent/30", bg: "bg-crypto-accent/10", glow: "shadow-[0_0_12px_rgba(124,92,255,0.15)]" },
-  epico: { color: "text-yellow-400", border: "border-yellow-400/30", bg: "bg-yellow-400/10", glow: "shadow-[0_0_16px_rgba(250,204,21,0.2)]" },
-  lendario: { color: "text-crypto-warning", border: "border-crypto-warning/30", bg: "bg-crypto-warning/10", glow: "shadow-[0_0_20px_rgba(255,176,32,0.25)]" },
+  common: { color: "text-gray-400", border: "border-gray-400/30", bg: "bg-gray-400/10", glow: "" },
+  rare: { color: "text-crypto-accent", border: "border-crypto-accent/30", bg: "bg-crypto-accent/10", glow: "shadow-[0_0_12px_rgba(124,92,255,0.15)]" },
+  epic: { color: "text-yellow-400", border: "border-yellow-400/30", bg: "bg-yellow-400/10", glow: "shadow-[0_0_16px_rgba(250,204,21,0.2)]" },
+  legendary: { color: "text-crypto-warning", border: "border-crypto-warning/30", bg: "bg-crypto-warning/10", glow: "shadow-[0_0_20px_rgba(255,176,32,0.25)]" },
 };
 
 const rarityLabels = {
-  comum: "Comum",
-  raro: "Raro",
-  epico: "Épico",
-  lendario: "Lendário",
+  common: "Common",
+  rare: "Rare",
+  epic: "Epic",
+  legendary: "Legendary",
 };
 
 export default function AchievementsPage() {
@@ -61,19 +61,19 @@ export default function AchievementsPage() {
           href="/trading"
           className="px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text-secondary hover:text-crypto-text transition-colors"
         >
-          Voltar ao Terminal
+          Back to Terminal
         </Link>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Title + Progress */}
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-crypto-text">Conquistas</h1>
-          <p className="text-sm text-crypto-text-secondary">Desbloqueie badges provando suas habilidades no mercado</p>
+          <h1 className="text-2xl font-bold text-crypto-text">Achievements</h1>
+          <p className="text-sm text-crypto-text-secondary">Unlock badges by proving your market skills</p>
 
           <div className="max-w-sm mx-auto">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-crypto-text-muted">Progresso Geral</span>
+              <span className="text-xs text-crypto-text-muted">Overall Progress</span>
               <span className="text-xs font-bold font-mono text-crypto-accent">
                 {unlockedCount}/{totalCount}
               </span>
@@ -119,7 +119,7 @@ export default function AchievementsPage() {
                   {ach.maxProgress && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-crypto-text-muted">{ach.unlocked ? "Concluído!" : "Em progresso"}</span>
+                        <span className="text-[10px] text-crypto-text-muted">{ach.unlocked ? "Completed!" : "In Progress"}</span>
                         <span className="text-[10px] font-mono text-crypto-text-secondary">
                           {ach.progress}/{ach.maxProgress}
                         </span>
@@ -140,7 +140,7 @@ export default function AchievementsPage() {
 
         <div className="card-surface p-4 text-center">
           <p className="text-sm text-crypto-text-secondary">
-            Próxima conquista próxima: <span className="text-crypto-accent font-semibold">TimeWarp Master</span> — faltam 33 simulações
+            Next achievement: <span className="text-crypto-accent font-semibold">TimeWarp Master</span> — 33 simulations remaining
           </p>
         </div>
       </main>

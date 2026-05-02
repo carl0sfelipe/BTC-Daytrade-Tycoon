@@ -14,7 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Crypto Tycoon Pro — Trading Simulator',
-  description: 'Simulador avançado de trading de criptomoedas. Pratique estratégias, gerencie risco e acompanhe seu desempenho em tempo real.',
+  description: 'Advanced cryptocurrency trading simulator. Practice strategies, manage risk, and track your performance in real time.',
 };
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="en" className="dark">
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-crypto-bg text-crypto-text min-h-screen`}
         style={{ background: "linear-gradient(180deg,#0a0a0f 0%,#0f0f1a 100%)" }}

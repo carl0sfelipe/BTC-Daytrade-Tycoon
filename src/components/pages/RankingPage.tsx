@@ -19,7 +19,7 @@ const leaderboard = [
   { rank: 10, name: "DegenTrader", return: 87.5, trades: 22, streak: 0, change: "-1" },
 ];
 
-const filters = ["Esta Semana", "Este Mês", "Todos os Tempos"];
+const filters = ["This Week", "This Month", "All Time"];
 
 export default function RankingPage() {
   return (
@@ -39,15 +39,15 @@ export default function RankingPage() {
           href="/trading"
           className="px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text-secondary hover:text-crypto-text transition-colors"
         >
-          Voltar ao Terminal
+          Back to Terminal
         </Link>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Title */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-crypto-text">Ranking Global</h1>
-          <p className="text-sm text-crypto-text-secondary">Os melhores traders do TimeWarp</p>
+          <h1 className="text-2xl font-bold text-crypto-text">Global Rankings</h1>
+          <p className="text-sm text-crypto-text-secondary">The best TimeWarp traders</p>
         </div>
 
         {/* Filters */}
@@ -116,7 +116,7 @@ export default function RankingPage() {
         {/* Leaderboard list */}
         <div className="card-surface overflow-hidden">
           <div className="px-4 py-3 border-b border-crypto-border">
-            <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Classificação</h3>
+            <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Rankings</h3>
           </div>
           <div className="divide-y divide-crypto-border">
             {leaderboard.map((player) => (
@@ -156,14 +156,14 @@ export default function RankingPage() {
         {/* Your position */}
         <div className="card-surface border border-crypto-accent/30 overflow-hidden">
           <div className="px-4 py-3 bg-crypto-accent-dim flex items-center justify-between">
-            <span className="text-xs font-bold text-crypto-accent uppercase tracking-wider">Sua Posição</span>
+            <span className="text-xs font-bold text-crypto-accent uppercase tracking-wider">Your Position</span>
             <span className="text-xs font-bold text-crypto-accent">#43</span>
           </div>
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-crypto-accent/20 flex items-center justify-center text-xs font-bold text-crypto-accent">EU</div>
               <div>
-                <p className="text-sm font-semibold text-crypto-text">Você</p>
+                <p className="text-sm font-semibold text-crypto-text">You</p>
                 <p className="text-[10px] text-crypto-text-muted">12 trades · 🔥 5W</p>
               </div>
             </div>

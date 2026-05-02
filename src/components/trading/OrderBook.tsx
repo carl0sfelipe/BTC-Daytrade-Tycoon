@@ -37,7 +37,7 @@ export default function OrderBook() {
   return (
     <div className="card-surface flex flex-col">
       <div className="px-4 py-3 border-b border-crypto-border">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Book de Ofertas</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Order Book</h3>
       </div>
 
       <div className="flex-1 flex flex-col min-h-[300px]">

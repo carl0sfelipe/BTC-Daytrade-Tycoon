@@ -23,8 +23,8 @@ export default function LiquidationModal({ realDate, onNewSession }: Liquidation
                 <Skull className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-crypto-short">CONTA LIQUIDADA!</h2>
-                <p className="text-xs text-crypto-text-muted">Sua margem foi completamente utilizada</p>
+                <h2 className="text-lg font-bold text-crypto-short">ACCOUNT LIQUIDATED!</h2>
+                <p className="text-xs text-crypto-text-muted">Your margin was completely used up</p>
               </div>
             </div>
           </div>
@@ -32,13 +32,13 @@ export default function LiquidationModal({ realDate, onNewSession }: Liquidation
           <div className="px-6 py-5 space-y-5">
             {/* Date reveal */}
             <div className="text-center p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border">
-              <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Período Histórico Real</span>
+              <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Real Historical Period</span>
               <div className="text-xl font-bold font-mono text-crypto-text">{realDate}</div>
             </div>
 
             {/* Quote */}
             <p className="text-center text-sm text-crypto-text-secondary italic">
-              "O mercado sempre cobra sua matrícula."
+              "The market always collects its tuition."
             </p>
 
             {/* Buttons */}
@@ -48,14 +48,14 @@ export default function LiquidationModal({ realDate, onNewSession }: Liquidation
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
                 <Home className="w-4 h-4" />
-                Voltar
+                Back
               </button>
               <button
                 onClick={onNewSession}
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-short text-white hover:bg-crypto-short/90 transition-all text-sm font-bold shadow-glow-short"
               >
                 <RotateCcw className="w-4 h-4" />
-                Nova Sessão
+                New Session
               </button>
             </div>
           </div>

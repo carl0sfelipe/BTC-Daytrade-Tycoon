@@ -7,7 +7,7 @@ test.describe('Manual Trading Validation', () => {
     });
 
     await page.goto('/trading');
-    await page.waitForSelector('text=Tempo de Simulação', { timeout: 30000 });
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: 'test-results/01-initial.png', fullPage: true });
 
@@ -19,20 +19,20 @@ test.describe('Manual Trading Validation', () => {
     await page.locator('button:has-text("50%")').click();
     await page.waitForTimeout(200);
 
-    await page.click('button:has-text("Abrir Long")');
+    await page.click('button:has-text("Open Long")');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: 'test-results/02-position-opened.png', fullPage: true });
 
     // Verify position is open
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Sua Posição' });
-    await expect(posPanel.locator('text=Fechar Posição').first()).toBeVisible();
+    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
+    await expect(posPanel.locator('text=Close Position').first()).toBeVisible();
 
     // Read position panel HTML for debugging
     const posHtml = await posPanel.innerHTML();
     console.log('Position panel HTML snippet:', posHtml.substring(0, 600));
 
     // Step 2: Move slider to increase position
-    const controls = page.locator('.card-surface').filter({ hasText: 'Controles de Ordem' });
+    const controls = page.locator('.card-surface').filter({ hasText: 'Order Controls' });
     const slider = controls.locator('input[type="range"]');
     await expect(slider).toBeVisible();
 
@@ -52,7 +52,7 @@ test.describe('Manual Trading Validation', () => {
     console.log('Slider value after increase move:', sliderValAfterInc);
 
     // Check for increase button
-    const increaseBtn = controls.locator('button:has-text("AUMENTAR POSIÇÃO")');
+    const increaseBtn = controls.locator('button:has-text("INCREASE POSITION")');
     const hasIncrease = await increaseBtn.isVisible().catch(() => false);
     console.log('Has increase button:', hasIncrease);
 
@@ -71,7 +71,7 @@ test.describe('Manual Trading Validation', () => {
     const sliderValAfterDec = await slider.evaluate((el: HTMLInputElement) => Number(el.value));
     console.log('Slider value after decrease move:', sliderValAfterDec);
 
-    const decreaseBtn = controls.locator('button:has-text("DIMINUIR POSIÇÃO")');
+    const decreaseBtn = controls.locator('button:has-text("DECREASE POSITION")');
     const hasDecrease = await decreaseBtn.isVisible().catch(() => false);
     console.log('Has decrease button:', hasDecrease);
 
@@ -82,11 +82,11 @@ test.describe('Manual Trading Validation', () => {
     }
 
     // Step 4: Close position via PositionPanel
-    await posPanel.locator('text=Fechar Posição').first().click();
+    await posPanel.locator('text=Close Position').first().click();
     await page.waitForTimeout(800);
     await page.screenshot({ path: 'test-results/07-after-close.png', fullPage: true });
 
-    // Verify position closed - should show "ABRIR LONG" button again
-    await expect(controls.locator('button:has-text("Abrir Long")')).toBeVisible();
+    // Verify position closed - should show "OPEN LONG" button again
+    await expect(controls.locator('button:has-text("Open Long")')).toBeVisible();
   });
 });

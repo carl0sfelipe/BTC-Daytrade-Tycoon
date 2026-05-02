@@ -35,7 +35,7 @@ export async function fetchCandles(
   interval = "1m",
   limit = 1000
 ): Promise<BinanceCandle[]> {
-  // Busca 2 batches de 1000 candles de 1min = ~2000 candles (~33h de dados)
+  // Fetch 2 batches of 1000 1min candles = ~2000 candles (~33h of data)
   const allCandles: BinanceCandle[] = [];
   let currentStart = startTime.getTime();
 
@@ -71,10 +71,10 @@ export async function fetchCandles(
     allCandles.push(...batchCandles);
 
     if (batchCandles.length < limit) {
-      break; // Não há mais dados
+      break; // No more data
     }
 
-    // Próximo batch começa após o último candle
+    // Next batch starts after the last candle
     currentStart = batchCandles[batchCandles.length - 1].closeTime + 1;
   }
 
@@ -86,8 +86,8 @@ export async function fetchCandles(
 }
 
 /**
- * Converte candles históricos em candles simulados com preço base atual.
- * Preserva as variações percentuais (retornos) mas ajusta a escala de preço.
+ * Converts historical candles into simulated candles with current base price.
+ * Preserves percentage variations (returns) but adjusts price scale.
  */
 export function normalizeCandlesToBasePrice(
   historicalCandles: BinanceCandle[],

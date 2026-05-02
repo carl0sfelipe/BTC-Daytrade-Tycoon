@@ -13,13 +13,13 @@ export default function PositionPanel() {
     return (
       <div className="card-surface overflow-hidden">
         <div className="px-4 py-3 border-b border-crypto-border">
-          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Sua Posição</h3>
+          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Your Position</h3>
         </div>
         {lastCloseReason && (
           <p className="text-center text-crypto-warning text-xs py-2">{lastCloseReason}</p>
         )}
         <div className="flex items-center justify-center min-h-[120px]">
-          <p className="text-sm text-crypto-text-muted">Nenhuma posição aberta</p>
+          <p className="text-sm text-crypto-text-muted">No open position</p>
         </div>
       </div>
     );
@@ -44,7 +44,7 @@ export default function PositionPanel() {
   return (
     <div className={`card-surface overflow-hidden ${isCritical ? "animate-pulse-glow border-crypto-short/50" : ""}`}>
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Sua Posição</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Your Position</h3>
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md ${isLong ? "bg-crypto-long-dim" : "bg-crypto-short-dim"}`}>
           {isLong ? (
             <TrendingUp className="w-3.5 h-3.5 text-crypto-long" />
@@ -61,7 +61,7 @@ export default function PositionPanel() {
         {/* PnL Big Display */}
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">P&L Não Realizado</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Unrealized P&L</span>
             <div className="flex items-baseline gap-2">
               <span className={`text-2xl font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short"}`}>
                 {pnl >= 0 ? "+" : ""}${pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -79,21 +79,21 @@ export default function PositionPanel() {
         {/* Position details grid */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Preço de Entrada</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Entry Price</span>
             <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
               ${entry.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Size</span>
             <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">${size.toLocaleString()}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Leverage</span>
             <span className="text-sm font-mono font-semibold text-crypto-accent tabular-nums">{leverage}x</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Margem</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Margin</span>
             <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
               ${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
@@ -122,7 +122,7 @@ export default function PositionPanel() {
         <div className="flex items-center justify-between p-3 rounded-lg bg-crypto-short-dim border border-crypto-short/20">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-crypto-short" />
-            <span className="text-xs font-semibold text-crypto-short">Preço de Liquidação</span>
+            <span className="text-xs font-semibold text-crypto-short">Liquidation Price</span>
           </div>
           <span className="text-sm font-bold font-mono text-crypto-short tabular-nums">
             ${liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -132,7 +132,7 @@ export default function PositionPanel() {
         {/* Risk Gauge */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Distância da Liquidação</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Distance to Liquidation</span>
             <span className={`text-xs font-bold font-mono tabular-nums ${isCritical ? "text-crypto-short" : isDanger ? "text-crypto-warning" : "text-crypto-long"}`}>
               {distanceToLiq.toFixed(1)}%
             </span>
@@ -141,9 +141,9 @@ export default function PositionPanel() {
             <div className="h-full rounded-full risk-gradient transition-all duration-500" style={{ width: `${distanceToLiq}%` }} />
           </div>
           <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
-            <span>Seguro</span>
-            <span>Perigoso</span>
-            <span>Crítico</span>
+            <span>Safe</span>
+            <span>Dangerous</span>
+            <span>Critical</span>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function PositionPanel() {
           onClick={() => closePosition("manual")}
           className="w-full py-2.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-semibold"
         >
-          Fechar Posição
+          Close Position
         </button>
       </div>
     </div>

@@ -33,7 +33,7 @@ export default function SimulationClock({
             <Clock className="w-4 h-4 text-crypto-accent" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tempo de Simulação</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Simulation Time</span>
             <span className="text-lg font-bold font-mono text-crypto-text tabular-nums leading-none mt-0.5">{elapsedTime}</span>
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function SimulationClock({
         {/* Progress */}
         <div className="flex flex-col gap-1 w-48">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Progresso</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Progress</span>
             <span className="text-[10px] font-bold font-mono text-crypto-accent">{progressPercent.toFixed(1)}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
@@ -69,7 +69,7 @@ export default function SimulationClock({
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Pause className="w-4 h-4" />
-            <span className="text-xs font-semibold">Pausar</span>
+            <span className="text-xs font-semibold">Pause</span>
           </button>
         ) : (
           <button
@@ -77,7 +77,7 @@ export default function SimulationClock({
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Play className="w-4 h-4" />
-            <span className="text-xs font-semibold">Continuar</span>
+            <span className="text-xs font-semibold">Resume</span>
           </button>
         )}
 
@@ -86,7 +86,7 @@ export default function SimulationClock({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-warning-dim border border-crypto-warning/30 text-crypto-warning hover:bg-crypto-warning/20 transition-all"
         >
           <Square className="w-4 h-4" />
-          <span className="text-xs font-semibold">Encerrar</span>
+          <span className="text-xs font-semibold">End</span>
         </button>
 
         <button
@@ -94,7 +94,7 @@ export default function SimulationClock({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
         >
           <RefreshCw className="w-4 h-4" />
-          <span className="text-xs font-semibold">Nova</span>
+          <span className="text-xs font-semibold">New</span>
         </button>
       </div>
     </div>

@@ -16,8 +16,8 @@ export default function SimulationLoader({ message }: SimulationLoaderProps) {
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold mb-2">Iniciando TimeWarp</h2>
-          <p className="text-gray-400">{message || "Preparando simulação..."}</p>
+          <h2 className="text-2xl font-bold mb-2">Starting TimeWarp</h2>
+          <p className="text-gray-400">{message || "Preparing simulation..."}</p>
         </div>
 
         <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">

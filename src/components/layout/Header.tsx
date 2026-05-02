@@ -14,8 +14,8 @@ export default function Header() {
 
   const navItems = [
     { href: "/trading", label: "Trading", icon: BarChart3 },
-    { href: "/leaderboard", label: "Ranking", icon: Trophy },
-    { href: "/achievements", label: "Conquistas", icon: Award },
+    { href: "/leaderboard", label: "Rankings", icon: Trophy },
+    { href: "/achievements", label: "Achievements", icon: Award },
   ];
 
   return (
@@ -63,7 +63,7 @@ export default function Header() {
 
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Saldo</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Balance</span>
             <span className="text-sm font-bold font-mono text-crypto-text tabular-nums">
               ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>

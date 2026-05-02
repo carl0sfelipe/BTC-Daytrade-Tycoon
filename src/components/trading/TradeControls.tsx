@@ -226,11 +226,11 @@ export default function TradeControls() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Position Size</span>
-                    <span className="text-[10px] font-mono text-crypto-text-secondary">Max: ${Math.floor(wallet).toLocaleString()}</span>
+                    <span className="text-[10px] font-mono text-crypto-text-secondary">Max: ${Math.floor(wallet * leverage).toLocaleString()}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
                     {sizeOptions.map((pct) => {
-                      const targetSize = Math.floor(wallet * (pct / 100));
+                      const targetSize = Math.floor(wallet * leverage * (pct / 100));
                       return (
                         <button
                           key={pct}

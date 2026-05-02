@@ -89,4 +89,52 @@ test.describe('Manual Trading Validation', () => {
     // Verify position closed - should show "OPEN LONG" button again
     await expect(controls.locator('button:has-text("Open Long")')).toBeVisible();
   });
+
+  test('simple mode 100% size pill respects leverage', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Reset store to known state: wallet = 10,000, no position
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({
+        wallet: 10000,
+        position: null,
+        closedTrades: [],
+      });
+    });
+    await page.waitForTimeout(300);
+
+    // Select 10x leverage
+    await page.click('text=LONG');
+    await page.waitForTimeout(200);
+    await page.locator('button:has-text("10x")').click();
+    await page.waitForTimeout(200);
+
+    // Click 100% size pill
+    await page.locator('button:has-text("100%")').click();
+    await page.waitForTimeout(200);
+
+    // Open position
+    await page.click('button:has-text("Open Long")');
+    await page.waitForTimeout(800);
+
+    // Verify position panel shows the expected size and margin
+    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
+    const panelText = await posPanel.innerText();
+    console.log('Position panel text:', panelText.substring(0, 400));
+
+    // With wallet=10,000 and 10x leverage, 100% should be ~$100,000 position size
+    // and ~$10,000 margin
+    expect(panelText).toContain('$100,000');
+    expect(panelText).toContain('$10,000.00');
+
+    // Close position to clean up
+    await posPanel.locator('text=Close Position').first().click();
+    await page.waitForTimeout(500);
+  });
 });

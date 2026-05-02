@@ -39,7 +39,7 @@ _________________________________________________________________
 │ │                                                               │ │
 │ │   You are dropped into a random real Bitcoin trading day      │ │
 │ │   between Dec 2017 and Dec 2025. Time runs 60x faster.        │ │
-│ │   The exact date is completely hidden.                        │ │
+│ │   The exact date is hidden.                                   │ │
 │ │                                                               │ │
 │ │   [ REAL MOVEMENTS & REAL-TIME PRICES ]                       │ │
 │ │   To kill all hindsight bias, historical movements are real,  │ │

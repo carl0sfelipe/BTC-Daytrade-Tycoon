@@ -257,8 +257,8 @@ test.describe('Manual Trading Validation', () => {
     const width2 = await getBarWidth();
     console.log('Bar width after price drop:', width2);
 
-    // The bar should have shrunk (price got closer to liquidation)
-    expect(width2).toBeLessThan(width1);
+    // The bar should have grown (price got closer to liquidation → more risk)
+    expect(width2).toBeGreaterThan(width1);
 
     // Inject a price rise to move away from liquidation
     await page.evaluate(() => {
@@ -275,8 +275,8 @@ test.describe('Manual Trading Validation', () => {
     const width3 = await getBarWidth();
     console.log('Bar width after price rise:', width3);
 
-    // The bar should have grown (price moved away from liquidation)
-    expect(width3).toBeGreaterThan(width2);
+    // The bar should have shrunk (price moved away from liquidation → less risk)
+    expect(width3).toBeLessThan(width2);
 
     // Resume engine before closing
     await page.evaluate(() => {
@@ -340,15 +340,19 @@ test.describe('Manual Trading Validation', () => {
     const width1 = await getBarWidth();
     console.log('Initial bar width (natural):', width1);
 
-    // Wait for the simulation to naturally move price (8 seconds real time = 8 simulated minutes)
-    await page.waitForTimeout(8000);
-
-    const width2 = await getBarWidth();
-    console.log('Bar width after 8s simulation:', width2);
+    // Wait up to 20 seconds for the simulation to naturally move price against the position
+    let width2 = width1;
+    let attempts = 0;
+    while (attempts < 20) {
+      await page.waitForTimeout(1000);
+      width2 = await getBarWidth();
+      console.log(`Bar width after ${attempts + 1}s:`, width2);
+      if (Math.abs(width2 - width1) > 0.5) break;
+      attempts++;
+    }
 
     // The bar should have changed (price moved during simulation)
-    // Use a small tolerance since the change could be tiny with 10x leverage
-    expect(Math.abs(width2 - width1)).toBeGreaterThan(0.01);
+    expect(Math.abs(width2 - width1)).toBeGreaterThan(0.5);
 
     await posPanel.locator('text=Close Position').first().click();
     await page.waitForTimeout(500);

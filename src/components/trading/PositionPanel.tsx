@@ -37,9 +37,9 @@ export default function PositionPanel() {
     Math.min(100, Math.abs((currentPrice - liquidationPrice) / currentPrice) * 100)
   );
 
-  // Normalize bar so it always starts full (100%) at open and shrinks toward liquidation
+  // Normalize bar so it starts empty (0%) at open and fills toward liquidation (100% = critical)
   const maxDistance = 100 / leverage;
-  const barPercent = Math.max(0, Math.min(100, (distanceToLiq / maxDistance) * 100));
+  const barPercent = Math.max(0, Math.min(100, 100 - (distanceToLiq / maxDistance) * 100));
 
   const isLong = side === "long";
   const isCritical = barPercent < 15;
@@ -142,7 +142,7 @@ export default function PositionPanel() {
             </span>
           </div>
           <div className="h-2.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
-            <div data-testid="distance-bar" className="h-full rounded-full risk-gradient transition-all duration-100" style={{ width: `${barPercent}%` }} />
+            <div data-testid="distance-bar" className="h-full rounded-full risk-gradient transition-all duration-100" style={{ width: `${barPercent}%`, minWidth: '2px' }} />
           </div>
           <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
             <span>Safe</span>

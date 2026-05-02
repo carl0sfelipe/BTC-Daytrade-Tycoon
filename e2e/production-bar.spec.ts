@@ -5,8 +5,7 @@ import { test, expect } from '@playwright/test';
  * the distance-to-liquidation bar actually moves as price changes.
  */
 test.describe('Production Vercel — Distance Bar Smoke', () => {
-  test('bar moves during live simulation with 100% size 100x', async ({ page }) => {
-    test.setTimeout(120000);
+  test('bar moves during live simulation', async ({ page }) => {
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(2500);
@@ -18,12 +17,12 @@ test.describe('Production Vercel — Distance Bar Smoke', () => {
       await page.waitForTimeout(500);
     }
 
-    // Open LONG with 100x leverage and 100% size ($10k margin, $1M position)
+    // Open LONG with 100x leverage (1% initial distance — highly sensitive)
     await page.click('text=LONG');
     await page.waitForTimeout(300);
     await page.locator('button:has-text("100x")').click();
     await page.waitForTimeout(300);
-    await page.locator('button:has-text("100%")').click();
+    await page.locator('button:has-text("10%")').click();
     await page.waitForTimeout(300);
 
     // Click Open Long — this may trigger the high-risk modal
@@ -53,31 +52,23 @@ test.describe('Production Vercel — Distance Bar Smoke', () => {
     console.log('Production initial bar width:', width1);
     await page.screenshot({ path: 'test-results/prod-01-initial.png', fullPage: true });
 
-    // Poll until distance to liquidation text drops to ~0.4% or until 60s timeout
-    let attempts = 0;
-    let found = false;
-    while (attempts < 60 && !found) {
-      await page.waitForTimeout(1000);
-      const panelText = await posPanel.innerText();
-      const match = panelText.match(/DISTANCE TO LIQUIDATION\s*\n?\s*([\d.]+)%/);
-      const pct = match ? parseFloat(match[1]) : -1;
-      console.log(`Attempt ${attempts + 1}: Distance = ${pct}%`);
+    // Wait 10 seconds for the live timewarp engine to move price
+    await page.waitForTimeout(10000);
 
-      const currentWidth = await getBarWidth();
-      console.log(`Attempt ${attempts + 1}: Bar width = ${currentWidth}%`);
+    const width2 = await getBarWidth();
+    console.log('Production bar width after 10s:', width2);
+    await page.screenshot({ path: 'test-results/prod-02-after-10s.png', fullPage: true });
 
-      if (pct <= 0.5) {
-        found = true;
-        await page.screenshot({ path: 'test-results/prod-02-near-liq.png', fullPage: true });
-        break;
-      }
-      attempts++;
-    }
+    // The bar must have changed (price moved during simulation)
+    expect(Math.abs(width2 - width1)).toBeGreaterThan(0.01);
 
-    // If we never reached 0.4%, take a final screenshot anyway
-    if (!found) {
-      await page.screenshot({ path: 'test-results/prod-02-final.png', fullPage: true });
-    }
+    // Take one more screenshot after 10 more seconds
+    await page.waitForTimeout(10000);
+    const width3 = await getBarWidth();
+    console.log('Production bar width after 20s:', width3);
+    await page.screenshot({ path: 'test-results/prod-03-after-20s.png', fullPage: true });
+
+    expect(Math.abs(width3 - width1)).toBeGreaterThan(0.01);
 
     // Cleanup
     await posPanel.locator('text=Close Position').first().click();

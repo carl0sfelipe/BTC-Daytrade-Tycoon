@@ -12,20 +12,40 @@ import TradeHistory from "@/components/trading/TradeHistory";
 import SimulationClock from "@/components/trading/SimulationClock";
 import SimulationLoader from "@/components/trading/SimulationLoader";
 import LiquidationModal from "@/components/trading/LiquidationModal";
+import EndSimulationModal from "@/components/trading/EndSimulationModal";
+import OnboardingModal from "@/components/trading/OnboardingModal";
+import MobileTradingView from "@/components/trading/MobileTradingView";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import { useTradingStore } from "@/store/tradingStore";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+const INITIAL_WALLET = 10000;
 
 export default function TradingPage() {
   const [mounted, setMounted] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const engine = useTimewarpEngine();
+  const isMobile = useIsMobile();
+
   const isLiquidated = useTradingStore((s) => s.isLiquidated);
   const simulationRealDate = useTradingStore((s) => s.simulationRealDate);
   const clearLiquidated = useTradingStore((s) => s.clearLiquidated);
+  const hasSeenOnboarding = useTradingStore((s) => s.hasSeenOnboarding);
+  const setOnboardingSeen = useTradingStore((s) => s.setOnboardingSeen);
+  const wallet = useTradingStore((s) => s.wallet);
+  const closedTrades = useTradingStore((s) => s.closedTrades);
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted && !hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, [mounted, hasSeenOnboarding]);
 
   if (!mounted) return null;
 
@@ -40,14 +60,14 @@ export default function TradingPage() {
 
   if (engine.error) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white">
+      <div className="min-h-screen bg-crypto-bg flex flex-col items-center justify-center text-crypto-text">
         <div className="text-center space-y-4">
           <div className="text-4xl">⚠️</div>
-          <h2 className="text-xl font-bold text-red-400">Erro na Simulação</h2>
-          <p className="text-gray-400">{engine.error}</p>
+          <h2 className="text-xl font-bold text-crypto-short">Erro na Simulação</h2>
+          <p className="text-crypto-text-secondary">{engine.error}</p>
           <button
             onClick={engine.reset}
-            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-medium"
+            className="bg-crypto-long text-black hover:bg-crypto-long/90 px-4 py-2 rounded-lg font-bold transition-colors"
           >
             Tentar Novamente
           </button>
@@ -62,96 +82,86 @@ export default function TradingPage() {
     engine.reset();
   };
 
+  const endStats = {
+    pnl: wallet - INITIAL_WALLET,
+    trades: closedTrades.length,
+    winRate: closedTrades.length
+      ? (closedTrades.filter((t) => t.pnl > 0).length / closedTrades.length) * 100
+      : 0,
+    returnPercent: ((wallet - INITIAL_WALLET) / INITIAL_WALLET) * 100,
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-crypto-bg text-crypto-text">
       <Header />
 
-      <div className="container mx-auto px-4 py-3">
-        <SimulationClock
-          elapsedTime={engine.elapsedTime}
-          speed={60}
-          progressPercent={engine.progressPercent}
-          isPlaying={engine.isPlaying}
-          realDateRange={engine.realDateRange}
-          onPause={engine.pause}
-          onResume={engine.start}
-          onReset={engine.reset}
-          onEnd={() => setShowEndModal(true)}
-        />
-      </div>
-
-      <MarketStatus />
-
-      <main className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-12 gap-4">
-          {/* Coluna principal — gráfico + cards de baixo */}
-          <div className="col-span-12 lg:col-span-8 space-y-4">
-            <TradingChart
-              candles={engine.candles}
-              currentPrice={engine.currentPrice}
-              currentTimeSec={engine.currentTimeSec}
+      {isMobile ? (
+        <MobileTradingView engine={engine} />
+      ) : (
+        <>
+          <div className="container mx-auto px-4 py-3">
+            <SimulationClock
+              elapsedTime={engine.elapsedTime}
+              speed={60}
+              progressPercent={engine.progressPercent}
+              isPlaying={engine.isPlaying}
+              realDateRange={engine.realDateRange}
+              onPause={engine.pause}
+              onResume={engine.start}
+              onReset={engine.reset}
+              onEnd={() => setShowEndModal(true)}
             />
-
-            <TradeHistory />
           </div>
 
-          {/* Coluna lateral — sempre visível, tudo empilhado */}
-          <div className="col-span-12 lg:col-span-4 space-y-4">
-            <OrderBook />
-            <PositionPanel />
-            <TradeControls />
-            <PnLDisplay />
-          </div>
-        </div>
-      </main>
+          <MarketStatus />
+
+          <main className="container mx-auto px-4 py-4">
+            <div className="grid grid-cols-12 gap-4">
+              {/* Coluna principal — gráfico + cards de baixo */}
+              <div className="col-span-12 lg:col-span-8 space-y-4">
+                <TradingChart
+                  candles={engine.candles}
+                  currentPrice={engine.currentPrice}
+                  currentTimeSec={engine.currentTimeSec}
+                />
+                <TradeHistory />
+              </div>
+
+              {/* Coluna lateral */}
+              <div className="col-span-12 lg:col-span-4 space-y-4">
+                <OrderBook />
+                <PositionPanel />
+                <TradeControls />
+                <PnLDisplay />
+              </div>
+            </div>
+          </main>
+        </>
+      )}
+
+      {/* Onboarding */}
+      {showOnboarding && (
+        <OnboardingModal
+          onStart={() => {
+            setOnboardingSeen();
+            setShowOnboarding(false);
+          }}
+        />
+      )}
 
       {/* Modal de liquidação */}
       {isLiquidated && simulationRealDate && (
-        <LiquidationModal
-          realDate={simulationRealDate}
-          onNewSession={handleNewSession}
-        />
+        <LiquidationModal realDate={simulationRealDate} onNewSession={handleNewSession} />
       )}
 
       {/* Modal de encerramento manual */}
       {showEndModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Simulação Encerrada
-            </h2>
-            <p className="text-gray-400 text-sm mb-6">
-              Você encerrou a sessão antes do fim. Aqui está o período histórico que você estava tradando:
-            </p>
-
-            <div className="bg-gray-800 rounded-lg p-4 mb-6">
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                Período Histórico Real
-              </div>
-              <div className="text-lg font-mono font-bold text-yellow-400">
-                {engine.realDateRange}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Dados reais da Binance que você estava tradando
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowEndModal(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={handleNewSession}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-              >
-                Nova Sessão
-              </button>
-            </div>
-          </div>
-        </div>
+        <EndSimulationModal
+          realDateRange={engine.realDateRange}
+          stats={endStats}
+          onClose={() => setShowEndModal(false)}
+          onNewSession={handleNewSession}
+        />
       )}
     </div>
   );

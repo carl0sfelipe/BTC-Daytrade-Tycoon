@@ -282,3 +282,5 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     reset,
   };
 }
+
+export type ReturnTypeUseTimewarpEngine = ReturnType<typeof useTimewarpEngine>;

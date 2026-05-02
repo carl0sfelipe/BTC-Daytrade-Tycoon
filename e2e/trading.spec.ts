@@ -5,6 +5,11 @@ const JID = 'TRADING-01';
 
 test.describe('Trading Simulator Smoke', () => {
   test('full simulation journey', async ({ page }) => {
+    // Prevenir onboarding de aparecer
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
+
     // 1. Entra na página
     await page.goto('/trading');
     await expect(page.locator('body')).toBeVisible();

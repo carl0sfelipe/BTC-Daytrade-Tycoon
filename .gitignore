@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Test artifacts
+test-results/
+test-evidence/
+
+# Design reference (not part of the app)
+Kimi_Agent_BTC Daytrade Tycoon Redesign/

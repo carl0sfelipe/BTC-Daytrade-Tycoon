@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Pause, RotateCcw, Flag } from "lucide-react";
+import { Clock, Pause, Play, Square, RefreshCw } from "lucide-react";
 
 interface SimulationClockProps {
   elapsedTime: string;
@@ -19,82 +19,83 @@ export default function SimulationClock({
   speed,
   progressPercent,
   isPlaying,
-  realDateRange,
   onPause,
   onResume,
   onReset,
   onEnd,
 }: SimulationClockProps) {
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="flex items-center justify-between px-5 py-3 card-surface">
       <div className="flex items-center gap-4">
-        <div className="text-2xl">⏱</div>
-        <div>
-          <div className="text-xs text-gray-400 uppercase tracking-wider">Tempo de Simulação</div>
-          <div className="text-lg font-mono font-bold text-green-400">
-            {elapsedTime}
+        {/* Clock Icon + Time */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-crypto-accent-dim flex items-center justify-center">
+            <Clock className="w-4 h-4 text-crypto-accent" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tempo de Simulação</span>
+            <span className="text-lg font-bold font-mono text-crypto-text tabular-nums leading-none mt-0.5">{elapsedTime}</span>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-8 bg-crypto-border" />
+
+        {/* Progress */}
+        <div className="flex flex-col gap-1 w-48">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Progresso</span>
+            <span className="text-[10px] font-bold font-mono text-crypto-accent">{progressPercent.toFixed(1)}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-crypto-accent to-crypto-cyan transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="text-right hidden sm:block">
-          <div className="text-xs text-gray-400">Velocidade</div>
-          <div className="text-sm font-bold">{speed}x</div>
+      {/* Controls */}
+      <div className="flex items-center gap-2">
+        {/* Speed badge */}
+        <div className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
+          <span className="text-xs font-bold font-mono text-crypto-accent">{speed}x</span>
         </div>
 
-        <div className="text-right hidden sm:block">
-          <div className="text-xs text-gray-400">Progresso</div>
-          <div className="text-sm font-bold">{progressPercent.toFixed(1)}%</div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isPlaying ? (
-            <button
-              onClick={onPause}
-              className="flex items-center gap-1 bg-yellow-600 hover:bg-yellow-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-            >
-              <Pause className="w-4 h-4" />
-              Pausar
-            </button>
-          ) : (
-            <button
-              onClick={onResume}
-              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              Continuar
-            </button>
-          )}
-
+        {isPlaying ? (
           <button
-            onClick={onEnd}
-            className="flex items-center gap-1 bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-            title="Encerrar simulação e ver data real"
+            onClick={onPause}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
-            <Flag className="w-4 h-4" />
-            Encerrar
+            <Pause className="w-4 h-4" />
+            <span className="text-xs font-semibold">Pausar</span>
           </button>
-
+        ) : (
           <button
-            onClick={onReset}
-            className="flex items-center gap-1 bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-sm font-medium transition-colors"
-            title="Nova simulação"
+            onClick={onResume}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
-            <RotateCcw className="w-4 h-4" />
-            Nova
+            <Play className="w-4 h-4" />
+            <span className="text-xs font-semibold">Continuar</span>
           </button>
-        </div>
-      </div>
+        )}
 
-      {/* Barra de progresso mobile */}
-      <div className="w-full sm:hidden">
-        <div className="w-full h-1 bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 transition-all duration-300"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+        <button
+          onClick={onEnd}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-warning-dim border border-crypto-warning/30 text-crypto-warning hover:bg-crypto-warning/20 transition-all"
+        >
+          <Square className="w-4 h-4" />
+          <span className="text-xs font-semibold">Encerrar</span>
+        </button>
+
+        <button
+          onClick={onReset}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span className="text-xs font-semibold">Nova</span>
+        </button>
       </div>
     </div>
   );

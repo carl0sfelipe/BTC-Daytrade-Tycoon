@@ -5,6 +5,9 @@ const JID = 'DATE-REVEAL';
 
 test.describe('Revelação de data histórica', () => {
   test('botão Encerrar abre modal com período histórico', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
+    });
     await page.goto('/trading');
     await page.waitForSelector('text=Tempo de Simulação', { timeout: 30000 });
     await page.waitForTimeout(2000);
@@ -25,6 +28,12 @@ test.describe('Revelação de data histórica', () => {
   test('liquidação dispara modal vermelho com data', async ({ page }) => {
     await page.goto('/trading');
     await page.waitForSelector('text=Tempo de Simulação', { timeout: 30000 });
+    try {
+      await page.locator('text=Pular').click({ timeout: 2000 });
+      await page.waitForTimeout(300);
+    } catch {
+      /* no onboarding */
+    }
     await page.waitForTimeout(2000);
 
     // Injeta posição com liquidationPrice acima do preço atual (long liquidado no próximo tick)

@@ -25,7 +25,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-gray-950 text-gray-100 min-h-screen`}
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-crypto-bg text-crypto-text min-h-screen`}
+        style={{ background: "linear-gradient(180deg,#0a0a0f 0%,#0f0f1a 100%)" }}
       >
         {children}
       </body>

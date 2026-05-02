@@ -7,8 +7,11 @@ import {
   type IChartApi,
   type ISeriesApi,
   type Time,
+  type IPriceLine,
 } from "lightweight-charts";
 import type { SimulatedCandle } from "@/lib/binance-api";
+import { useTradingStore } from "@/store/tradingStore";
+import { Maximize2 } from "lucide-react";
 
 interface TradingChartProps {
   candles: SimulatedCandle[];
@@ -24,9 +27,12 @@ export default function TradingChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const priceLineRef = useRef<any>(null);
+  const priceLineRef = useRef<IPriceLine | null>(null);
+  const liqPriceLineRef = useRef<IPriceLine | null>(null);
   const initializedRef = useRef(false);
   const lastIdxRef = useRef(-1);
+
+  const position = useTradingStore((s) => s.position);
 
   // Inicializa o chart uma vez
   useEffect(() => {
@@ -35,15 +41,15 @@ export default function TradingChart({
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { color: "#111827" },
-        textColor: "#9ca3af",
+        background: { color: "#15151f" },
+        textColor: "#9999b3",
       },
       grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
+        vertLines: { color: "#1e1e2d" },
+        horzLines: { color: "#1e1e2d" },
       },
       crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: "#374151" },
+      rightPriceScale: { borderColor: "#26263a" },
       timeScale: {
         visible: false,
         barSpacing: 6,
@@ -52,20 +58,20 @@ export default function TradingChart({
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+      upColor: "#00d4a8",
+      downColor: "#ff4757",
+      borderUpColor: "#00d4a8",
+      borderDownColor: "#ff4757",
+      wickUpColor: "#00d4a8",
+      wickDownColor: "#ff4757",
     });
 
     const priceLine = candleSeries.createPriceLine({
       price: 0,
-      color: "#10b981",
-      lineWidth: 2,
+      color: "#7c5cff",
+      lineWidth: 1,
       lineStyle: 2,
-      title: "Preço Atual",
+      title: "ATUAL",
     });
 
     chartRef.current = chart;
@@ -91,7 +97,6 @@ export default function TradingChart({
   useEffect(() => {
     if (!seriesRef.current || candles.length === 0) return;
 
-    // Encontra índice do candle atual
     let currentIdx = 0;
     for (let i = 0; i < candles.length - 1; i++) {
       if (currentTimeSec >= candles[i].time && currentTimeSec < candles[i + 1].time) {
@@ -103,7 +108,6 @@ export default function TradingChart({
       currentIdx = candles.length - 1;
     }
 
-    // Constroi dados visíveis: todos até currentIdx, com o último em formação
     const visible = candles.slice(0, currentIdx + 1).map((c, i) => {
       const isLast = i === currentIdx;
       return {
@@ -134,11 +138,35 @@ export default function TradingChart({
     }
   }, [currentPrice, currentTimeSec, candles]);
 
+  // priceLine de liquidação
+  useEffect(() => {
+    if (!seriesRef.current) return;
+    if (liqPriceLineRef.current) {
+      seriesRef.current.removePriceLine(liqPriceLineRef.current);
+      liqPriceLineRef.current = null;
+    }
+    if (position) {
+      liqPriceLineRef.current = seriesRef.current.createPriceLine({
+        price: position.liquidationPrice,
+        color: "#ff4757",
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: "LIQ",
+      });
+    }
+  }, [position?.liquidationPrice, position?.side]);
+
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold text-gray-400">Gráfico BTC/USDT</h2>
-        <span className="text-xs text-gray-500">1M • Simulação</span>
+    <div className="card-surface overflow-hidden flex flex-col">
+      {/* Chart Header */}
+      <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-crypto-text-secondary">BTC/USDT — 1M Simulação</span>
+        </div>
+        <button className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text">
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
       </div>
       <div ref={containerRef} style={{ height: "320px" }} />
     </div>

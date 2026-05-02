@@ -1,106 +1,159 @@
 "use client";
 
+import { TrendingUp, TrendingDown, AlertTriangle, Crosshair } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 
 export default function PositionPanel() {
-  const { position, currentPrice, lastCloseReason } = useTradingStore();
+  const position = useTradingStore((s) => s.position);
+  const currentPrice = useTradingStore((s) => s.currentPrice);
+  const closePosition = useTradingStore((s) => s.closePosition);
+  const lastCloseReason = useTradingStore((s) => s.lastCloseReason);
 
   if (!position) {
     return (
-      <div className="bg-gray-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-400 mb-2">Sua Posição</h3>
+      <div className="card-surface overflow-hidden">
+        <div className="px-4 py-3 border-b border-crypto-border">
+          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Sua Posição</h3>
+        </div>
         {lastCloseReason && (
-          <p className="text-center text-yellow-400 text-xs py-1 mb-2">{lastCloseReason}</p>
+          <p className="text-center text-crypto-warning text-xs py-2">{lastCloseReason}</p>
         )}
-        <p className="text-center text-gray-500 py-4">Sem posição aberta</p>
+        <div className="flex items-center justify-center min-h-[120px]">
+          <p className="text-sm text-crypto-text-muted">Nenhuma posição aberta</p>
+        </div>
       </div>
     );
   }
 
   const { side, entry, size, leverage, tpPrice, slPrice, liquidationPrice } = position;
 
-  // PnL = (priceDiff / entry) * size
   const priceDiff = side === "long" ? currentPrice - entry : entry - currentPrice;
-  const unrealizedPnL = (priceDiff / entry) * size;
-  const pnlPercent = (priceDiff / entry) * 100 * leverage;
+  const pnl = (priceDiff / entry) * size;
+  const pnlPercent = (priceDiff / entry) * leverage * 100;
+  const margin = size / leverage;
+
+  const distanceToLiq = Math.max(
+    0,
+    Math.min(100, Math.abs((currentPrice - liquidationPrice) / currentPrice) * 100)
+  );
+
+  const isLong = side === "long";
+  const isCritical = distanceToLiq < 10;
+  const isDanger = distanceToLiq < 20;
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3">Posição Atual</h3>
-
-      {/* Side badge */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-gray-400">Direção:</span>
-        <span
-          className={`text-sm font-bold px-2 py-0.5 rounded ${
-            side === "long"
-              ? "bg-green-500/20 text-green-400"
-              : "bg-red-500/20 text-red-400"
-          }`}
-        >
-          {side.toUpperCase()} {leverage}x
-        </span>
-      </div>
-
-      {/* Entry / Current */}
-      <div className="flex justify-between text-xs mb-2">
-        <span className="text-gray-400">Entrada:</span>
-        <span>${entry.toFixed(2)}</span>
-      </div>
-      <div className="flex justify-between text-xs mb-2">
-        <span className="text-gray-400">Atual:</span>
-        <span>${currentPrice.toFixed(2)}</span>
-      </div>
-      <div className="flex justify-between text-xs mb-2">
-        <span className="text-gray-400">Tamanho:</span>
-        <span>${size.toLocaleString()}</span>
-      </div>
-
-      {/* TP / SL */}
-      {(tpPrice || slPrice) && (
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          {tpPrice && (
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-400">TP:</span>
-              <span className="text-green-400">${tpPrice.toFixed(2)}</span>
-            </div>
+    <div className={`card-surface overflow-hidden ${isCritical ? "animate-pulse-glow border-crypto-short/50" : ""}`}>
+      <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Sua Posição</h3>
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md ${isLong ? "bg-crypto-long-dim" : "bg-crypto-short-dim"}`}>
+          {isLong ? (
+            <TrendingUp className="w-3.5 h-3.5 text-crypto-long" />
+          ) : (
+            <TrendingDown className="w-3.5 h-3.5 text-crypto-short" />
           )}
-          {slPrice && (
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-400">SL:</span>
-              <span className="text-red-400">${slPrice.toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* P&L */}
-      <div
-        className={`mt-3 pt-3 border-t ${
-          unrealizedPnL >= 0 ? "border-green-500/30" : "border-red-500/30"
-        }`}
-      >
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-400">P&L:</span>
-          <span
-            className={`font-bold text-sm ${
-              unrealizedPnL >= 0 ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {unrealizedPnL >= 0 ? "+" : ""}${unrealizedPnL.toFixed(2)}
-            <span className="text-xs ml-1 opacity-70">
-              ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(1)}%)
-            </span>
+          <span className={`text-xs font-bold uppercase ${isLong ? "text-crypto-long" : "text-crypto-short"}`}>
+            {isLong ? "LONG" : "SHORT"}
           </span>
         </div>
       </div>
 
-      {/* Liquidation */}
-      <div className="mt-2 pt-2 border-t border-gray-700">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-400">Liquidação:</span>
-          <span className="text-orange-400">${liquidationPrice.toFixed(2)}</span>
+      <div className="p-4 space-y-4">
+        {/* PnL Big Display */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">P&L Não Realizado</span>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-2xl font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short"}`}>
+                {pnl >= 0 ? "+" : ""}${pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+              <span className={`text-sm font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+                ({pnl >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
+              </span>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-crypto-surface-elevated border border-crypto-border flex items-center justify-center">
+            <Crosshair className="w-5 h-5 text-crypto-accent" />
+          </div>
         </div>
+
+        {/* Position details grid */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Preço de Entrada</span>
+            <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
+              ${entry.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho</span>
+            <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">${size.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+            <span className="text-sm font-mono font-semibold text-crypto-accent tabular-nums">{leverage}x</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Margem</span>
+            <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
+              ${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        {/* TP / SL */}
+        {(tpPrice || slPrice) && (
+          <div className="grid grid-cols-2 gap-2">
+            {tpPrice && (
+              <div className="flex flex-col p-2 rounded-lg bg-crypto-long-dim border border-crypto-long/20">
+                <span className="text-[10px] text-crypto-long uppercase tracking-wider">Take Profit</span>
+                <span className="text-sm font-mono font-semibold text-crypto-long">${tpPrice.toFixed(2)}</span>
+              </div>
+            )}
+            {slPrice && (
+              <div className="flex flex-col p-2 rounded-lg bg-crypto-short-dim border border-crypto-short/20">
+                <span className="text-[10px] text-crypto-short uppercase tracking-wider">Stop Loss</span>
+                <span className="text-sm font-mono font-semibold text-crypto-short">${slPrice.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Liquidation Price */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-crypto-short-dim border border-crypto-short/20">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-crypto-short" />
+            <span className="text-xs font-semibold text-crypto-short">Preço de Liquidação</span>
+          </div>
+          <span className="text-sm font-bold font-mono text-crypto-short tabular-nums">
+            ${liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+
+        {/* Risk Gauge */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Distância da Liquidação</span>
+            <span className={`text-xs font-bold font-mono tabular-nums ${isCritical ? "text-crypto-short" : isDanger ? "text-crypto-warning" : "text-crypto-long"}`}>
+              {distanceToLiq.toFixed(1)}%
+            </span>
+          </div>
+          <div className="h-2.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
+            <div className="h-full rounded-full risk-gradient transition-all duration-500" style={{ width: `${distanceToLiq}%` }} />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
+            <span>Seguro</span>
+            <span>Perigoso</span>
+            <span>Crítico</span>
+          </div>
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={() => closePosition("manual")}
+          className="w-full py-2.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-semibold"
+        >
+          Fechar Posição
+        </button>
       </div>
     </div>
   );

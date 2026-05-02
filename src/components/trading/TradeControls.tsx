@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Settings2 } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
+import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
 
 export default function TradeControls() {
+  const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"long" | "short">("long");
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [leverage, setLeverage] = useState(10);
@@ -11,16 +14,22 @@ export default function TradeControls() {
   const [limitPrice, setLimitPrice] = useState("");
   const [tpPrice, setTpPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
+  const [pendingTrade, setPendingTrade] = useState<{
+    side: "long" | "short";
+    leverage: number;
+    size: number;
+    tp: string;
+    sl: string;
+    limitPrice: string | null;
+  } | null>(null);
 
-  const {
-    openPosition,
-    closePosition,
-    updatePositionSize,
-    updateLeverage,
-    wallet,
-    position,
-    currentPrice,
-  } = useTradingStore();
+  const wallet = useTradingStore((s) => s.wallet);
+  const position = useTradingStore((s) => s.position);
+  const currentPrice = useTradingStore((s) => s.currentPrice);
+  const openPosition = useTradingStore((s) => s.openPosition);
+  const closePosition = useTradingStore((s) => s.closePosition);
+  const updatePositionSize = useTradingStore((s) => s.updatePositionSize);
+  const updateLeverage = useTradingStore((s) => s.updateLeverage);
 
   // Sincroniza slider com tamanho da posição aberta
   useEffect(() => {
@@ -34,21 +43,37 @@ export default function TradeControls() {
   const margin = positionSize / leverage;
   const canOpen = wallet >= margin;
 
-  // Quando posição está aberta, o máximo é size atual + o que dá pra adicionar com saldo
   const sliderMax = position
     ? position.size + Math.floor(wallet * leverage)
     : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
     if (!canOpen) return;
+    if (leverage >= 50) {
+      setPendingTrade({
+        side,
+        leverage,
+        size: positionSize,
+        tp: tpPrice,
+        sl: slPrice,
+        limitPrice: orderType === "limit" ? limitPrice : null,
+      });
+      return;
+    }
+    openPosition(side, leverage, positionSize, tpPrice, slPrice, orderType === "limit" ? limitPrice : null);
+  };
+
+  const handleConfirmHighLeverage = () => {
+    if (!pendingTrade) return;
     openPosition(
-      side,
-      leverage,
-      positionSize,
-      tpPrice,
-      slPrice,
-      orderType === "limit" ? limitPrice : null
+      pendingTrade.side,
+      pendingTrade.leverage,
+      pendingTrade.size,
+      pendingTrade.tp,
+      pendingTrade.sl,
+      pendingTrade.limitPrice
     );
+    setPendingTrade(null);
   };
 
   const handleUpdate = () => {
@@ -67,194 +92,331 @@ export default function TradeControls() {
   const canIncrease = sizeDiff > 0 && wallet >= sizeDiff / leverage;
   const canDecrease = sizeDiff < 0;
 
+  const leverageOptions = [2, 5, 10, 25, 50, 100];
+  const sizeOptions = [10, 25, 50, 100];
+  const isLong = side === "long";
+
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3">Controles de Ordem</h3>
-
-      {/* Side tabs — desabilitado quando posição aberta */}
-      <div className="flex mb-3 rounded overflow-hidden">
-        <button
-          onClick={() => !position && setSide("long")}
-          className={`flex-1 py-1.5 text-xs font-bold transition-colors ${
-            side === "long"
-              ? "bg-green-600 text-white"
-              : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-          } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          LONG
-        </button>
-        <button
-          onClick={() => !position && setSide("short")}
-          className={`flex-1 py-1.5 text-xs font-bold transition-colors ${
-            side === "short"
-              ? "bg-red-600 text-white"
-              : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-          } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          SHORT
-        </button>
-      </div>
-
-      {/* Order type */}
-      <div className="flex gap-2 mb-3">
-        {(["market", "limit"] as const).map((type) => (
+    <>
+      <div className="card-surface overflow-hidden">
+        {/* Header with mode toggle */}
+        <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
+          <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Controles de Ordem</h3>
           <button
-            key={type}
-            onClick={() => !position && setOrderType(type)}
-            className={`px-3 py-1 text-xs rounded transition-colors ${
-              orderType === type
-                ? "bg-gray-600 text-white"
-                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-            } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+            onClick={() => setMode(mode === "simple" ? "advanced" : "simple")}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
-            {type === "market" ? "Mercado" : "Limite"}
+            <Settings2 className="w-3 h-3" />
+            {mode === "simple" ? "Modo Avançado" : "Modo Simples"}
           </button>
-        ))}
-      </div>
-
-      {/* Limit price */}
-      {orderType === "limit" && !position && (
-        <div className="mb-3">
-          <label className="block text-xs text-gray-400 mb-1">
-            Preço Limite (USD)
-          </label>
-          <input
-            type="number"
-            placeholder={currentPrice.toFixed(2)}
-            value={limitPrice}
-            onChange={(e) => setLimitPrice(e.target.value)}
-            className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
         </div>
-      )}
 
-      {/* Alavancagem */}
-      <div className="mb-3">
-        <label className="block text-xs text-gray-400 mb-1">
-          Alavancagem: {leverage}x
-        </label>
-        <input
-          type="range"
-          min="2"
-          max="100"
-          value={leverage}
-          onChange={(e) => handleLeverageChange(Number(e.target.value))}
-          className="w-full accent-green-500"
-        />
-      </div>
-
-      {/* Tamanho da posição */}
-      <div className="mb-3">
-        <label className="block text-xs text-gray-400 mb-1">
-          {position ? "Ajustar Tamanho" : "Tamanho da Posição"}: ${positionSize.toLocaleString()}
-        </label>
-        <input
-          type="range"
-          min="100"
-          max={Math.max(100, sliderMax)}
-          step="100"
-          value={positionSize}
-          onChange={(e) => setPositionSize(Number(e.target.value))}
-          className="w-full accent-green-500"
-        />
-        <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
-          <span>$100</span>
-          <span>${Math.floor(sliderMax).toLocaleString()}</span>
-        </div>
-        {position && (
-          <div className="flex justify-between text-[10px] mt-1">
-            <span className="text-gray-400">Atual: ${position.size.toLocaleString()}</span>
-            {sizeDiff !== 0 && (
-              <span className={sizeDiff > 0 ? "text-green-400" : "text-red-400"}>
-                {sizeDiff > 0 ? "+" : ""}${sizeDiff.toLocaleString()}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* TP/SL — só quando abrindo nova posição */}
-      {!position && (
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <input
-            type="number"
-            placeholder="Take Profit"
-            value={tpPrice}
-            onChange={(e) => setTpPrice(e.target.value)}
-            className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-          />
-          <input
-            type="number"
-            placeholder="Stop Loss"
-            value={slPrice}
-            onChange={(e) => setSlPrice(e.target.value)}
-            className="w-full bg-gray-700 text-sm px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
-          />
-        </div>
-      )}
-
-      {/* Action buttons */}
-      {position ? (
-        <div className="space-y-2">
-          {sizeDiff > 0 && (
+        <div className="p-4 space-y-4">
+          {/* Side Tabs */}
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={handleUpdate}
-              disabled={!canIncrease}
-              className={`w-full font-bold py-2 px-4 rounded transition-colors text-white ${
-                canIncrease
-                  ? position.side === "long"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-red-600 hover:bg-red-700"
-                  : "bg-gray-600 cursor-not-allowed"
+              onClick={() => !position && setSide("long")}
+              disabled={!!position}
+              className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
+                isLong
+                  ? "bg-crypto-long text-black border-crypto-long shadow-glow-long"
+                  : "bg-crypto-surface-elevated text-crypto-long border-crypto-border hover:border-crypto-long/50"
+              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              LONG
+            </button>
+            <button
+              onClick={() => !position && setSide("short")}
+              disabled={!!position}
+              className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
+                !isLong
+                  ? "bg-crypto-short text-white border-crypto-short shadow-glow-short"
+                  : "bg-crypto-surface-elevated text-crypto-short border-crypto-border hover:border-crypto-short/50"
+              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              SHORT
+            </button>
+          </div>
+
+          {/* Order Type */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => !position && setOrderType("market")}
+              disabled={!!position}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                orderType === "market"
+                  ? "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"
+                  : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
+              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Mercado
+            </button>
+            <button
+              onClick={() => !position && setOrderType("limit")}
+              disabled={!!position}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                orderType === "limit"
+                  ? "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"
+                  : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
+              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Limite
+            </button>
+          </div>
+
+          {mode === "simple" ? (
+            <>
+              {/* Leverage Pills */}
+              <div className="space-y-2">
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {leverageOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => handleLeverageChange(opt)}
+                      className={`py-1.5 rounded-md text-xs font-bold font-mono transition-all ${
+                        leverage === opt
+                          ? opt >= 50
+                            ? "bg-crypto-warning-dim text-crypto-warning border border-crypto-warning/30"
+                            : "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"
+                          : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"
+                      }`}
+                    >
+                      {opt}x
+                    </button>
+                  ))}
+                </div>
+                {leverage >= 50 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20">
+                    <span className="text-[10px] text-crypto-warning font-semibold">⚠️ Alto risco de liquidação rápida</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Size Pills or Slider when position open */}
+              {position ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Ajustar Tamanho</span>
+                    <span className="text-[10px] font-mono text-crypto-text-secondary">Atual: ${Math.floor(position.size).toLocaleString()}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={100}
+                    max={Math.max(100, sliderMax)}
+                    step={100}
+                    value={positionSize}
+                    onChange={(e) => setPositionSize(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
+                    <span>$100</span>
+                    <span>${Math.floor(sliderMax / 2).toLocaleString()}</span>
+                    <span>${Math.floor(sliderMax).toLocaleString()}</span>
+                  </div>
+                  {sizeDiff !== 0 && (
+                    <div className={`text-[10px] font-mono text-center ${sizeDiff > 0 ? 'text-crypto-long' : 'text-crypto-short'}`}>
+                      {sizeDiff > 0 ? '+' : ''}${sizeDiff.toLocaleString()} vs atual
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho da Posição</span>
+                    <span className="text-[10px] font-mono text-crypto-text-secondary">Max: ${Math.floor(wallet).toLocaleString()}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {sizeOptions.map((pct) => {
+                      const targetSize = Math.floor(wallet * (pct / 100));
+                      return (
+                        <button
+                          key={pct}
+                          onClick={() => setPositionSize(targetSize)}
+                          className={`py-1.5 rounded-md text-xs font-bold transition-all ${
+                            Math.abs(positionSize - targetSize) < 1
+                              ? "bg-crypto-surface-elevated text-crypto-text border border-crypto-accent"
+                              : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Advanced: Leverage Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Alavancagem</span>
+                  <span className="text-sm font-bold font-mono text-crypto-accent">{leverage}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={2}
+                  max={100}
+                  value={leverage}
+                  onChange={(e) => handleLeverageChange(Number(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
+                  <span>2x</span>
+                  <span>25x</span>
+                  <span>50x</span>
+                  <span>100x</span>
+                </div>
+              </div>
+
+              {/* Advanced: Size Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Tamanho</span>
+                  <span className="text-sm font-bold font-mono text-crypto-text">${positionSize.toLocaleString()}</span>
+                </div>
+                <input
+                  type="range"
+                  min={100}
+                  max={Math.max(100, sliderMax)}
+                  step={100}
+                  value={positionSize}
+                  onChange={(e) => setPositionSize(Number(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
+                  <span>$100</span>
+                  <span>${Math.floor(sliderMax / 2).toLocaleString()}</span>
+                  <span>${Math.floor(sliderMax).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* TP / SL Inputs */}
+              {!position && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Take Profit</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="0.00"
+                        value={tpPrice}
+                        onChange={(e) => setTpPrice(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Stop Loss</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="0.00"
+                        value={slPrice}
+                        onChange={(e) => setSlPrice(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Limit Price (only if limit order) */}
+              {!position && orderType === "limit" && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Preço Limite</span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={currentPrice.toFixed(2)}
+                      value={limitPrice}
+                      onChange={(e) => setLimitPrice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Summary */}
+          <div className="space-y-1.5 pt-2 border-t border-crypto-border">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-crypto-text-muted">Margem necessária:</span>
+              <span className="font-mono font-semibold text-crypto-text">${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-crypto-text-muted">Disponível após:</span>
+              <span className="font-mono font-semibold text-crypto-text">
+                ${(wallet - margin).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          {position ? (
+            <div className="space-y-2">
+              {sizeDiff > 0 && (
+                <button
+                  onClick={handleUpdate}
+                  disabled={!canIncrease}
+                  className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
+                    canIncrease
+                      ? position.side === "long"
+                        ? "bg-crypto-long text-black hover:shadow-glow-long"
+                        : "bg-crypto-short text-white hover:shadow-glow-short"
+                      : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
+                  }`}
+                >
+                  AUMENTAR POSIÇÃO
+                </button>
+              )}
+              {sizeDiff < 0 && (
+                <button
+                  onClick={handleUpdate}
+                  className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-colors text-sm"
+                >
+                  DIMINUIR POSIÇÃO
+                </button>
+              )}
+              <button
+                onClick={() => closePosition("manual")}
+                className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
+              >
+                FECHAR POSIÇÃO
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleOpen}
+              disabled={!canOpen}
+              className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+                canOpen
+                  ? isLong
+                    ? "btn-long shadow-glow-long"
+                    : "btn-short shadow-glow-short"
+                  : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
               }`}
             >
-              AUMENTAR POSIÇÃO
+              {mode === "simple" ? `Abrir ${isLong ? "Long" : "Short"}` : `Abrir ${isLong ? "Long" : "Short"} a Mercado`}
             </button>
           )}
-          {sizeDiff < 0 && (
-            <button
-              onClick={handleUpdate}
-              className="w-full font-bold py-2 px-4 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors text-white"
-            >
-              DIMINUIR POSIÇÃO
-            </button>
-          )}
-          <button
-            onClick={() => closePosition("manual")}
-            className="w-full font-bold py-2 px-4 rounded bg-gray-700 hover:bg-gray-600 transition-colors text-white border border-gray-600"
-          >
-            FECHAR POSIÇÃO
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={handleOpen}
-          disabled={!canOpen}
-          className={`w-full font-bold py-2 px-4 rounded transition-colors text-white ${
-            canOpen
-              ? side === "long"
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-red-600 hover:bg-red-700"
-              : "bg-gray-600 cursor-not-allowed"
-          }`}
-        >
-          {side === "long" ? "ABRIR LONG" : "ABRIR SHORT"}
-        </button>
-      )}
-
-      {/* Margem usada */}
-      <div className="mt-3 pt-3 border-t border-gray-700">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-400">
-            {position ? "Margem Total:" : "Margem:"}
-          </span>
-          <span>${margin.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-xs mt-1">
-          <span className="text-gray-400">Disponível:</span>
-          <span>${wallet.toFixed(2)}</span>
         </div>
       </div>
-    </div>
+
+      {/* High leverage confirmation modal */}
+      {pendingTrade && (
+        <ConfirmHighLeverageModal
+          leverage={pendingTrade.leverage}
+          onConfirm={handleConfirmHighLeverage}
+          onCancel={() => setPendingTrade(null)}
+        />
+      )}
+    </>
   );
 }

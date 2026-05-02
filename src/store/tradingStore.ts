@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface Trade {
+export interface Trade {
   pnl: number;
   side: "long" | "short";
   reason: "manual" | "tp" | "sl" | "liquidation";
@@ -31,6 +31,7 @@ interface TradingStore {
   lastCloseReason: string | null;
   isLiquidated: boolean;
   simulationRealDate: string | null;
+  hasSeenOnboarding: boolean;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -54,6 +55,7 @@ interface TradingStore {
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
   setLiquidated: (date: string) => void;
   clearLiquidated: () => void;
+  setOnboardingSeen: () => void;
 }
 
 function calcLiquidationPrice(entry: number, leverage: number, side: "long" | "short"): number {
@@ -82,6 +84,7 @@ export const useTradingStore = create<TradingStore>()(
       lastCloseReason: null,
       isLiquidated: false,
       simulationRealDate: null,
+      hasSeenOnboarding: false,
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -94,6 +97,7 @@ export const useTradingStore = create<TradingStore>()(
       setWallet: (wallet) => set({ wallet }),
       setLiquidated: (date) => set({ isLiquidated: true, simulationRealDate: date }),
       clearLiquidated: () => set({ isLiquidated: false, simulationRealDate: null }),
+      setOnboardingSeen: () => set({ hasSeenOnboarding: true }),
       addClosedTrade: (trade) =>
         set((state) => ({
           closedTrades: [...state.closedTrades, trade],

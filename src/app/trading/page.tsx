@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
 import MarketStatus from "@/components/layout/MarketStatus";
 import TradingChart from "@/components/trading/TradingChart";
-import OrderBook from "@/components/trading/OrderBook";
+
 import TradeControls from "@/components/trading/TradeControls";
 import PositionPanel from "@/components/trading/PositionPanel";
 import PnLDisplay from "@/components/trading/PnLDisplay";
@@ -129,7 +129,6 @@ export default function TradingPage() {
 
               {/* Side column */}
               <div className="col-span-12 lg:col-span-4 space-y-4">
-                <OrderBook />
                 <PositionPanel />
                 <TradeControls />
                 <PnLDisplay />

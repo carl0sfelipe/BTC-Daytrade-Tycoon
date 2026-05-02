@@ -23,6 +23,10 @@
 
 ## 📸 Demo & Screenshots
 
+<p align="center">
+  <img src="./demo.gif" alt="BTC Daytrade Tycoon Demo" width="800" />
+</p>
+
 ```
 ┌──────────────────────────────────────────────┐
 │  🕰️ TimeWarp Trading Simulator                │

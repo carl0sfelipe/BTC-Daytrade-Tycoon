@@ -32,7 +32,7 @@
 │  🕰️ TimeWarp Trading Simulator                │
 │                                               │
 │  You are dropped into a random real Bitcoin   │
-│  trading day between Dec 2017 and Dec 2020.   │
+│  trading day between Dec 2017 and Dec 2025.   │
 │  Time runs 60× faster. The date is hidden.    │
 │  Can you survive without knowing the future?  │
 └──────────────────────────────────────────────┘

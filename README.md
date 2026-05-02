@@ -28,14 +28,29 @@
 </p>
 
 ```
-┌──────────────────────────────────────────────┐
-│  🕰️ TimeWarp Trading Simulator                │
-│                                               │
-│  You are dropped into a random real Bitcoin   │
-│  trading day between Dec 2017 and Dec 2025.   │
-│  Time runs 60× faster. The date is hidden.    │
-│  Can you survive without knowing the future?  │
-└──────────────────────────────────────────────┘
+_________________________________________________________________ 
+  / [!] SYSTEM: TIMEWARP ENGAGED                                    \
+┌───────────────────────────────────────────────────────────────────┐
+│   @% @. %=%    [-/-=, + =-, [+]    (##%%)          _______        │
+│   #######─── TIME MACHINE CONSOLE ────────────────|       |       │
+│ ┌───────────────────────────────────────────────────────────────┐ │
+│ │                                                               │ │
+│ │          >>> TIMEWARP TRADING SIMULATOR <<<                   │ │
+│ │                                                               │ │
+│ │   You are dropped into a random real Bitcoin trading day      │ │
+│ │   between Dec 2017 and Dec 2025. Time runs 60x faster.        │ │
+│ │   The exact date is completely hidden.                        │ │
+│ │                                                               │ │
+│ │   [ REAL MOVEMENTS & REAL-TIME PRICES ]                       │ │
+│ │   To kill all hindsight bias, historical movements are real,  │ │
+│ │   but the price is offset to match today's levels.            │ │
+│ │                                                               │ │
+│ │   Can you survive without knowing the future?                 │ │
+│ │                                                               │ │
+│ └───────────────────────────────────────────────────────────────┘ │
+│   #######%@###     >>> INITIATE JUMP <<<   :[ | | | | | | ]:      │
+└───────────────────────────────────────────────────────────────────┘
+  \_________________________________________________________________/
 ```
 
 ---

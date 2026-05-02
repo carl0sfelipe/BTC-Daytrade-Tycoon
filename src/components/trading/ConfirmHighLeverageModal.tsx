@@ -1,18 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 interface ConfirmHighLeverageModalProps {
   leverage: number;
   onConfirm: () => void;
   onCancel: () => void;
+  onSkipChange?: (skip: boolean) => void;
 }
 
 export default function ConfirmHighLeverageModal({
   leverage,
   onConfirm,
   onCancel,
+  onSkipChange,
 }: ConfirmHighLeverageModalProps) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const handleConfirm = () => {
+    if (onSkipChange) {
+      onSkipChange(dontShowAgain);
+    }
+    onConfirm();
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Overlay */}
@@ -64,6 +76,17 @@ export default function ConfirmHighLeverageModal({
               </div>
             </div>
 
+            {/* Don't show again checkbox */}
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="w-4 h-4 rounded border-crypto-border bg-crypto-surface-elevated text-crypto-warning focus:ring-crypto-warning focus:ring-offset-0"
+              />
+              <span className="text-sm text-crypto-text-secondary">Don't show this warning again</span>
+            </label>
+
             {/* Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
@@ -73,7 +96,7 @@ export default function ConfirmHighLeverageModal({
                 Cancel
               </button>
               <button
-                onClick={onConfirm}
+                onClick={handleConfirm}
                 className="py-3 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-all text-sm font-bold shadow-glow-warning"
               >
                 I understand the risks

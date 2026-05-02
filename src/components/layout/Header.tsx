@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp } from "lucide-react";
+import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp, Github } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { getCurrentStreak } from "@/utils/streak";
 
@@ -52,8 +52,17 @@ export default function Header() {
         })}
       </nav>
 
-      {/* Right side: Streak + Balance */}
+      {/* Right side: GitHub + Streak + Balance */}
       <div className="flex items-center gap-4">
+        <a
+          href="https://github.com/carl0sfelipe/BTC-Daytrade-Tycoon"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-medium"
+        >
+          <Github className="w-4 h-4" />
+          <span className="hidden lg:inline">Contribute</span>
+        </a>
         {streak > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crypto-warning-dim border border-crypto-warning/20">
             <Flame className="w-4 h-4 text-crypto-warning" />

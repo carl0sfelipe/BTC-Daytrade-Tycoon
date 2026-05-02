@@ -30,6 +30,8 @@ export default function TradeControls() {
   const closePosition = useTradingStore((s) => s.closePosition);
   const updatePositionSize = useTradingStore((s) => s.updatePositionSize);
   const updateLeverage = useTradingStore((s) => s.updateLeverage);
+  const skipHighLeverageWarning = useTradingStore((s) => s.skipHighLeverageWarning);
+  const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
 
   // Sync slider with open position size
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function TradeControls() {
 
   const handleOpen = () => {
     if (!canOpen) return;
-    if (leverage >= 50) {
+    if (leverage >= 50 && !skipHighLeverageWarning) {
       setPendingTrade({
         side,
         leverage,
@@ -415,6 +417,7 @@ export default function TradeControls() {
           leverage={pendingTrade.leverage}
           onConfirm={handleConfirmHighLeverage}
           onCancel={() => setPendingTrade(null)}
+          onSkipChange={(skip) => setSkipHighLeverageWarning(skip)}
         />
       )}
     </>

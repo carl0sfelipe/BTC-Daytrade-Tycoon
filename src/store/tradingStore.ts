@@ -32,6 +32,7 @@ interface TradingStore {
   isLiquidated: boolean;
   simulationRealDate: string | null;
   hasSeenOnboarding: boolean;
+  skipHighLeverageWarning: boolean;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -56,6 +57,7 @@ interface TradingStore {
   setLiquidated: (date: string) => void;
   clearLiquidated: () => void;
   setOnboardingSeen: () => void;
+  setSkipHighLeverageWarning: (skip: boolean) => void;
 }
 
 function calcLiquidationPrice(entry: number, leverage: number, side: "long" | "short"): number {
@@ -85,6 +87,7 @@ export const useTradingStore = create<TradingStore>()(
       isLiquidated: false,
       simulationRealDate: null,
       hasSeenOnboarding: false,
+      skipHighLeverageWarning: false,
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -98,6 +101,7 @@ export const useTradingStore = create<TradingStore>()(
       setLiquidated: (date) => set({ isLiquidated: true, simulationRealDate: date }),
       clearLiquidated: () => set({ isLiquidated: false, simulationRealDate: null }),
       setOnboardingSeen: () => set({ hasSeenOnboarding: true }),
+      setSkipHighLeverageWarning: (skip) => set({ skipHighLeverageWarning: skip }),
       addClosedTrade: (trade) =>
         set((state) => ({
           closedTrades: [...state.closedTrades, trade],

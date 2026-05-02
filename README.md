@@ -17,9 +17,15 @@
 
 ---
 
+## 🌐 Live Demo
+
+**[→ btc-daytrade-tycoon.vercel.app](https://btc-daytrade-tycoon.vercel.app/)**
+
 ## 📸 Demo & Screenshots
 
-> _Screenshots and demo videos will be added here soon._
+<p align="center">
+  <img src="./trading.gif" alt="BTC Daytrade Tycoon Demo" width="800" />
+</p>
 
 ```
 ┌──────────────────────────────────────────────┐

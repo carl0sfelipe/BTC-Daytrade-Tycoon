@@ -1,0 +1,300 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "BTC Daytrade Tycoon — Project Overview",
+      "purpose": "High-level introduction to the project: what it is, why it exists, the core TimeWarp concept, tech stack summary, and links to all major sections of the wiki.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Getting Started & Project Setup",
+      "purpose": "How to clone, install dependencies, run the dev server, run tests, and deploy. Covers package.json scripts, Next.js config, environment requirements, and the Vercel deployment target.",
+      "parent": "BTC Daytrade Tycoon — Project Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Repository Structure & Conventions",
+      "purpose": "Explains the directory layout (src/app, src/components, src/hooks, src/store, src/lib, src/utils, src/types, e2e), naming conventions, 'use client' guards, SSR hydration safety patterns, and the middleware setup.",
+      "parent": "BTC Daytrade Tycoon — Project Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Simulation Engine",
+      "purpose": "Overview of the TimeWarp simulation system — how historical Binance data is fetched, normalized, and replayed at 60× speed. Links to child pages covering the engine hook, data pipeline, and market metrics.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "useTimewarpEngine Hook",
+      "purpose": "Deep dive into the core simulation loop: random date selection, SPEED_MULTIPLIER (60×), TICK_MS (100ms), HISTORY_OFFSET_CANDLES (30), the setInterval tick loop, price interpolation, dynamic data loading (appendMoreCandles), and the window.__timewarpEngine debug interface.",
+      "parent": "Simulation Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Binance API & Data Pipeline",
+      "purpose": "Covers src/lib/binance-api.ts: fetchCurrentPrice, fetchCandles (2-batch strategy for ~2000 candles), normalizeCandlesToBasePrice (price scaling to current BTC), interpolatePrice (linear interpolation between candles), calculateTrend (SMA20), and calculateVolatility.",
+      "parent": "Simulation Engine",
+      "page_notes": [
+        {
+          "content": "Continuous Data Fetching\nDuring active simulation, the engine monitors remaining data and fetches additional candles when needed:"
+        }
+      ]
+    },
+    {
+      "title": "Market Metrics & Volatility",
+      "purpose": "Explains how market trend (bull/bear/neutral via SMA20), volatility (max-min/avg over 24 candles), and price history (rolling 50-point buffer) are computed and fed into the Zustand store. Covers src/utils/volatilityEngine.ts and src/hooks/useMarketVolatility.ts.",
+      "parent": "Simulation Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "State Management (Zustand Store)",
+      "purpose": "Overview of the centralized Zustand trading store — its shape, persistence strategy, and role as the single source of truth for wallet, position, price, and session state. Links to child pages for trading logic and position mechanics.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "tradingStore — Store Shape & Persistence",
+      "purpose": "Documents the full TradingStore interface: all state fields (wallet, position, closedTrades, isLiquidated, simulationRealDate, hasSeenOnboarding, marketTrend, volatility, priceHistory, etc.), the 'trading-storage' localStorage key, persist middleware configuration, and the window.__tradingStore debug hook.",
+      "parent": "State Management (Zustand Store)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Position Mechanics & Trading Logic",
+      "purpose": "Explains all store actions: openPosition (margin deduction, liquidation price calc), closePosition (PnL settlement, wallet update), checkPosition (TP/SL/liquidation monitoring on every tick), updatePositionSize (weighted average entry), updateLeverage (margin recalculation). Covers the liquidation formula and PnL formula.",
+      "parent": "State Management (Zustand Store)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Trading Interface (UI Components)",
+      "purpose": "Overview of the main /trading page layout and all its constituent components. Describes the desktop 12-column grid vs. mobile tabbed layout. Links to child pages for each major UI area.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TradingPage & Layout Orchestration",
+      "purpose": "Documents src/app/trading/page.tsx: mounted hydration guard, useTimewarpEngine integration, useTradingStore selectors, desktop grid layout (TradingChart + TradeHistory in main column; OrderBook + PositionPanel + TradeControls + PnLDisplay in sidebar), mobile fallback to MobileTradingView, and modal orchestration (Onboarding, Liquidation, EndSimulation).",
+      "parent": "Trading Interface (UI Components)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TradeControls Component",
+      "purpose": "Deep dive into TradeControls.tsx: Simple vs. Advanced mode, leverage pills (2×–100×), size slider with dynamic sliderMax, TP/SL inputs, handleOpen execution flow (margin check → high-leverage intercept → openPosition dispatch), position adjustment logic (INCREASE/DECREASE based on sizeDiff), and the ConfirmHighLeverageModal integration.",
+      "parent": "Trading Interface (UI Components)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "PositionPanel & PnL Display",
+      "purpose": "Covers PositionPanel.tsx (real-time uPnL, margin, distance-to-liquidation, Risk Gauge with safe/dangerous/critical states, animate-pulse-glow, manual close button) and PnLDisplay.tsx (total equity, session PnL, win rate, best/worst trade). Explains barPercent normalization and maxDistance = 100/leverage.",
+      "parent": "Trading Interface (UI Components)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Chart, Order Book & Trade History",
+      "purpose": "Documents TradingChart.tsx (lightweight-charts v5 integration, candlestick series, liquidation price line overlay, crypto-themed colors), the synthetic OrderBook component, and TradeHistory.tsx (closed trades list, reason icons, pnlPercent calculation, reverse-chronological display).",
+      "parent": "Trading Interface (UI Components)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "SimulationClock Component",
+      "purpose": "Documents SimulationClock.tsx: SimulationClockProps interface (elapsedTime, speed, isPlaying, realDateRange, onPause/onResume/onReset/onEnd callbacks), the Speed Badge, Historical Start display, playback toggle logic, and the End/New session management buttons.",
+      "parent": "Trading Interface (UI Components)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Modals & UX Flows",
+      "purpose": "Overview of all modal dialogs and the user flows they govern. Links to child pages for each modal type.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Onboarding & High-Leverage Modals",
+      "purpose": "Documents OnboardingModal.tsx (3-step tutorial: TimeWarp concept, Blind Date principle, leverage warning; hasSeenOnboarding flag; setOnboardingSeen action) and ConfirmHighLeverageModal.tsx (triggered at leverage ≥ 50×, pendingTrade buffer, skipHighLeverageWarning flag).",
+      "parent": "Modals & UX Flows",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Liquidation & End-Simulation Modals",
+      "purpose": "Documents LiquidationModal.tsx (Framer Motion shake animation, ACCOUNT LIQUIDATED state, real historical date reveal, New Session flow calling engine.reset() + clearLiquidated()) and EndSimulationModal.tsx (manual end, session stats: PnL, winRate, returnPercent, formatElapsedPretty, real date range reveal).",
+      "parent": "Modals & UX Flows",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Supporting Pages & Navigation",
+      "purpose": "Overview of the non-trading pages: Landing, Auth, Leaderboard, and Achievements. Covers the Header and MarketStatus layout components.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Landing Page & Authentication",
+      "purpose": "Documents LandingPage.tsx (marketing copy, feature showcase for TimeWarp/Blind Date/Real Leverage, CTAs to /auth/login and /trading), AuthPage.tsx (login/signup modes, setFakeUser integration, Guest/Demo bypass), and src/lib/fake-auth.ts (localStorage key 'ctp-auth-user', getFakeUser/setFakeUser/clearFakeUser).",
+      "parent": "Supporting Pages & Navigation",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Leaderboard, Achievements & Layout Components",
+      "purpose": "Documents RankingPage.tsx (podium layout, leaderboard list, time filters, 'Your Position' card), AchievementsPage.tsx (Achievement interface, rarity tiers, progress bars), Header.tsx (navigation links), and MarketStatus.tsx (live price sparkline, volatility badge, trend indicator).",
+      "parent": "Supporting Pages & Navigation",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "UI Primitives & Design System",
+      "purpose": "Overview of the custom crypto-themed design system built on Tailwind CSS and Radix UI primitives. Links to child pages for the theme tokens and the component library.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Crypto Theme & Tailwind Configuration",
+      "purpose": "Documents the custom Tailwind color palette (crypto-bg, crypto-surface, crypto-long, crypto-short, crypto-accent, crypto-warning, etc.), custom shadows (glow-long, glow-short), keyframe animations (pulse-glow, shake, ticker-up, slide-in), CSS utility classes (card-surface, risk-gradient, btn-long, btn-short, mono-number, text-glow-*), and globals.css custom properties.",
+      "parent": "UI Primitives & Design System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Radix UI / shadcn Component Library",
+      "purpose": "Documents the reusable UI primitives in src/components/ui/: Button, Badge, Card, Dialog, Slider, Input, Label, Form, Checkbox, DropdownMenu, ScrollArea, Separator, Sheet, Skeleton, Switch, Table, Tabs, Textarea, Toast/Toaster, Tooltip, ProgressBar, DataTable. Explains the class-variance-authority (CVA) pattern and the cn() utility from src/lib/utils.ts.",
+      "parent": "UI Primitives & Design System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Custom Hooks Reference",
+      "purpose": "Overview of all custom React hooks outside the simulation engine. Links to child pages for trading hooks and utility hooks.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Trading & Market Hooks",
+      "purpose": "Documents useTradingEngine.ts (legacy compatibility layer), useBinancePrice.ts (WebSocket connection to Binance stream for live price/24h change), useMarketVolatility.ts (volatility state management), and useKeyboardShortcuts.ts (L=Long, S=Short, X=Close keyboard bindings).",
+      "parent": "Custom Hooks Reference",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Utility Hooks",
+      "purpose": "Documents useIsMobile (responsive breakpoint detection for MobileTradingView), useLocalStorage (SSR-safe localStorage wrapper), and useToast (toast notification system built on Radix UI Toast).",
+      "parent": "Custom Hooks Reference",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Testing",
+      "purpose": "Overview of the two-layer testing strategy (Playwright E2E + Vitest unit tests). Links to child pages for E2E specs and unit test coverage.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Playwright E2E Test Suite",
+      "purpose": "Documents all four E2E specs: trading.spec.ts (TRADING-01: full simulation journey, onboarding skip, chart advancing, pause, new session), date-reveal.spec.ts (DATE-REVEAL: blind date enforcement, end-session reveal, liquidation reveal via __tradingStore injection), manual-trading.spec.ts (position lifecycle: open/increase/decrease/close), production-bar.spec.ts (distance-bar smoke test on Vercel). Covers playwright.config.ts (two projects: chromium local + production Vercel), _helper.ts (saveEvidence screenshot/HTML capture), and localStorage seeding patterns.",
+      "parent": "Testing",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

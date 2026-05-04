@@ -59,14 +59,15 @@ _________________________________________________________________
 
 - 🕰️ **TimeWarp Trading Simulator** — Experience a random real Bitcoin trading day (Dec 2017 – Dec 2025) with time running **60× faster** (1 real second = 1 simulated minute). The historical date is completely hidden — no time axis, no calendar — forcing you to trade purely on price action.
 - 📈 **Real-Time Candlestick Chart** — Powered by `lightweight-charts` v5 with a live liquidation price overlay.
-- 📖 **Synthetic Order Book** — Real-time depth visualization to gauge market sentiment.
-- 💼 **Position Panel** — Track unrealized P&L, entry price, margin used, liquidation price, dynamic risk gauge, and pending orders.
-- ⚙️ **Trade Controls** — Simple and Advanced modes, leverage pills (2x–100x), size slider/pills, **TP/SL visible in both modes**, **Market & Limit order types**.
+- 💼 **Position Panel** — Track unrealized P&L, realized P&L from partial closes, entry price, margin used, liquidation price, dynamic risk gauge, distance-to-liquidation bar, and pending orders.
+- ⚙️ **Trade Controls** — Simple and Advanced modes, leverage pills (2x–100x), order-centric size slider (controls order delta, not total position size), **TP/SL visible in both modes**, **Market & Limit order types**.
 - 🎯 **Limit Orders** — Place orders at a specific price. Orders stay pending until the market hits your level. Limit orders can **increase** (same side) or **reduce/close** (opposite side) existing positions. Includes a **stepper** with configurable step size ($1–$100 + custom) for quick price adjustment.
-- 📋 **Orders Panel** — Full order history with filter tabs (All / Pending / Filled / Canceled). Track every order from creation to execution.
-- 💰 **Wallet & P&L Stats** — Monitor total equity, session P&L, win rate, and best/worst trades.
+- 📋 **Orders Panel** — Full order history with filter tabs (All / Pending / Filled / Canceled). Correctly tracks operation side (e.g. SHORT reducing a LONG position) in the history.
+- 💰 **Wallet & P&L Stats** — Monitor total equity, session realized P&L, unrealized P&L, win rate, and best/worst trades.
 - 📜 **Trade History Timeline** — Complete session log of every trade decision.
 - ⏯️ **Simulation Controls** — Play, pause, end, and reset the simulation clock at any time.
+- 🕵️ **Blind Date Rule** — The real historical date is completely hidden during simulation. Only revealed upon liquidation or manual end. Once revealed, you cannot return to the simulation.
+- 🔄 **One-Way Position Mode** — Opposite-side orders automatically reduce or close the existing position (default behavior). No simultaneous long + short positions.
 - 💀 **Liquidation Modal** — When you get rekt, the real historical date is revealed — learn from history.
 - 🏁 **End Simulation Modal** — Full session summary with performance breakdown.
 - 🎓 **Onboarding Modal** — 3-step interactive tutorial for first-time traders.
@@ -76,7 +77,7 @@ _________________________________________________________________
 - 🏆 **Leaderboard & Achievements** — Compete and unlock milestones.
 - ⚠️ **High-Leverage Confirmation** — Safety modal for trades ≥50x leverage.
 - 🔥 **Streak Tracking** — Utility to monitor consecutive wins/losses.
-- 🧪 **Unit Test Suite** — 30+ Vitest tests covering store logic, limit orders, position mechanics, and component rendering.
+- 🧪 **Unit Test Suite** — 55+ Vitest tests across 8 files covering store logic, limit orders, position mechanics, component rendering, engine behavior, and order history side tracking.
 
 ---
 
@@ -90,14 +91,13 @@ _________________________________________________________________
 | **Styling** | [Tailwind CSS v3](https://tailwindcss.com/) |
 | **State Management** | [Zustand](https://github.com/pmndrs/zustand) (with persist middleware) |
 | **Charts** | [lightweight-charts](https://tradingview.github.io/lightweight-charts/) v5 |
-| **Animations** | [Framer Motion](https://www.framer.com/motion/) |
 | **Icons** | [Lucide React](https://lucide.dev/) |
-| **UI Components** | [Radix UI](https://www.radix-ui.com/) primitives |
-| **Forms** | [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/) |
-| **Data Fetching** | Axios + SWR |
-| **Testing (Unit)** | [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/) |
+| **UI Components** | [Radix UI](https://www.radix-ui.com/) primitives + [shadcn/ui](https://ui.shadcn.com/) |
+| **Forms** | [React Hook Form](https://react-hook-form.com/) |
+| **Data Fetching** | Native `fetch` (Binance REST API) |
+| **Testing (Unit)** | [Vitest](https://vitest.dev/) + [React Testing Library](https://testing-library.com/) |
 | **Testing (E2E)** | [Playwright](https://playwright.dev/) |
-| **Build Tool** | Next.js built-in (Turbopack ready) |
+| **Build Tool** | Next.js built-in |
 
 ---
 
@@ -158,12 +158,12 @@ Runs the [Vitest](https://vitest.dev/) suite covering core utilities, store logi
 npx playwright test
 ```
 
-Our Playwright E2E suite includes **4 comprehensive tests**:
+Our Playwright E2E suite includes **4 spec files**:
 
-1. **Full Simulation Journey** — End-to-end flow from landing page to simulation completion.
-2. **Historical Date Reveal** — Validates that the real trading date is correctly hidden during simulation and revealed upon liquidation.
-3. **Liquidation Modal** — Ensures the liquidation flow triggers correctly with accurate session summary.
-4. **Manual Position Lifecycle** — Covers opening, increasing, decreasing, and closing a position manually.
+1. **`trading.spec.ts`** — Full simulation journey: skip onboarding, loader, chart advancing, pause, new session.
+2. **`date-reveal.spec.ts`** — Validates that the real trading date is correctly hidden during simulation and revealed upon liquidation.
+3. **`manual-trading.spec.ts`** — Covers opening, increasing, decreasing, and closing a position manually.
+4. **`production-bar.spec.ts`** — Smoke test against live Vercel deployment verifying the distance-to-liquidation bar moves as price changes during simulation.
 
 Run tests in headed mode for debugging:
 
@@ -213,7 +213,7 @@ btc-daytrade-tycoon/
 │   ├── components/               # React components
 │   │   ├── layout/               # Shell, navbar, footer
 │   │   ├── pages/                # Page-level sections
-│   │   ├── trading/              # Chart, order book, position panel, controls, orders panel
+│   │   ├── trading/              # Chart, position panel, controls, orders panel, P&L display
 │   │   └── ui/                   # Reusable shadcn/Radix UI primitives
 │   ├── hooks/                    # Custom React hooks
 │   ├── lib/                      # API clients, data fetchers, constants

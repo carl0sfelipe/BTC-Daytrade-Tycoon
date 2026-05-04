@@ -48,9 +48,8 @@
 | State | Zustand 4 + `persist` middleware |
 | Charts | `lightweight-charts` v5 |
 | UI Primitives | Radix UI (Dialog, Slider, ScrollArea, Tooltip, etc.) |
-| Animation | Framer Motion |
 | Icons | Lucide React |
-| Forms | React Hook Form + Zod |
+| Forms | React Hook Form |
 | E2E Tests | Playwright |
 | Unit Tests | Vitest + React Testing Library |
 
@@ -121,11 +120,11 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
                                                   └──────────┬──────────┘
                                                              │
                               ┌──────────────────────────────┼──────────┐
-                              ▼                              ▼          ▼
-                    ┌─────────────────┐            ┌─────────────────┐  ┌──────────────┐
-                    │  TradingChart   │            │  PositionPanel  │  │  OrderBook   │
-                    │  (lightweight-  │            │  (PnL / Risk)   │  │  (synthetic) │
-                    │   charts v5)    │            └─────────────────┘  └──────────────┘
+                              ▼                              ▼
+                    ┌─────────────────┐            ┌─────────────────┐
+                    │  TradingChart   │            │  PositionPanel  │
+                    │  (lightweight-  │            │  (PnL / Risk)   │
+                    │   charts v5)    │            └─────────────────┘
                     └─────────────────┘
 ```
 
@@ -212,7 +211,7 @@ interface TradingStore {
   closePosition(reason?): void;
   addToPosition(additionalSize, price, tpPrice, slPrice): void;
   reducePosition(reducedSize, price): void;
-  updatePositionSize(newSize): void;
+  updatePositionSize(newSize, orderSide?): void;
   updateLeverage(newLeverage): void;
   checkPosition(currentPrice): { closed: boolean; reason? };
   addPendingOrder(order): void;
@@ -236,6 +235,8 @@ interface Position {
   tpPrice: number | null;
   slPrice: number | null;
   liquidationPrice: number;
+  entryTime: string;
+  realizedPnL: number;
 }
 
 interface PendingOrder {
@@ -339,7 +340,7 @@ wallet += margin + pnl;
 | Component | File | Responsibility |
 |-----------|------|----------------|
 | `Header` | `components/layout/Header.tsx` | App header, navigation links |
-| `MarketStatus` | `components/layout/MarketStatus.tsx` | Current price sparkline, volatility badge, trend indicator |
+| `MarketStatus` | `components/layout/MarketStatus.tsx` | Current price sparkline, volatility badge |
 
 ### Core Trading Components
 
@@ -347,11 +348,10 @@ wallet += margin + pnl;
 |-----------|------|----------------|
 | `TradingChart` | `components/trading/TradingChart.tsx` | `lightweight-charts` candlestick chart. Crypto-themed colors (green long, red short). Dynamic liquidation price line. |
 | `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs (visible in both modes), Market/Limit order types, limit price stepper with configurable step ($1–$100 + custom), open/close/increase/decrease buttons. Limit orders can increase or reduce existing positions. |
-| `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, entry/size/leverage/margin/liquidation display, pending orders list with cancel button. |
+| `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, realized PnL from partial closes, distance-to-liquidation bar, entry/size/leverage/margin/liquidation display, pending orders list with cancel button. |
 | `OrdersPanel` | `components/trading/OrdersPanel.tsx` | Full order history with filter tabs (All / Pending / Filled / Canceled). Shows side, type, leverage, size, price, TP/SL for each order. |
 | `PnLDisplay` | `components/trading/PnLDisplay.tsx` | Total equity (wallet + margin + unrealizedPnL), session PnL, win rate, best/worst trade. |
 | `SimulationClock` | `components/trading/SimulationClock.tsx` | Elapsed time, speed badge, play/pause/end/reset buttons. |
-| `OrderBook` | `components/trading/OrderBook.tsx` | Synthetic depth bars around current price. |
 | `TradeHistory` | `components/trading/TradeHistory.tsx` | Timeline of closed trades. |
 | `MobileTradingView` | `components/trading/MobileTradingView.tsx` | Bottom-sheet tabs for mobile (Chart, History, Your Position, Order Controls). |
 | `SimulationLoader` | `components/trading/SimulationLoader.tsx` | Loading overlay with status messages. |
@@ -367,15 +367,16 @@ wallet += margin + pnl;
 │                MarketStatus                   │
 ├─────────────────────────────────────────────┤
 │  ┌─────────────────────┐ ┌────────────────┐ │
-│  │                     │ │   OrderBook    │ │
-│  │    TradingChart     │ ├────────────────┤ │
 │  │                     │ │ PositionPanel  │ │
-│  │                     │ ├────────────────┤ │
+│  │    TradingChart     │ ├────────────────┤ │
 │  │                     │ │  TradeControls │ │
-│  ├─────────────────────┤ ├────────────────┤ │
-│  │    TradeHistory     │ │  OrdersPanel   │ │
 │  │                     │ ├────────────────┤ │
 │  │                     │ │   PnLDisplay   │ │
+│  ├─────────────────────┤ └────────────────┘ │
+│  │    OrdersPanel      │                    │
+│  ├─────────────────────┤                    │
+│  │    TradeHistory     │                    │
+│  │                     │                    │
 │  └─────────────────────┘ └────────────────┘ │
 └─────────────────────────────────────────────┘
 ```
@@ -390,7 +391,7 @@ On mobile (`useIsMobile`), the grid collapses into `MobileTradingView` with tabb
 |-------|---------|---------|
 | `OnboardingModal` | First visit (`hasSeenOnboarding === false`) | 3-step tutorial: TimeWarp concept, Blind Date (no dates), Leverage warning. |
 | `ConfirmHighLeverageModal` | Opening position with leverage ≥ 50× | Risk warning requiring explicit confirmation. |
-| `LiquidationModal` | `checkPosition` detects liquidation | Red shake animation (Framer Motion). Reveals real historical date range. |
+| `LiquidationModal` | `checkPosition` detects liquidation | Reveals real historical date range. |
 | `EndSimulationModal` | User clicks **End** button | Session summary: real date range, total PnL, return %. |
 
 ### Date Reveal Logic
@@ -428,6 +429,7 @@ Playwright tests live in `e2e/`.
 | `trading.spec.ts` | `TRADING-01` | Full simulation journey: skip onboarding, loader, chart advancing, pause, new session. |
 | `date-reveal.spec.ts` | `DATE-REVEAL` | End button reveals date modal; liquidation modal reveals date via `__tradingStore` injection. |
 | `manual-trading.spec.ts` | — | Position lifecycle: open LONG 10× at 50%, increase via slider, decrease via slider, close via panel. |
+| `production-bar.spec.ts` | — | Smoke test against live Vercel deployment verifying distance-to-liquidation bar moves as price changes. |
 
 ### Test Helpers
 

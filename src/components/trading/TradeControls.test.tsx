@@ -95,7 +95,7 @@ describe("TradeControls", () => {
 
     expect(limitInput.value).toBe("50000.00");
 
-    // Default step is $1 — click down
+    // Default step is $10 — click down
     const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
     const upBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-up"));
 
@@ -103,11 +103,11 @@ describe("TradeControls", () => {
     expect(upBtn).toBeDefined();
 
     fireEvent.click(downBtn!);
-    expect(limitInput.value).toBe("49999.00");
+    expect(limitInput.value).toBe("49990.00");
 
     fireEvent.click(upBtn!);
     fireEvent.click(upBtn!);
-    expect(limitInput.value).toBe("50001.00");
+    expect(limitInput.value).toBe("50010.00");
   });
 
   it("shows step settings on gear icon click and hides by default", () => {

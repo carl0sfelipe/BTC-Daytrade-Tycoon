@@ -12,7 +12,7 @@ export default function TradeControls() {
   const [leverage, setLeverage] = useState(10);
   const [positionSize, setPositionSize] = useState(1000);
   const [limitPrice, setLimitPrice] = useState("");
-  const [limitStep, setLimitStep] = useState(1);
+  const [limitStep, setLimitStep] = useState(10);
   const [showStepSettings, setShowStepSettings] = useState(false);
   const [customStep, setCustomStep] = useState("");
   const [tpPrice, setTpPrice] = useState("");

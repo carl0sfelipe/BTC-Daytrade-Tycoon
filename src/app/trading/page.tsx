@@ -25,6 +25,7 @@ const INITIAL_WALLET = 10000;
 export default function TradingPage() {
   const [mounted, setMounted] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [capturedRealDateRange, setCapturedRealDateRange] = useState("");
   const engine = useTimewarpEngine();
   const isMobile = useIsMobile();
 
@@ -107,7 +108,11 @@ export default function TradingPage() {
       <Header />
 
       {isMobile ? (
-        <MobileTradingView engine={engine} onEnd={() => setShowEndModal(true)} />
+        <MobileTradingView engine={engine} onEnd={() => {
+          engine.pause();
+          setCapturedRealDateRange(engine.realDateRange);
+          setShowEndModal(true);
+        }} />
       ) : (
         <>
           <div className="container mx-auto px-4 py-3">
@@ -118,7 +123,11 @@ export default function TradingPage() {
               onPause={engine.pause}
               onResume={engine.start}
               onReset={engine.reset}
-              onEnd={() => setShowEndModal(true)}
+              onEnd={() => {
+                engine.pause();
+                setCapturedRealDateRange(engine.realDateRange);
+                setShowEndModal(true);
+              }}
             />
           </div>
 
@@ -173,11 +182,11 @@ export default function TradingPage() {
       {/* Modal de encerramento manual */}
       {showEndModal && (
         <EndSimulationModal
-          realDateRange={engine.realDateRange}
+          realDateRange={capturedRealDateRange || engine.realDateRange}
           elapsedTime={formatElapsedPretty(engine.elapsedTime)}
           simulatedHistoricalTime={engine.simulatedHistoricalTime}
           stats={endStats}
-          onClose={() => setShowEndModal(false)}
+          onClose={handleNewSession}
           onNewSession={handleNewSession}
         />
       )}

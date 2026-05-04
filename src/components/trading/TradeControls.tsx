@@ -140,7 +140,7 @@ export default function TradeControls() {
     if (targetSize <= 0) {
       closePosition("manual");
     } else {
-      updatePositionSize(targetSize);
+      updatePositionSize(targetSize, side);
     }
   };
 

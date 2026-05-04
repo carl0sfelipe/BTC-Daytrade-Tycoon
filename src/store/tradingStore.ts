@@ -90,7 +90,7 @@ interface TradingStore {
   closePosition: (reason?: Trade["reason"]) => void;
   addToPosition: (additionalSize: number, price: number, tpPrice: string, slPrice: string) => void;
   reducePosition: (reducedSize: number, price: number) => void;
-  updatePositionSize: (newSize: number) => void;
+  updatePositionSize: (newSize: number, orderSide?: "long" | "short") => void;
   updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
   addPendingOrder: (order: Omit<PendingOrder, "id" | "createdAt">) => void;
@@ -479,7 +479,7 @@ export const useTradingStore = create<TradingStore>()(
         }
       },
 
-      updatePositionSize: (newSize: number) => {
+      updatePositionSize: (newSize: number, orderSide?: "long" | "short") => {
         const state = get();
         if (!state.position || newSize <= 0) return;
 
@@ -489,6 +489,7 @@ export const useTradingStore = create<TradingStore>()(
         const oldMargin = size * marginPerUnit;
         const newMargin = newSize * marginPerUnit;
         const marginDiff = newMargin - oldMargin;
+        const historySide = orderSide ?? side;
 
         const now = new Date().toLocaleString("pt-BR", {
           day: "2-digit", month: "2-digit", year: "numeric",
@@ -503,7 +504,7 @@ export const useTradingStore = create<TradingStore>()(
           const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
           const historyItem: OrderHistoryItem = {
             id: Math.random().toString(36).slice(2, 9),
-            side,
+            side: historySide,
             type: "market",
             status: "filled",
             leverage,
@@ -527,7 +528,7 @@ export const useTradingStore = create<TradingStore>()(
           const marginReturned = reducedSize * marginPerUnit;
           const historyItem: OrderHistoryItem = {
             id: Math.random().toString(36).slice(2, 9),
-            side,
+            side: historySide,
             type: "market",
             status: "filled",
             leverage,

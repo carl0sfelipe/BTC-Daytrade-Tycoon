@@ -350,6 +350,53 @@ describe("TradeControls", () => {
       expect(screen.getByText("CLOSE POSITION")).toBeInTheDocument();
     });
 
+    it("limit order with open position creates pending order instead of market reduce", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      // Switch to SHORT side (reduce) + Limit
+      fireEvent.click(screen.getByText("SHORT"));
+      fireEvent.click(screen.getByText("Limit"));
+
+      // Fill limit price
+      const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+      fireEvent.change(limitInput, { target: { value: "48000" } });
+
+      // Click the Place Short Limit button
+      fireEvent.click(screen.getByText("Place Short Limit"));
+
+      const state = useTradingStore.getState();
+      // Should create a pending order, NOT immediately reduce
+      expect(state.pendingOrders).toHaveLength(1);
+      expect(state.pendingOrders[0].side).toBe("short");
+      expect(state.pendingOrders[0].limitPrice).toBe(48000);
+      // Position should remain unchanged
+      expect(state.position).not.toBeNull();
+      expect(state.position!.size).toBe(5000);
+    });
+
+    it("limit order with open position (same side) creates pending increase order", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      // Stay on LONG side + Limit
+      fireEvent.click(screen.getByText("Limit"));
+
+      // Fill limit price
+      const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+      fireEvent.change(limitInput, { target: { value: "52000" } });
+
+      // Click the Place Long Limit button
+      fireEvent.click(screen.getByText("Place Long Limit"));
+
+      const state = useTradingStore.getState();
+      expect(state.pendingOrders).toHaveLength(1);
+      expect(state.pendingOrders[0].side).toBe("long");
+      expect(state.pendingOrders[0].limitPrice).toBe(52000);
+      expect(state.position).not.toBeNull();
+      expect(state.position!.size).toBe(5000);
+    });
+
     it("shows TP/SL inputs in advanced mode with open position + limit selected", () => {
       openLong5k();
       render(<TradeControls />);

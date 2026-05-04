@@ -561,7 +561,7 @@ export default function TradeControls() {
           </div>
 
           {/* Action buttons */}
-          {position ? (
+          {position && orderType === "market" ? (
             <div className="space-y-2">
               {side === position.side ? (
                 <button
@@ -590,6 +590,31 @@ export default function TradeControls() {
                   REDUCE POSITION
                 </button>
               )}
+              <button
+                onClick={() => {
+                  console.log("[TradeControls] closePosition clicked");
+                  closePosition("manual");
+                }}
+                className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
+              >
+                CLOSE POSITION
+              </button>
+            </div>
+          ) : position && orderType === "limit" ? (
+            <div className="space-y-2">
+              <button
+                onClick={handleOpen}
+                disabled={!canOpen}
+                className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
+                  canOpen
+                    ? isLong
+                      ? "btn-long shadow-glow-long"
+                      : "btn-short shadow-glow-short"
+                    : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
+                }`}
+              >
+                {`Place ${isLong ? "Long" : "Short"} Limit`}
+              </button>
               <button
                 onClick={() => {
                   console.log("[TradeControls] closePosition clicked");

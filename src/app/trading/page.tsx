@@ -137,13 +137,14 @@ export default function TradingPage() {
 
           <main className="container mx-auto px-4 py-4">
             <div className="grid grid-cols-12 gap-4">
-              {/* Main column — chart + bottom cards */}
+              {/* Main column — chart + orders + history */}
               <div className="col-span-12 lg:col-span-8 space-y-4">
                 <TradingChart
                   candles={engine.candles}
                   currentPrice={engine.currentPrice}
                   currentTimeSec={engine.currentTimeSec}
                 />
+                <OrdersPanel />
                 <TradeHistory />
               </div>
 
@@ -151,7 +152,6 @@ export default function TradingPage() {
               <div className="col-span-12 lg:col-span-4 space-y-4">
                 <PositionPanel />
                 <TradeControls />
-                <OrdersPanel />
                 <PnLDisplay />
               </div>
             </div>

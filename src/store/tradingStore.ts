@@ -462,14 +462,33 @@ export const useTradingStore = create<TradingStore>()(
         const newMargin = newSize * marginPerUnit;
         const marginDiff = newMargin - oldMargin;
 
+        const now = new Date().toLocaleString("pt-BR", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+        });
+
         if (newSize > size) {
           // Increasing position
           if (state.wallet < marginDiff) return;
           const additionalSize = newSize - size;
           const newEntry = (size * entry + additionalSize * price) / newSize;
+          const historyItem: OrderHistoryItem = {
+            id: Math.random().toString(36).slice(2, 9),
+            side,
+            type: "market",
+            status: "filled",
+            leverage,
+            size: additionalSize,
+            price,
+            tpPrice: state.position.tpPrice,
+            slPrice: state.position.slPrice,
+            createdAt: now,
+            updatedAt: now,
+          };
           set({
             wallet: state.wallet - marginDiff,
             position: { ...state.position, entry: newEntry, size: newSize },
+            ordersHistory: [...state.ordersHistory, historyItem],
           });
         } else if (newSize < size) {
           // Decreasing position
@@ -477,9 +496,23 @@ export const useTradingStore = create<TradingStore>()(
           const priceDiff = side === "long" ? price - entry : entry - price;
           const pnlPartial = (priceDiff / entry) * reducedSize;
           const marginReturned = reducedSize * marginPerUnit;
+          const historyItem: OrderHistoryItem = {
+            id: Math.random().toString(36).slice(2, 9),
+            side,
+            type: "market",
+            status: "filled",
+            leverage,
+            size: reducedSize,
+            price,
+            tpPrice: state.position.tpPrice,
+            slPrice: state.position.slPrice,
+            createdAt: now,
+            updatedAt: now,
+          };
           set({
             wallet: state.wallet + marginReturned + pnlPartial,
             position: { ...state.position, size: newSize },
+            ordersHistory: [...state.ordersHistory, historyItem],
           });
         }
       },

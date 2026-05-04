@@ -386,7 +386,13 @@ export default function TradeControls() {
                   placeholder={currentPrice.toFixed(2)}
                   value={limitPrice}
                   onChange={(e) => setLimitPrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                  onClick={(e) => {
+                    if (!limitPrice) {
+                      setLimitPrice(currentPrice.toFixed(2));
+                      (e.target as HTMLInputElement).select();
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent cursor-pointer"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
               </div>

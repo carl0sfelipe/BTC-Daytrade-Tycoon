@@ -74,4 +74,15 @@ describe("TradeControls", () => {
     expect(state.position).not.toBeNull();
     expect(state.pendingOrders).toHaveLength(0);
   });
+
+  it("fills limit price with current price on click when empty", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+
+    expect(limitInput.value).toBe("");
+    fireEvent.click(limitInput);
+    expect(limitInput.value).toBe("50000.00");
+  });
 });

@@ -194,7 +194,6 @@ export const useTradingStore = create<TradingStore>()(
       },
       clearOrdersHistory: () => set({ ordersHistory: [] }),
       checkPendingOrders: (currentPrice) => {
-        console.log("[tradingStore] checkPendingOrders", { currentPrice, pendingCount: get().pendingOrders.length });
         const state = get();
         const executed: PendingOrder[] = [];
         const remaining: PendingOrder[] = [];
@@ -203,7 +202,7 @@ export const useTradingStore = create<TradingStore>()(
           const shouldExecute =
             (order.side === "long" && currentPrice <= order.limitPrice) ||
             (order.side === "short" && currentPrice >= order.limitPrice);
-          console.log("[tradingStore] evaluating order", { id: order.id, side: order.side, limitPrice: order.limitPrice, currentPrice, shouldExecute });
+
 
           if (shouldExecute) {
             executed.push(order);
@@ -230,7 +229,7 @@ export const useTradingStore = create<TradingStore>()(
             ),
           });
           for (const order of executed) {
-            console.log("[tradingStore] executing limit order", { id: order.id, side: order.side, size: order.size, limitPrice: order.limitPrice });
+
             const existing = get().position;
             if (existing && existing.side === order.side) {
               // Add to existing position

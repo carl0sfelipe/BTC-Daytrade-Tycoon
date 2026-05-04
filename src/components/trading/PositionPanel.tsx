@@ -8,7 +8,7 @@ export default function PositionPanel() {
   const currentPrice = useTradingStore((s) => s.currentPrice);
   const closePosition = useTradingStore((s) => s.closePosition);
   const lastCloseReason = useTradingStore((s) => s.lastCloseReason);
-  const realizedPnL = useTradingStore((s) => s.realizedPnL);
+
 
   if (!position) {
     return (
@@ -76,11 +76,11 @@ export default function PositionPanel() {
                 ({pnl >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
               </span>
             </div>
-            {realizedPnL !== 0 && (
+            {position.realizedPnL !== 0 && (
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Realized P&L</span>
-                <span className={`text-xs font-bold font-mono tabular-nums ${realizedPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
-                  {realizedPnL >= 0 ? "+" : ""}${realizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                <span className={`text-xs font-bold font-mono tabular-nums ${position.realizedPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+                  {position.realizedPnL >= 0 ? "+" : ""}${position.realizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             )}

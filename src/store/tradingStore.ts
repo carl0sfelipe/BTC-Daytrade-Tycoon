@@ -48,6 +48,7 @@ export interface Position {
   slPrice: number | null;
   liquidationPrice: number;
   entryTime: string;
+  realizedPnL: number;
 }
 
 interface TradingStore {
@@ -290,6 +291,7 @@ export const useTradingStore = create<TradingStore>()(
           slPrice: slPrice && slPrice > 0 ? slPrice : null,
           liquidationPrice: liqPrice,
           entryTime: now,
+          realizedPnL: 0,
         };
 
         // Add market order to history
@@ -351,6 +353,7 @@ export const useTradingStore = create<TradingStore>()(
             tpPrice: tpPrice && tpPrice > 0 ? tpPrice : state.position.tpPrice,
             slPrice: slPrice && slPrice > 0 ? slPrice : state.position.slPrice,
             liquidationPrice: newLiqPrice,
+            realizedPnL: state.position.realizedPnL,
           },
         });
       },
@@ -385,6 +388,7 @@ export const useTradingStore = create<TradingStore>()(
             position: {
               ...state.position,
               size: size - reducedSize,
+              realizedPnL: state.position.realizedPnL + pnlPartial,
             },
             realizedPnL: state.realizedPnL + pnlPartial,
           });
@@ -515,7 +519,7 @@ export const useTradingStore = create<TradingStore>()(
           };
           set({
             wallet: state.wallet + marginReturned + pnlPartial,
-            position: { ...state.position, size: newSize },
+            position: { ...state.position, size: newSize, realizedPnL: state.position.realizedPnL + pnlPartial },
             ordersHistory: [...state.ordersHistory, historyItem],
             realizedPnL: state.realizedPnL + pnlPartial,
           });

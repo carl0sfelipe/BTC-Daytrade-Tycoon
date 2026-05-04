@@ -565,7 +565,7 @@ export default function TradeControls() {
                   onClick={handleUpdate}
                   className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-colors text-sm"
                 >
-                  DECREASE POSITION
+                  REDUCE POSITION
                 </button>
               )}
               <button

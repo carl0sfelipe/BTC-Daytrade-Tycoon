@@ -162,14 +162,17 @@ export default function TradeControls() {
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => {
-                if (!position || orderType === "limit") setSide("long");
+                if (position && orderType === "market" && position.side !== "long") {
+                  console.log("[TradeControls] flipping to long — closing current position first");
+                  closePosition("manual");
+                }
+                setSide("long");
               }}
-              disabled={!!position && orderType !== "limit"}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 isLong
                   ? "bg-crypto-long text-black border-crypto-long shadow-glow-long"
                   : "bg-crypto-surface-elevated text-crypto-long border-crypto-border hover:border-crypto-long/50"
-              } ${position && orderType !== "limit" ? "opacity-50 cursor-not-allowed" : ""}`}
+              }`}
             >
               LONG
               {position && orderType === "limit" && position.side === "long" && (
@@ -181,14 +184,17 @@ export default function TradeControls() {
             </button>
             <button
               onClick={() => {
-                if (!position || orderType === "limit") setSide("short");
+                if (position && orderType === "market" && position.side !== "short") {
+                  console.log("[TradeControls] flipping to short — closing current position first");
+                  closePosition("manual");
+                }
+                setSide("short");
               }}
-              disabled={!!position && orderType !== "limit"}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 !isLong
                   ? "bg-crypto-short text-white border-crypto-short shadow-glow-short"
                   : "bg-crypto-surface-elevated text-crypto-short border-crypto-border hover:border-crypto-short/50"
-              } ${position && orderType !== "limit" ? "opacity-50 cursor-not-allowed" : ""}`}
+              }`}
             >
               SHORT
               {position && orderType === "limit" && position.side === "short" && (

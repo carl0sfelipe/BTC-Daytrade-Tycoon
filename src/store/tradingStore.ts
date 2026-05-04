@@ -183,13 +183,15 @@ export const useTradingStore = create<TradingStore>()(
             ordersHistory: [...state.ordersHistory, historyItem],
           };
         }),
-      cancelPendingOrder: (id) =>
+      cancelPendingOrder: (id) => {
+        console.log("[tradingStore] cancelPendingOrder", id);
         set((state) => ({
           pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
           ordersHistory: state.ordersHistory.map((o) =>
             o.id === id ? { ...o, status: "canceled" as const, updatedAt: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) } : o
           ),
-        })),
+        }));
+      },
       clearOrdersHistory: () => set({ ordersHistory: [] }),
       checkPendingOrders: (currentPrice) => {
         console.log("[tradingStore] checkPendingOrders", { currentPrice, pendingCount: get().pendingOrders.length });
@@ -323,6 +325,7 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       addToPosition: (additionalSize: number, price: number, tpPriceStr: string, slPriceStr: string) => {
+        console.log("[tradingStore] addToPosition", { additionalSize, price, tpPriceStr, slPriceStr });
         const state = get();
         if (!state.position) return;
 
@@ -352,6 +355,7 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       reducePosition: (reducedSize: number, price: number) => {
+        console.log("[tradingStore] reducePosition", { reducedSize, price });
         const state = get();
         if (!state.position) return;
 
@@ -386,6 +390,7 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       closePosition: (reason = "manual") => {
+        console.log("[tradingStore] closePosition", { reason, currentPrice: get().currentPrice });
         const state = get();
         if (!state.position) return;
 

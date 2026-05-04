@@ -120,7 +120,7 @@ export default function OrdersPanel() {
                   </span>
                   {isPending && (
                     <button
-                      onClick={() => cancelPendingOrder(order.id)}
+                      onClick={() => { console.log("[OrdersPanel] cancelPendingOrder", order.id); cancelPendingOrder(order.id); }}
                       className="p-1 rounded bg-crypto-short-dim text-crypto-short hover:bg-crypto-short/20 transition-colors"
                     >
                       <XCircle className="w-3 h-3" />

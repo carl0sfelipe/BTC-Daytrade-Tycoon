@@ -272,7 +272,6 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     storeAddPriceHistory(price);
 
     // Checks pending limit orders
-    console.log("[useTimewarpEngine] tick checking pending orders", { price });
     storeCheckPendingOrders(price);
 
     // Checks liquidation / SL / TP

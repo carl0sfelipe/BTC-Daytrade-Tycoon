@@ -122,6 +122,7 @@ export default function TradeControls() {
   };
 
   const handleUpdate = () => {
+    console.log("[TradeControls] handleUpdate", { positionSize, sizeDiff, hasPosition: !!position });
     if (!position) return;
     updatePositionSize(positionSize);
   };
@@ -570,7 +571,10 @@ export default function TradeControls() {
                 </button>
               )}
               <button
-                onClick={() => closePosition("manual")}
+                onClick={() => {
+                  console.log("[TradeControls] closePosition clicked");
+                  closePosition("manual");
+                }}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
               >
                 CLOSE POSITION

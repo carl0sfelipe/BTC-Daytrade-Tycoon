@@ -91,6 +91,10 @@ export default function TradingChart({
       seriesRef.current.setData([]);
       lastIdxRef.current = -1;
     }
+    // Reset time scale to prevent huge gap from previous session's range
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
   }, [candles]);
 
   // Render visible candles

@@ -162,10 +162,6 @@ export default function TradeControls() {
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => {
-                if (position && orderType === "market" && position.side !== "long") {
-                  console.log("[TradeControls] flipping to long — closing current position first");
-                  closePosition("manual");
-                }
                 setSide("long");
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
@@ -184,10 +180,6 @@ export default function TradeControls() {
             </button>
             <button
               onClick={() => {
-                if (position && orderType === "market" && position.side !== "short") {
-                  console.log("[TradeControls] flipping to short — closing current position first");
-                  closePosition("manual");
-                }
                 setSide("short");
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${

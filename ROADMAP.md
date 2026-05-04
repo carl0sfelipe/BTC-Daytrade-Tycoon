@@ -35,6 +35,7 @@ Make every session feel unique, replayable, and competitive.
 - [ ] **Daily challenge** — Everyone gets the same random historical day. Compete for best PnL on identical price action.
 - [x] **Position partial close** — Close X% of a position instead of all-or-nothing exits (via `reducePosition()` on opposite-side limit orders).
 - [ ] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
+- [ ] **Reduce Only / Hedge Mode toggle** — `Reduce Only` (default, one-way): opposite-side orders reduce or close the existing position only. When unchecked (hedge mode): opposite-side orders can open a new position on the other side if the size exceeds the current position (e.g., long $50k + short $70k = close long + open short $20k).
 
 ---
 

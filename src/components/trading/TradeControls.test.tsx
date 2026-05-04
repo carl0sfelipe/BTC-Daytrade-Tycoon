@@ -167,7 +167,7 @@ describe("TradeControls", () => {
     expect(limitInput.value).toBe("49975.00");
   });
 
-  describe("market mode action button follows side, not size", () => {
+  describe("order-centric slider (positionSize = order delta, not total)", () => {
     const openLong5k = () =>
       useTradingStore.setState({
         wallet: 10000,
@@ -188,66 +188,90 @@ describe("TradeControls", () => {
         closedTrades: [],
       });
 
-    it("shows INCREASE when side matches position.side, regardless of slider value", () => {
+    it("INCREASE label shows whenever side === position.side", () => {
       openLong5k();
       render(<TradeControls />);
 
-      // Slider initially at position.size (5000), sizeDiff = 0
-      // Old behavior would show no button; new behavior shows INCREASE
+      // Default: side=long, position=long → INCREASE
       expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
-
-      // Drag slider BELOW position.size — old behavior would flip to REDUCE
-      const slider = screen.getByRole("slider") as HTMLInputElement;
-      fireEvent.change(slider, { target: { value: "3000" } });
-
-      // Still INCREASE because side is still long (matches position)
-      expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
-      expect(screen.queryByText("REDUCE POSITION")).not.toBeInTheDocument();
     });
 
-    it("shows REDUCE when side is opposite of position.side, regardless of slider value", () => {
+    it("REDUCE label shows whenever side !== position.side", () => {
       openLong5k();
       render(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
-
-      // Slider snapped to 4000 (position.size - 1000), sizeDiff = -1000
-      expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
-
-      // Drag slider ABOVE position.size — old behavior would flip to INCREASE
-      const slider = screen.getByRole("slider") as HTMLInputElement;
-      fireEvent.change(slider, { target: { value: "7000" } });
-
-      // Still REDUCE because side is still short (opposite of position)
       expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
       expect(screen.queryByText("INCREASE POSITION")).not.toBeInTheDocument();
     });
 
-    it("toggles INCREASE/REDUCE when user clicks LONG then SHORT then LONG", () => {
-      // Repro of the bug user reported: button label must respond to the
-      // side toggle, not stay stuck because slider was dragged.
+    it("toggles INCREASE/REDUCE when clicking LONG → SHORT → LONG", () => {
       openLong5k();
       render(<TradeControls />);
 
-      const slider = screen.getByRole("slider") as HTMLInputElement;
-
-      // Start: long position, side=long → INCREASE
       expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
 
-      // Drag slider down (would have flipped old logic to REDUCE)
-      fireEvent.change(slider, { target: { value: "4500" } });
-      expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
-
-      // Click SHORT → REDUCE
       fireEvent.click(screen.getByText("SHORT"));
       expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
 
-      // Click LONG → back to INCREASE
       fireEvent.click(screen.getByText("LONG"));
       expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
     });
 
-    it("snaps slider to position.size + 1000 on same-side click", () => {
+    it("allows INCREASE order smaller than current position size (the reported bug)", () => {
+      // User has long $5000, wants to add only $200 more.
+      // Old behavior: slider as total → must drag to $5200 to increase.
+      // New behavior: slider as order size → set slider to $200, click INCREASE.
+      openLong5k();
+      render(<TradeControls />);
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "200" } });
+
+      const increaseBtn = screen.getByText("INCREASE POSITION");
+      expect(increaseBtn).not.toBeDisabled();
+      fireEvent.click(increaseBtn);
+
+      // Position should now be 5200
+      expect(useTradingStore.getState().position?.size).toBe(5200);
+    });
+
+    it("REDUCE applies the order size as a delta from position.size", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("SHORT"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "300" } });
+
+      fireEvent.click(screen.getByText("REDUCE POSITION"));
+
+      // Position should now be 5000 - 300 = 4700
+      expect(useTradingStore.getState().position?.size).toBe(4700);
+    });
+
+    it("REDUCE slider max is capped at position.size", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("SHORT"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      // sliderMax in REDUCE = position.size = 5000
+      expect(slider.max).toBe("5000");
+    });
+
+    it("INCREASE slider max scales with wallet and leverage", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      // INCREASE: wallet (10000) * leverage (10) = 100000
+      expect(slider.max).toBe("100000");
+    });
+
+    it("snaps to default $1000 order size on side click", () => {
       openLong5k();
       render(<TradeControls />);
 
@@ -255,33 +279,11 @@ describe("TradeControls", () => {
       fireEvent.change(slider, { target: { value: "3000" } });
       expect(slider.value).toBe("3000");
 
-      fireEvent.click(screen.getByText("LONG"));
-      expect(slider.value).toBe("6000");
-    });
-
-    it("snaps slider to position.size - 1000 on opposite-side click", () => {
-      openLong5k();
-      render(<TradeControls />);
-
       fireEvent.click(screen.getByText("SHORT"));
+      expect(slider.value).toBe("1000");
 
-      const slider = screen.getByRole("slider") as HTMLInputElement;
-      expect(slider.value).toBe("4000");
-    });
-
-    it("does not snap slider in limit mode", () => {
-      openLong5k();
-      render(<TradeControls />);
-
-      fireEvent.click(screen.getByText("Limit"));
-
-      const slider = screen.getByRole("slider") as HTMLInputElement;
-      fireEvent.change(slider, { target: { value: "4000" } });
-
-      const longBtn = screen.getAllByRole("button").find((b) => b.textContent?.startsWith("LONG"));
-      fireEvent.click(longBtn!);
-
-      expect(slider.value).toBe("4000");
+      fireEvent.click(screen.getByText("LONG"));
+      expect(slider.value).toBe("1000");
     });
   });
 });

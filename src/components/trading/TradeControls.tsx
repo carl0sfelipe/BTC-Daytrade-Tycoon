@@ -37,21 +37,25 @@ export default function TradeControls() {
   const skipHighLeverageWarning = useTradingStore((s) => s.skipHighLeverageWarning);
   const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
 
-  // Sync slider with open position size
+  // positionSize represents the *order* size (delta), not the total target position.
+  // When a position opens, sync side/leverage but reset order size to 1000 default.
   useEffect(() => {
     if (position) {
-      setPositionSize(position.size);
       setLeverage(position.leverage);
       setSide(position.side);
+      setPositionSize(1000);
     }
   }, [position]);
 
   const margin = positionSize / leverage;
   const canOpen = wallet >= margin;
 
-  const sliderMax = position
-    ? position.size + Math.floor(wallet * leverage)
-    : Math.max(100, Math.floor(wallet * leverage));
+  const isReduceMode = !!(position && side !== position.side);
+  const sliderMax = !position
+    ? Math.max(100, Math.floor(wallet * leverage))
+    : isReduceMode
+      ? Math.max(100, Math.floor(position.size))
+      : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
     console.log("[TradeControls] handleOpen called", { orderType, side, leverage, positionSize, limitPrice, hasPosition: !!position });
@@ -122,9 +126,12 @@ export default function TradeControls() {
   };
 
   const handleUpdate = () => {
-    console.log("[TradeControls] handleUpdate", { positionSize, sizeDiff, hasPosition: !!position });
+    console.log("[TradeControls] handleUpdate", { positionSize, hasPosition: !!position, isReduceMode });
     if (!position) return;
-    updatePositionSize(positionSize);
+    const targetSize = isReduceMode
+      ? position.size - positionSize
+      : position.size + positionSize;
+    updatePositionSize(targetSize);
   };
 
   const handleLeverageChange = (newLeverage: number) => {
@@ -134,9 +141,8 @@ export default function TradeControls() {
     }
   };
 
-  const sizeDiff = position ? positionSize - position.size : 0;
-  const canIncrease = sizeDiff > 0 && wallet >= sizeDiff / leverage;
-  const canDecrease = sizeDiff < 0;
+  const canIncrease = positionSize > 0 && wallet >= positionSize / leverage;
+  const canDecrease = !!(position && positionSize > 0 && positionSize <= position.size);
 
   const leverageOptions = [2, 5, 10, 25, 50, 100];
   const sizeOptions = [10, 25, 50, 100];
@@ -164,13 +170,11 @@ export default function TradeControls() {
               onClick={() => {
                 setSide("long");
                 if (position && orderType === "market") {
-                  if (position.side === "long") {
-                    // Same side → prepare to increase
-                    setPositionSize(Math.min(position.size + 1000, sliderMax));
-                  } else {
-                    // Opposite side → prepare to reduce
-                    setPositionSize(Math.max(100, position.size - 1000));
-                  }
+                  // Reset to default order size; sliderMax recomputes via isReduceMode
+                  const newMax = position.side === "long"
+                    ? Math.max(100, Math.floor(wallet * leverage))
+                    : Math.max(100, Math.floor(position.size));
+                  setPositionSize(Math.min(1000, newMax));
                 }
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
@@ -191,13 +195,10 @@ export default function TradeControls() {
               onClick={() => {
                 setSide("short");
                 if (position && orderType === "market") {
-                  if (position.side === "short") {
-                    // Same side → prepare to increase
-                    setPositionSize(Math.min(position.size + 1000, sliderMax));
-                  } else {
-                    // Opposite side → prepare to reduce
-                    setPositionSize(Math.max(100, position.size - 1000));
-                  }
+                  const newMax = position.side === "short"
+                    ? Math.max(100, Math.floor(wallet * leverage))
+                    : Math.max(100, Math.floor(position.size));
+                  setPositionSize(Math.min(1000, newMax));
                 }
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
@@ -305,7 +306,9 @@ export default function TradeControls() {
               {position ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{orderType === "limit" ? "Additional Size" : "Adjust Size"}</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
+                      {isReduceMode ? "Reduce Size" : "Increase Size"}
+                    </span>
                     <span className="text-[10px] font-mono text-crypto-text-secondary">Current: ${Math.floor(position.size).toLocaleString()}</span>
                   </div>
                   <input
@@ -322,11 +325,6 @@ export default function TradeControls() {
                     <span>${Math.floor(sliderMax / 2).toLocaleString()}</span>
                     <span>${Math.floor(sliderMax).toLocaleString()}</span>
                   </div>
-                  {sizeDiff !== 0 && (
-                    <div className={`text-[10px] font-mono text-center ${sizeDiff > 0 ? 'text-crypto-long' : 'text-crypto-short'}`}>
-                      {sizeDiff > 0 ? '+' : ''}${sizeDiff.toLocaleString()} vs current
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-2">

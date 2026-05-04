@@ -16,6 +16,12 @@ The foundation. These are shipped and battle-tested.
 - [x] **Crypto redesign (dark theme, glow effects, color tokens)** — Full visual overhaul with neon accents and moody chart aesthetics.
 - [x] **English localization** — All UI strings extracted and translated.
 - [x] **E2E test coverage for core flows** — 4 Playwright tests covering onboarding, trading, date reveal, and liquidation.
+- [x] **Limit Orders** — Place pending orders at a specific price. Orders can increase (same side) or reduce/close (opposite side) existing positions.
+- [x] **Orders Panel** — Full order history with filter tabs (All / Pending / Filled / Canceled).
+- [x] **TP/SL in Simple Mode** — Take Profit and Stop Loss inputs visible in both Simple and Advanced trade modes.
+- [x] **Limit Price Stepper** — Quick-adjust limit price with configurable step sizes ($1–$100 + custom).
+- [x] **Responsive Layout** — Header, MarketStatus, SimulationClock, and PnLDisplay adapt to smaller screens.
+- [x] **Unit Test Suite** — 30+ Vitest tests covering store logic, limit orders, position mechanics, and component rendering.
 
 ---
 
@@ -27,7 +33,7 @@ Make every session feel unique, replayable, and competitive.
 - [ ] **Difficulty presets** — Easy (10x max leverage), Normal (50x), Hard (100x + higher volatility multiplier).
 - [ ] **Streak system** — Track consecutive profitable sessions; display fire streak badges.
 - [ ] **Daily challenge** — Everyone gets the same random historical day. Compete for best PnL on identical price action.
-- [ ] **Position partial close** — Close X% of a position instead of all-or-nothing exits.
+- [x] **Position partial close** — Close X% of a position instead of all-or-nothing exits (via `reducePosition()` on opposite-side limit orders).
 - [ ] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
 
 ---

@@ -203,25 +203,17 @@ export default function TradeControls() {
           {/* Order Type */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => !position && setOrderType("market")}
-              disabled={!!position}
+              onClick={() => setOrderType("market")}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 orderType === "market"
                   ? "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"
                   : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
-              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+              }`}
             >
               Market
             </button>
             <button
-              onClick={() => {
-                if (position) {
-                  setOrderType("limit");
-                  setSide(position.side);
-                } else {
-                  setOrderType("limit");
-                }
-              }}
+              onClick={() => setOrderType("limit")}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 orderType === "limit"
                   ? "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"

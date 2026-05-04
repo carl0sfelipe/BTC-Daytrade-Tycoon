@@ -119,6 +119,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       wallet: 10000,
       closedTrades: [],
       realizedPnL: 0,
+      reduceOnly: true,
       position: null,
       activePositions: [],
       isLoading: false,

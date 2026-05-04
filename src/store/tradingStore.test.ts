@@ -286,3 +286,82 @@ describe("TradingStore — Order History Side Tracking", () => {
     expect(state.realizedPnL).toBeCloseTo(40, 0);
   });
 });
+
+describe("TradingStore — Reduce Only / Hedge Mode", () => {
+  beforeEach(() => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: null,
+      closedTrades: [],
+      realizedPnL: 0,
+      ordersHistory: [],
+      currentPrice: 50000,
+      reduceOnly: true,
+    });
+  });
+
+  it("reduceOnly=true: opposite market order reduces position", () => {
+    useTradingStore.setState({
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+    });
+
+    useTradingStore.getState().openPosition("short", 10, 300, "", "", null);
+
+    const state = useTradingStore.getState();
+    expect(state.position).not.toBeNull();
+    expect(state.position!.side).toBe("long");
+    expect(state.position!.size).toBe(700);
+  });
+
+  it("reduceOnly=false: opposite market order larger than position flips side", () => {
+    useTradingStore.setState({
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      reduceOnly: false,
+    });
+
+    useTradingStore.getState().openPosition("short", 10, 2500, "", "", null);
+
+    const state = useTradingStore.getState();
+    expect(state.position).not.toBeNull();
+    expect(state.position!.side).toBe("short");
+    expect(state.position!.size).toBe(1500); // excess = 2500 - 1000
+    expect(state.closedTrades).toHaveLength(1);
+    expect(state.closedTrades[0].side).toBe("long");
+  });
+
+  it("reduceOnly=false: opposite market order smaller than position reduces (no flip)", () => {
+    useTradingStore.setState({
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      reduceOnly: false,
+    });
+
+    useTradingStore.getState().openPosition("short", 10, 400, "", "", null);
+
+    const state = useTradingStore.getState();
+    expect(state.position).not.toBeNull();
+    expect(state.position!.side).toBe("long");
+    expect(state.position!.size).toBe(600);
+  });
+
+  it("reduceOnly=false: exact-size opposite order closes position", () => {
+    useTradingStore.setState({
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      reduceOnly: false,
+    });
+
+    useTradingStore.getState().openPosition("short", 10, 1000, "", "", null);
+
+    const state = useTradingStore.getState();
+    expect(state.position).toBeNull();
+    expect(state.closedTrades).toHaveLength(1);
+  });
+
+  it("reduceOnly defaults to true on store reset", () => {
+    useTradingStore.setState({ reduceOnly: false });
+    expect(useTradingStore.getState().reduceOnly).toBe(false);
+
+    // Simulate engine reset
+    useTradingStore.setState({ reduceOnly: true });
+    expect(useTradingStore.getState().reduceOnly).toBe(true);
+  });
+});

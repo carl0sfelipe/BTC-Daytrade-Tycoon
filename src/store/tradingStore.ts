@@ -70,6 +70,7 @@ interface TradingStore {
   simulationRealDate: string | null;
   hasSeenOnboarding: boolean;
   skipHighLeverageWarning: boolean;
+  reduceOnly: boolean;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -101,6 +102,7 @@ interface TradingStore {
   clearLiquidated: () => void;
   setOnboardingSeen: () => void;
   setSkipHighLeverageWarning: (skip: boolean) => void;
+  setReduceOnly: (value: boolean) => void;
 }
 
 function calcLiquidationPrice(entry: number, leverage: number, side: "long" | "short"): number {
@@ -134,6 +136,7 @@ export const useTradingStore = create<TradingStore>()(
       simulationRealDate: null,
       hasSeenOnboarding: false,
       skipHighLeverageWarning: false,
+      reduceOnly: true,
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -148,6 +151,7 @@ export const useTradingStore = create<TradingStore>()(
       clearLiquidated: () => set({ isLiquidated: false, simulationRealDate: null }),
       setOnboardingSeen: () => set({ hasSeenOnboarding: true }),
       setSkipHighLeverageWarning: (skip) => set({ skipHighLeverageWarning: skip }),
+      setReduceOnly: (value) => set({ reduceOnly: value }),
       addClosedTrade: (trade) =>
         set((state) => ({
           closedTrades: [...state.closedTrades, trade],
@@ -243,8 +247,21 @@ export const useTradingStore = create<TradingStore>()(
                 order.slPrice?.toString() ?? ""
               );
             } else if (existing && existing.side !== order.side) {
-              // Reduce or close existing position (opposite side)
-              state.reducePosition(order.size, order.limitPrice);
+              // Reduce, close, or flip existing position (opposite side)
+              const shouldFlip = !get().reduceOnly && order.size > existing.size;
+              if (shouldFlip) {
+                // Hedge mode: close existing and open flipped position
+                state.openPosition(
+                  order.side,
+                  order.leverage,
+                  order.size,
+                  order.tpPrice?.toString() ?? "",
+                  order.slPrice?.toString() ?? "",
+                  order.limitPrice.toString()
+                );
+              } else {
+                state.reducePosition(order.size, order.limitPrice);
+              }
             } else {
               // Open new position
               state.openPosition(
@@ -271,7 +288,6 @@ export const useTradingStore = create<TradingStore>()(
 
         const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
         const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
-        const liqPrice = calcLiquidationPrice(entryPrice, leverage, side);
 
         const now = new Date().toLocaleString("pt-BR", {
           day: "2-digit",
@@ -281,6 +297,129 @@ export const useTradingStore = create<TradingStore>()(
           minute: "2-digit",
           second: "2-digit",
         });
+
+        // Opposite-side orders: reduce, close, or flip depending on reduceOnly mode
+        if (state.position && state.position.side !== side) {
+          const existing = state.position;
+          if (!state.reduceOnly && positionSize > existing.size) {
+            // Hedge mode — Flip: close existing and open new position with excess
+            const priceDiff = existing.side === "long" ? entryPrice - existing.entry : existing.entry - entryPrice;
+            const closePnl = (priceDiff / existing.entry) * existing.size;
+            const totalRealized = existing.realizedPnL + closePnl;
+            const returnedMargin = existing.size / existing.leverage;
+            const excessSize = positionSize - existing.size;
+            const excessMargin = excessSize / leverage;
+
+            const trade: Trade = {
+              pnl: totalRealized,
+              side: existing.side,
+              reason: "manual",
+              entryPrice: existing.entry,
+              exitPrice: entryPrice,
+              size: existing.size,
+              leverage: existing.leverage,
+              margin: returnedMargin,
+              entryTime: existing.entryTime || now,
+              exitTime: now,
+            };
+
+            const newLiqPrice = calcLiquidationPrice(entryPrice, leverage, side);
+            const flippedPosition: Position = {
+              side,
+              entry: entryPrice,
+              size: excessSize,
+              leverage,
+              tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
+              slPrice: slPrice && slPrice > 0 ? slPrice : null,
+              liquidationPrice: newLiqPrice,
+              entryTime: now,
+              realizedPnL: 0,
+            };
+
+            const historyItem: OrderHistoryItem = {
+              id: Math.random().toString(36).slice(2, 9),
+              side,
+              type: limitPrice ? "limit" : "market",
+              status: "filled",
+              leverage,
+              size: positionSize,
+              price: entryPrice,
+              tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
+              slPrice: slPrice && slPrice > 0 ? slPrice : null,
+              createdAt: now,
+              updatedAt: now,
+            };
+
+            set({
+              wallet: state.wallet + returnedMargin + closePnl - excessMargin,
+              position: flippedPosition,
+              activePositions: [...state.activePositions, flippedPosition],
+              closedTrades: [...state.closedTrades, trade],
+              realizedPnL: state.realizedPnL + totalRealized,
+              ordersHistory: [...state.ordersHistory, historyItem],
+              lastCloseReason: null,
+            });
+            return;
+          } else {
+            // Partial reduce in hedge mode — same as reduce only
+            const reducedSize = positionSize;
+            const priceDiff = existing.side === "long" ? entryPrice - existing.entry : existing.entry - entryPrice;
+            const pnlPartial = (priceDiff / existing.entry) * reducedSize;
+            const marginReturned = reducedSize / existing.leverage;
+            const newSize = existing.size - reducedSize;
+
+            const historyItem: OrderHistoryItem = {
+              id: Math.random().toString(36).slice(2, 9),
+              side,
+              type: limitPrice ? "limit" : "market",
+              status: "filled",
+              leverage: existing.leverage,
+              size: reducedSize,
+              price: entryPrice,
+              tpPrice: existing.tpPrice,
+              slPrice: existing.slPrice,
+              createdAt: now,
+              updatedAt: now,
+            };
+
+            if (newSize <= 0) {
+              // Full close
+              const totalRealized = existing.realizedPnL + pnlPartial;
+              const margin = existing.size / existing.leverage;
+              const trade: Trade = {
+                pnl: totalRealized,
+                side: existing.side,
+                reason: "manual",
+                entryPrice: existing.entry,
+                exitPrice: entryPrice,
+                size: existing.size,
+                leverage: existing.leverage,
+                margin,
+                entryTime: existing.entryTime || now,
+                exitTime: now,
+              };
+              set({
+                wallet: state.wallet + margin + pnlPartial,
+                position: null,
+                closedTrades: [...state.closedTrades, trade],
+                realizedPnL: state.realizedPnL + totalRealized,
+                activePositions: state.activePositions.filter(p => p.entry !== existing.entry || p.side !== existing.side),
+                ordersHistory: [...state.ordersHistory, historyItem],
+                lastCloseReason: null,
+              });
+            } else {
+              set({
+                wallet: state.wallet + marginReturned + pnlPartial,
+                position: { ...existing, size: newSize, realizedPnL: existing.realizedPnL + pnlPartial },
+                ordersHistory: [...state.ordersHistory, historyItem],
+                realizedPnL: state.realizedPnL + pnlPartial,
+              });
+            }
+            return;
+          }
+        }
+
+        const liqPrice = calcLiquidationPrice(entryPrice, leverage, side);
 
         const newPosition: Position = {
           side,

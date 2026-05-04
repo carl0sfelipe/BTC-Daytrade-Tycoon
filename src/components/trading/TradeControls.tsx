@@ -131,9 +131,19 @@ export default function TradeControls() {
     setPendingTrade(null);
   };
 
+  const reduceOnly = useTradingStore((s) => s.reduceOnly);
+
   const handleUpdate = () => {
-    console.log("[TradeControls] handleUpdate", { positionSize, hasPosition: !!position, isReduceMode });
+    console.log("[TradeControls] handleUpdate", { positionSize, hasPosition: !!position, isReduceMode, reduceOnly });
     if (!position) return;
+
+    // Hedge mode: opposite-side orders can flip the position if size exceeds current
+    if (isReduceMode && !reduceOnly) {
+      console.log("[TradeControls] hedge mode reduce — calling openPosition", { side, leverage, size: positionSize });
+      openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
+      return;
+    }
+
     const targetSize = isReduceMode
       ? position.size - positionSize
       : position.size + positionSize;
@@ -250,6 +260,34 @@ export default function TradeControls() {
               Limit
             </button>
           </div>
+
+          {/* Reduce Only / Hedge Mode Toggle */}
+          {position && (
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Position Mode</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${reduceOnly ? "bg-crypto-accent-dim text-crypto-accent" : "bg-crypto-warning-dim text-crypto-warning"}`}>
+                  {reduceOnly ? "Reduce Only" : "Hedge Mode"}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  const store = useTradingStore.getState();
+                  store.setReduceOnly(!reduceOnly);
+                }}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  reduceOnly ? "bg-crypto-accent" : "bg-crypto-warning"
+                }`}
+                aria-label={reduceOnly ? "Enable hedge mode" : "Enable reduce only"}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    reduceOnly ? "translate-x-5" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {mode === "simple" ? (
             <>

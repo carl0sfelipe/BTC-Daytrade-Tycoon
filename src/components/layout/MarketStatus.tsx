@@ -45,8 +45,8 @@ export default function MarketStatus() {
     .join(" ");
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 card-surface">
-      <div className="flex items-center gap-6">
+    <div className="flex flex-wrap items-center justify-between px-4 md:px-5 py-3 card-surface gap-y-3">
+      <div className="flex flex-wrap items-center gap-3 md:gap-6">
         {/* Badge + Price */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
@@ -54,7 +54,7 @@ export default function MarketStatus() {
             <span className="text-xs font-semibold text-crypto-text-secondary tracking-wider">BTC/USDT</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
+            <span className="text-xl md:text-2xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
               ${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -76,10 +76,10 @@ export default function MarketStatus() {
         )}
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex flex-wrap items-center gap-3 md:gap-5">
         {/* Sparkline */}
         {sparklinePoints.length >= 2 && (
-          <svg width={width} height={height} className="opacity-80">
+          <svg width={width} height={height} className="opacity-80 flex-shrink-0 hidden sm:block">
             <polyline
               fill="none"
               stroke={isUp ? "#00d4a8" : "#ff4757"}

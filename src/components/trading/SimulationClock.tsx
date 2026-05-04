@@ -22,7 +22,7 @@ export default function SimulationClock({
   onEnd,
 }: SimulationClockProps) {
   return (
-    <div className="flex items-center justify-between px-5 py-3 card-surface">
+    <div className="flex flex-wrap items-center justify-between px-4 md:px-5 py-3 card-surface gap-y-3">
       <div className="flex items-center gap-4">
         {/* Clock Icon + Time */}
         <div className="flex items-center gap-2.5">
@@ -31,7 +31,7 @@ export default function SimulationClock({
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Simulation Time</span>
-            <span className="text-lg font-bold font-mono text-crypto-text tabular-nums leading-none mt-0.5">{elapsedTime}</span>
+            <span className="text-base md:text-lg font-bold font-mono text-crypto-text tabular-nums leading-none mt-0.5">{elapsedTime}</span>
           </div>
         </div>
 
@@ -42,7 +42,7 @@ export default function SimulationClock({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {/* Speed badge */}
         <div className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <span className="text-xs font-bold font-mono text-crypto-accent">{speed}x</span>
@@ -54,7 +54,7 @@ export default function SimulationClock({
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Pause className="w-4 h-4" />
-            <span className="text-xs font-semibold">Pause</span>
+            <span className="text-xs font-semibold hidden sm:inline">Pause</span>
           </button>
         ) : (
           <button
@@ -62,7 +62,7 @@ export default function SimulationClock({
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Play className="w-4 h-4" />
-            <span className="text-xs font-semibold">Resume</span>
+            <span className="text-xs font-semibold hidden sm:inline">Resume</span>
           </button>
         )}
 

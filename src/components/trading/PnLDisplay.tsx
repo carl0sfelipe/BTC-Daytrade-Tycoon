@@ -43,7 +43,7 @@ export default function PnLDisplay() {
         <div className="text-center py-2">
           <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Current Balance</span>
           <div className="flex items-baseline justify-center gap-2 mt-1">
-            <span className="text-3xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
+            <span className="text-2xl md:text-3xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
               ${totalEquity.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -68,7 +68,7 @@ export default function PnLDisplay() {
               <BarChart3 className="w-3 h-3 text-crypto-text-muted" />
               <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Trades</span>
             </div>
-            <span className="text-lg font-bold font-mono text-crypto-text tabular-nums">{totalTrades}</span>
+            <span className="text-base md:text-lg font-bold font-mono text-crypto-text tabular-nums">{totalTrades}</span>
           </div>
 
           <div className="flex flex-col p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
@@ -76,19 +76,19 @@ export default function PnLDisplay() {
               <TrendingUp className="w-3 h-3 text-crypto-text-muted" />
               <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Win Rate</span>
             </div>
-            <span className="text-lg font-bold font-mono text-crypto-long tabular-nums">{winRate.toFixed(0)}%</span>
+            <span className="text-base md:text-lg font-bold font-mono text-crypto-long tabular-nums">{winRate.toFixed(0)}%</span>
           </div>
 
           <div className="flex flex-col p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Avg P&L</span>
-            <span className={`text-lg font-bold font-mono tabular-nums ${avgPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+            <span className={`text-base md:text-lg font-bold font-mono tabular-nums ${avgPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
               {avgPnL >= 0 ? "+" : ""}${avgPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
 
           <div className="flex flex-col p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider mb-1">Best Trade</span>
-            <span className={`text-lg font-bold font-mono tabular-nums ${bestTrade >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+            <span className={`text-base md:text-lg font-bold font-mono tabular-nums ${bestTrade >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
               {bestTrade >= 0 ? "+" : ""}${bestTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>

@@ -19,7 +19,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="flex items-center justify-between px-6 py-3 bg-crypto-surface/80 border-b border-crypto-border backdrop-blur-sm sticky top-0 z-50">
+    <header className="flex flex-wrap items-center justify-between px-4 md:px-6 py-3 bg-crypto-surface/80 border-b border-crypto-border backdrop-blur-sm sticky top-0 z-50 gap-y-2">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-crypto-accent to-crypto-cyan flex items-center justify-center shadow-glow-accent">
@@ -32,7 +32,7 @@ export default function Header() {
       </Link>
 
       {/* Navigation */}
-      <nav className="flex items-center gap-1">
+      <nav className="flex items-center gap-1 order-3 w-full justify-center md:order-none md:w-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -46,14 +46,14 @@ export default function Header() {
               }`}
             >
               <item.icon className={`w-4 h-4 ${isActive ? "text-crypto-accent" : ""}`} />
-              <span>{item.label}</span>
+              <span className="hidden md:inline">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Right side: GitHub + Streak + Balance */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <a
           href="https://github.com/carl0sfelipe/BTC-Daytrade-Tycoon"
           target="_blank"
@@ -73,7 +73,7 @@ export default function Header() {
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <div className="flex flex-col items-end">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Balance</span>
-            <span className="text-sm font-bold font-mono text-crypto-text tabular-nums">
+            <span className="text-sm font-bold font-mono text-crypto-text tabular-nums truncate max-w-[100px] md:max-w-none">
               ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>

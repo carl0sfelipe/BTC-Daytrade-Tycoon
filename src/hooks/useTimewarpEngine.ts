@@ -122,6 +122,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       isLoading: false,
       isLiquidated: false,
       simulationRealDate: null,
+      lastCloseReason: null,
     });
   }, []);
 

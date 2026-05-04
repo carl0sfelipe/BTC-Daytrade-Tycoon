@@ -121,7 +121,9 @@ export default function TradingPage() {
             />
           </div>
 
-          <MarketStatus />
+          <div className="container mx-auto px-4 py-3">
+            <MarketStatus />
+          </div>
 
           <main className="container mx-auto px-4 py-4">
             <div className="grid grid-cols-12 gap-4">

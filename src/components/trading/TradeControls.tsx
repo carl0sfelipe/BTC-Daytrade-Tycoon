@@ -149,26 +149,42 @@ export default function TradeControls() {
           {/* Side Tabs */}
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => !position && setSide("long")}
-              disabled={!!position}
+              onClick={() => {
+                if (!position || orderType === "limit") setSide("long");
+              }}
+              disabled={!!position && orderType !== "limit"}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 isLong
                   ? "bg-crypto-long text-black border-crypto-long shadow-glow-long"
                   : "bg-crypto-surface-elevated text-crypto-long border-crypto-border hover:border-crypto-long/50"
-              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${position && orderType !== "limit" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               LONG
+              {position && orderType === "limit" && position.side === "long" && (
+                <span className="block text-[8px] font-normal normal-case opacity-70">Increase</span>
+              )}
+              {position && orderType === "limit" && position.side !== "long" && (
+                <span className="block text-[8px] font-normal normal-case opacity-70">Reduce</span>
+              )}
             </button>
             <button
-              onClick={() => !position && setSide("short")}
-              disabled={!!position}
+              onClick={() => {
+                if (!position || orderType === "limit") setSide("short");
+              }}
+              disabled={!!position && orderType !== "limit"}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 !isLong
                   ? "bg-crypto-short text-white border-crypto-short shadow-glow-short"
                   : "bg-crypto-surface-elevated text-crypto-short border-crypto-border hover:border-crypto-short/50"
-              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${position && orderType !== "limit" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               SHORT
+              {position && orderType === "limit" && position.side === "short" && (
+                <span className="block text-[8px] font-normal normal-case opacity-70">Increase</span>
+              )}
+              {position && orderType === "limit" && position.side !== "short" && (
+                <span className="block text-[8px] font-normal normal-case opacity-70">Reduce</span>
+              )}
             </button>
           </div>
 

@@ -87,6 +87,7 @@ interface TradingStore {
   ) => void;
   closePosition: (reason?: Trade["reason"]) => void;
   addToPosition: (additionalSize: number, price: number, tpPrice: string, slPrice: string) => void;
+  reducePosition: (reducedSize: number, price: number) => void;
   updatePositionSize: (newSize: number) => void;
   updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
@@ -233,6 +234,9 @@ export const useTradingStore = create<TradingStore>()(
                 order.tpPrice?.toString() ?? "",
                 order.slPrice?.toString() ?? ""
               );
+            } else if (existing && existing.side !== order.side) {
+              // Reduce or close existing position (opposite side)
+              state.reducePosition(order.size, order.limitPrice);
             } else {
               // Open new position
               state.openPosition(
@@ -340,6 +344,40 @@ export const useTradingStore = create<TradingStore>()(
             liquidationPrice: newLiqPrice,
           },
         });
+      },
+
+      reducePosition: (reducedSize: number, price: number) => {
+        const state = get();
+        if (!state.position) return;
+
+        const { side, entry, size, leverage } = state.position;
+        const marginPerUnit = 1 / leverage;
+
+        if (reducedSize >= size) {
+          // Close entire position
+          const priceDiff = side === "long" ? price - entry : entry - price;
+          const pnl = (priceDiff / entry) * size;
+          const margin = size * marginPerUnit;
+          set({
+            wallet: state.wallet + margin + pnl,
+            position: null,
+            activePositions: state.activePositions.filter(
+              (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
+            ),
+          });
+        } else {
+          // Partial close
+          const priceDiff = side === "long" ? price - entry : entry - price;
+          const pnlPartial = (priceDiff / entry) * reducedSize;
+          const marginReturned = reducedSize * marginPerUnit;
+          set({
+            wallet: state.wallet + marginReturned + pnlPartial,
+            position: {
+              ...state.position,
+              size: size - reducedSize,
+            },
+          });
+        }
       },
 
       closePosition: (reason = "manual") => {

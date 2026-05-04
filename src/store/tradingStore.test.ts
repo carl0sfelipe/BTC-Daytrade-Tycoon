@@ -126,4 +126,48 @@ describe("TradingStore — Limit Orders", () => {
     expect(useTradingStore.getState().pendingOrders).toHaveLength(0);
     expect(useTradingStore.getState().wallet).toBe(10000);
   });
+
+  it("addToPosition increases existing position and updates average entry", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+    });
+
+    useTradingStore.getState().addToPosition(1000, 55000, "", "");
+
+    const state = useTradingStore.getState();
+    expect(state.position!.size).toBe(2000);
+    expect(state.position!.entry).toBe(52500); // weighted average
+    expect(state.wallet).toBe(9900); // deducted margin for additional 1000/10
+  });
+
+  it("reducePosition partially closes position", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+      currentPrice: 52000,
+    });
+
+    useTradingStore.getState().reducePosition(500, 52000);
+
+    const state = useTradingStore.getState();
+    expect(state.position!.size).toBe(500);
+    // wallet = 10000 + margin_returned(50) + pnl(20)
+    expect(state.wallet).toBeCloseTo(10070, 0);
+  });
+
+  it("reducePosition closes entire position when reducedSize >= current", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+      currentPrice: 52000,
+    });
+
+    useTradingStore.getState().reducePosition(1000, 52000);
+
+    const state = useTradingStore.getState();
+    expect(state.position).toBeNull();
+    // wallet = 10000 + margin(100) + pnl(40)
+    expect(state.wallet).toBeCloseTo(10140, 0);
+  });
 });

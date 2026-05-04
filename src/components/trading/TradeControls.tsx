@@ -555,7 +555,7 @@ export default function TradeControls() {
           {/* Action buttons */}
           {position && orderType !== "limit" ? (
             <div className="space-y-2">
-              {sizeDiff > 0 && (
+              {side === position.side ? (
                 <button
                   onClick={handleUpdate}
                   disabled={!canIncrease}
@@ -569,11 +569,15 @@ export default function TradeControls() {
                 >
                   INCREASE POSITION
                 </button>
-              )}
-              {sizeDiff < 0 && (
+              ) : (
                 <button
                   onClick={handleUpdate}
-                  className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-colors text-sm"
+                  disabled={!canDecrease}
+                  className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
+                    canDecrease
+                      ? "bg-crypto-warning text-black hover:bg-crypto-warning/90"
+                      : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
+                  }`}
                 >
                   REDUCE POSITION
                 </button>

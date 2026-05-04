@@ -10,6 +10,7 @@ export default function PnLDisplay() {
   const position = useTradingStore((s) => s.position);
   const currentPrice = useTradingStore((s) => s.currentPrice);
   const closedTrades = useTradingStore((s) => s.closedTrades);
+  const realizedPnL = useTradingStore((s) => s.realizedPnL);
 
   // Unrealized PnL from open position
   const unrealizedPnL =
@@ -28,7 +29,6 @@ export default function PnLDisplay() {
   const avgPnL = totalTrades ? closedTrades.reduce((s, t) => s + t.pnl, 0) / totalTrades : 0;
   const bestTrade = totalTrades ? Math.max(...closedTrades.map((t) => t.pnl)) : 0;
   const worstTrade = totalTrades ? Math.min(...closedTrades.map((t) => t.pnl)) : 0;
-  const realizedPnL = closedTrades.reduce((s, t) => s + t.pnl, 0);
   const sessionPnL = totalEquity - INITIAL_WALLET;
   const sessionPnLPercent = (sessionPnL / INITIAL_WALLET) * 100;
   const isPositive = sessionPnL >= 0;

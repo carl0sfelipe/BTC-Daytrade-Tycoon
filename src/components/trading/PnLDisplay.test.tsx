@@ -8,12 +8,14 @@ vi.mock("@/store/tradingStore", () => ({
     position: null;
     currentPrice: number;
     closedTrades: [];
+    realizedPnL: number;
   }) => unknown) =>
     selector({
       wallet: 10000,
       position: null,
       currentPrice: 50000,
       closedTrades: [],
+      realizedPnL: 0,
     }),
 }));
 

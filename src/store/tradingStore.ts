@@ -361,29 +361,60 @@ export const useTradingStore = create<TradingStore>()(
         const { side, entry, size, leverage } = state.position;
         const marginPerUnit = 1 / leverage;
 
+        const now = new Date().toLocaleString("pt-BR", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+        });
+
         if (reducedSize >= size) {
           // Close entire position
           const priceDiff = side === "long" ? price - entry : entry - price;
           const pnl = (priceDiff / entry) * size;
           const margin = size * marginPerUnit;
+          const trade: Trade = {
+            pnl,
+            side,
+            reason: "manual",
+            entryPrice: entry,
+            exitPrice: price,
+            size,
+            leverage,
+            margin,
+            entryTime: state.position.entryTime || now,
+            exitTime: now,
+          };
           set({
             wallet: state.wallet + margin + pnl,
             position: null,
             activePositions: state.activePositions.filter(
               (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
             ),
+            closedTrades: [...state.closedTrades, trade],
           });
         } else {
           // Partial close
           const priceDiff = side === "long" ? price - entry : entry - price;
           const pnlPartial = (priceDiff / entry) * reducedSize;
           const marginReturned = reducedSize * marginPerUnit;
+          const trade: Trade = {
+            pnl: pnlPartial,
+            side,
+            reason: "manual",
+            entryPrice: entry,
+            exitPrice: price,
+            size: reducedSize,
+            leverage,
+            margin: marginReturned,
+            entryTime: state.position.entryTime || now,
+            exitTime: now,
+          };
           set({
             wallet: state.wallet + marginReturned + pnlPartial,
             position: {
               ...state.position,
               size: size - reducedSize,
             },
+            closedTrades: [...state.closedTrades, trade],
           });
         }
       },
@@ -509,10 +540,23 @@ export const useTradingStore = create<TradingStore>()(
             createdAt: now,
             updatedAt: now,
           };
+          const trade: Trade = {
+            pnl: pnlPartial,
+            side,
+            reason: "manual",
+            entryPrice: entry,
+            exitPrice: price,
+            size: reducedSize,
+            leverage,
+            margin: marginReturned,
+            entryTime: state.position.entryTime || now,
+            exitTime: now,
+          };
           set({
             wallet: state.wallet + marginReturned + pnlPartial,
             position: { ...state.position, size: newSize },
             ordersHistory: [...state.ordersHistory, historyItem],
+            closedTrades: [...state.closedTrades, trade],
           });
         }
       },

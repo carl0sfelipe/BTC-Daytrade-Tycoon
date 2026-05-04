@@ -28,6 +28,7 @@ export default function PnLDisplay() {
   const avgPnL = totalTrades ? closedTrades.reduce((s, t) => s + t.pnl, 0) / totalTrades : 0;
   const bestTrade = totalTrades ? Math.max(...closedTrades.map((t) => t.pnl)) : 0;
   const worstTrade = totalTrades ? Math.min(...closedTrades.map((t) => t.pnl)) : 0;
+  const realizedPnL = closedTrades.reduce((s, t) => s + t.pnl, 0);
   const sessionPnL = totalEquity - INITIAL_WALLET;
   const sessionPnLPercent = (sessionPnL / INITIAL_WALLET) * 100;
   const isPositive = sessionPnL >= 0;
@@ -60,6 +61,16 @@ export default function PnLDisplay() {
             </span>
           </div>
         </div>
+
+        {/* Realized PnL */}
+        {realizedPnL !== 0 && (
+          <div className={`flex items-center justify-between p-3 rounded-lg border ${realizedPnL >= 0 ? "bg-crypto-long-dim border-crypto-long/20" : "bg-crypto-short-dim border-crypto-short/20"}`}>
+            <span className="text-xs font-semibold text-crypto-text-secondary">Realized P&L</span>
+            <span className={`text-sm font-bold font-mono tabular-nums ${realizedPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+              {realizedPnL >= 0 ? "+" : ""}${realizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">

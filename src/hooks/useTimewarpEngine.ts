@@ -98,6 +98,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const storeSetVolatility = useTradingStore((s) => s.setVolatility);
   const storeAddPriceHistory = useTradingStore((s) => s.addPriceHistory);
   const storeCheckPosition = useTradingStore((s) => s.checkPosition);
+  const storeCheckPendingOrders = useTradingStore((s) => s.checkPendingOrders);
 
   // Keeps ref synchronized with state
   useEffect(() => {
@@ -122,6 +123,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       isLoading: false,
       isLiquidated: false,
       simulationRealDate: null,
+      pendingOrders: [],
       lastCloseReason: null,
     });
   }, []);
@@ -267,6 +269,9 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     });
 
     storeAddPriceHistory(price);
+
+    // Checks pending limit orders
+    storeCheckPendingOrders(price);
 
     // Checks liquidation / SL / TP
     const checkResult = storeCheckPosition(price);

@@ -14,7 +14,18 @@ export interface Trade {
   exitTime: string;
 }
 
-interface Position {
+export interface PendingOrder {
+  id: string;
+  side: "long" | "short";
+  leverage: number;
+  size: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  limitPrice: number;
+  createdAt: string;
+}
+
+export interface Position {
   side: "long" | "short";
   entry: number;
   size: number;
@@ -35,6 +46,7 @@ interface TradingStore {
   closedTrades: Trade[];
   position: Position | null;
   activePositions: Position[];
+  pendingOrders: PendingOrder[];
   isLoading: boolean;
   lastCloseReason: string | null;
   isLiquidated: boolean;
@@ -62,6 +74,9 @@ interface TradingStore {
   updatePositionSize: (newSize: number) => void;
   updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
+  addPendingOrder: (order: Omit<PendingOrder, "id" | "createdAt">) => void;
+  cancelPendingOrder: (id: string) => void;
+  checkPendingOrders: (currentPrice: number) => void;
   setLiquidated: (date: string) => void;
   clearLiquidated: () => void;
   setOnboardingSeen: () => void;
@@ -90,6 +105,7 @@ export const useTradingStore = create<TradingStore>()(
       closedTrades: [],
       position: null,
       activePositions: [],
+      pendingOrders: [],
       isLoading: false,
       lastCloseReason: null,
       isLiquidated: false,
@@ -115,6 +131,59 @@ export const useTradingStore = create<TradingStore>()(
           closedTrades: [...state.closedTrades, trade],
         })),
       setPosition: (position) => set({ position }),
+      addPendingOrder: (order) =>
+        set((state) => ({
+          pendingOrders: [
+            ...state.pendingOrders,
+            {
+              ...order,
+              id: Math.random().toString(36).slice(2, 9),
+              createdAt: new Date().toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }),
+            },
+          ],
+        })),
+      cancelPendingOrder: (id) =>
+        set((state) => ({
+          pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
+        })),
+      checkPendingOrders: (currentPrice) => {
+        const state = get();
+        const executed: PendingOrder[] = [];
+        const remaining: PendingOrder[] = [];
+
+        for (const order of state.pendingOrders) {
+          const shouldExecute =
+            (order.side === "long" && currentPrice <= order.limitPrice) ||
+            (order.side === "short" && currentPrice >= order.limitPrice);
+
+          if (shouldExecute) {
+            executed.push(order);
+          } else {
+            remaining.push(order);
+          }
+        }
+
+        if (executed.length > 0) {
+          set({ pendingOrders: remaining });
+          for (const order of executed) {
+            state.openPosition(
+              order.side,
+              order.leverage,
+              order.size,
+              order.tpPrice?.toString() ?? "",
+              order.slPrice?.toString() ?? "",
+              order.limitPrice.toString()
+            );
+          }
+        }
+      },
 
       openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
         const state = get();

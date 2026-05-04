@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronUp, ChevronDown, Minimize2, Maximize2, BarChart3, Trophy, Award } from "lucide-react";
+import { ChevronUp, ChevronDown, Minimize2, Maximize2, BarChart3, Trophy, Award, X, Clock } from "lucide-react";
 import Link from "next/link";
 import { useTradingStore } from "@/store/tradingStore";
 import type { ReturnTypeUseTimewarpEngine } from "@/hooks/useTimewarpEngine";
@@ -25,6 +25,9 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
   const wallet = useTradingStore((s) => s.wallet);
   const closedTrades = useTradingStore((s) => s.closedTrades);
 
+  const pendingOrders = useTradingStore((s) => s.pendingOrders);
+  const cancelPendingOrder = useTradingStore((s) => s.cancelPendingOrder);
+
   const sessionPnL = closedTrades.reduce((acc, t) => acc + t.pnl, 0);
   const isPositive = sessionPnL >= 0;
 
@@ -47,6 +50,34 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
           onEnd={onEnd}
         />
       </div>
+
+      {/* Pending Orders */}
+      {pendingOrders.length > 0 && (
+        <div className="mx-3 mt-2 card-surface p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3 h-3 text-crypto-accent" />
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Pending Orders ({pendingOrders.length})</span>
+          </div>
+          {pendingOrders.map((order) => (
+            <div key={order.id} className="flex items-center justify-between p-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
+              <div className="flex flex-col">
+                <span className={`text-xs font-bold uppercase ${order.side === "long" ? "text-crypto-long" : "text-crypto-short"}`}>
+                  {order.side} {order.leverage}x
+                </span>
+                <span className="text-[10px] font-mono text-crypto-text-secondary">
+                  ${order.size.toLocaleString()} @ ${order.limitPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <button
+                onClick={() => cancelPendingOrder(order.id)}
+                className="p-1.5 rounded-md bg-crypto-short-dim text-crypto-short hover:bg-crypto-short/20 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col mx-3 mt-2 gap-2 overflow-hidden">

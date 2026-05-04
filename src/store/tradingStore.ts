@@ -428,6 +428,8 @@ export const useTradingStore = create<TradingStore>()(
         // For short: positive when price < entry
         const priceDiff = side === "long" ? price - entry : entry - price;
         const pnl = (priceDiff / entry) * size;
+        const priorRealized = state.position.realizedPnL || 0;
+        const totalPnl = pnl + priorRealized;
 
         const margin = size / leverage;
         const newWallet = state.wallet + margin + pnl;
@@ -442,7 +444,7 @@ export const useTradingStore = create<TradingStore>()(
         });
 
         const trade: Trade = {
-          pnl,
+          pnl: totalPnl,
           side,
           reason,
           entryPrice: entry,

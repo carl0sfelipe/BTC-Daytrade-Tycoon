@@ -178,6 +178,8 @@ describe("TradingStore — Order History Side Tracking", () => {
       wallet: 10000,
       position: null,
       ordersHistory: [],
+      closedTrades: [],
+      realizedPnL: 0,
       currentPrice: 50000,
     });
   });
@@ -246,5 +248,41 @@ describe("TradingStore — Order History Side Tracking", () => {
     const state = useTradingStore.getState();
     expect(state.ordersHistory).toHaveLength(2);
     expect(state.ordersHistory[1].side).toBe("short");
+  });
+
+  it("closePosition includes prior realizedPnL in trade.pnl after partial reduces", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: { side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 150 },
+      realizedPnL: 150, // global already includes partial closes
+      currentPrice: 48000,
+    });
+
+    useTradingStore.getState().closePosition("manual");
+
+    const state = useTradingStore.getState();
+    expect(state.position).toBeNull();
+    expect(state.closedTrades).toHaveLength(1);
+    // pnl from remaining size: (50000 - 48000) / 50000 * 1000 = 40
+    // totalPnl = 40 + 150 (prior realized) = 190
+    expect(state.closedTrades[0].pnl).toBeCloseTo(190, 0);
+    // Global realizedPnL = 150 (prior) + 40 (close) = 190
+    expect(state.realizedPnL).toBeCloseTo(190, 0);
+  });
+
+  it("closePosition with no prior realizedPnL works as before", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      currentPrice: 52000,
+    });
+
+    useTradingStore.getState().closePosition("manual");
+
+    const state = useTradingStore.getState();
+    expect(state.closedTrades).toHaveLength(1);
+    // pnl = (52000 - 50000) / 50000 * 1000 = 40
+    expect(state.closedTrades[0].pnl).toBeCloseTo(40, 0);
+    expect(state.realizedPnL).toBeCloseTo(40, 0);
   });
 });

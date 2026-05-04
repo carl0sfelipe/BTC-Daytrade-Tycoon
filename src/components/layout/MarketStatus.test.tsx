@@ -6,13 +6,11 @@ vi.mock("@/store/tradingStore", () => ({
   useTradingStore: (selector: (s: {
     currentPrice: number;
     volatility: number;
-    marketTrend: string;
     priceHistory: number[];
   }) => unknown) =>
     selector({
       currentPrice: 77789.57,
       volatility: 1.2,
-      marketTrend: "neutral",
       priceHistory: [77000, 77500, 77200, 77789.57],
     }),
 }));

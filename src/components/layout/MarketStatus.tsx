@@ -1,19 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { Activity, ArrowUpRight, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, AlertTriangle } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 
 export default function MarketStatus() {
   const currentPrice = useTradingStore((s) => s.currentPrice);
   const volatility = useTradingStore((s) => s.volatility);
-  const marketTrend = useTradingStore((s) => s.marketTrend);
+
   const priceHistory = useTradingStore((s) => s.priceHistory);
 
   const isHighVol = volatility > 3;
 
-  const trendLabel =
-    marketTrend === "bull" ? "UP" : marketTrend === "bear" ? "DOWN" : "NEUTRAL";
+
 
   const change = useMemo(() => {
     if (priceHistory.length < 2) return 0;
@@ -97,11 +96,7 @@ export default function MarketStatus() {
           </div>
         )}
 
-        {/* Market Trend */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
-          <Activity className="w-3.5 h-3.5 text-crypto-text-muted" />
-          <span className="text-xs font-semibold text-crypto-text-secondary uppercase tracking-wider">{trendLabel}</span>
-        </div>
+
       </div>
     </div>
   );

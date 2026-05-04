@@ -163,6 +163,15 @@ export default function TradeControls() {
             <button
               onClick={() => {
                 setSide("long");
+                if (position && orderType === "market") {
+                  if (position.side === "long") {
+                    // Same side → prepare to increase
+                    setPositionSize(Math.min(position.size + 1000, sliderMax));
+                  } else {
+                    // Opposite side → prepare to reduce
+                    setPositionSize(Math.max(100, position.size - 1000));
+                  }
+                }
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 isLong
@@ -181,6 +190,15 @@ export default function TradeControls() {
             <button
               onClick={() => {
                 setSide("short");
+                if (position && orderType === "market") {
+                  if (position.side === "short") {
+                    // Same side → prepare to increase
+                    setPositionSize(Math.min(position.size + 1000, sliderMax));
+                  } else {
+                    // Opposite side → prepare to reduce
+                    setPositionSize(Math.max(100, position.size - 1000));
+                  }
+                }
               }}
               className={`py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all border ${
                 !isLong

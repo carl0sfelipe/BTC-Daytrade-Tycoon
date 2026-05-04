@@ -110,12 +110,33 @@ describe("TradeControls", () => {
     expect(limitInput.value).toBe("50001.00");
   });
 
-  it("changes step size via step selector buttons", () => {
+  it("shows step settings on gear icon click and hides by default", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+
+    // Step buttons hidden by default
+    expect(screen.queryByText("$1")).not.toBeInTheDocument();
+
+    // Click gear icon
+    const gearBtn = screen.getByLabelText("Step settings");
+    fireEvent.click(gearBtn);
+
+    // Step buttons now visible
+    expect(screen.getByText("$1")).toBeInTheDocument();
+    expect(screen.getByText("$5")).toBeInTheDocument();
+    expect(screen.getByText("$10")).toBeInTheDocument();
+  });
+
+  it("changes step size via hidden step selector buttons", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
     fireEvent.click(limitInput);
+
+    // Open step settings
+    fireEvent.click(screen.getByLabelText("Step settings"));
 
     // Select $10 step
     fireEvent.click(screen.getByText("$10"));
@@ -124,5 +145,25 @@ describe("TradeControls", () => {
     fireEvent.click(downBtn!);
 
     expect(limitInput.value).toBe("49990.00");
+  });
+
+  it("allows custom step value", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    fireEvent.click(limitInput);
+
+    // Open step settings
+    fireEvent.click(screen.getByLabelText("Step settings"));
+
+    // Type custom step
+    const customInput = screen.getByPlaceholderText("e.g. 25");
+    fireEvent.change(customInput, { target: { value: "25" } });
+
+    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
+    fireEvent.click(downBtn!);
+
+    expect(limitInput.value).toBe("49975.00");
   });
 });

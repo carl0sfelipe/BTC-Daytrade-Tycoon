@@ -13,6 +13,8 @@ export default function TradeControls() {
   const [positionSize, setPositionSize] = useState(1000);
   const [limitPrice, setLimitPrice] = useState("");
   const [limitStep, setLimitStep] = useState(1);
+  const [showStepSettings, setShowStepSettings] = useState(false);
+  const [customStep, setCustomStep] = useState("");
   const [tpPrice, setTpPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
   const [pendingTrade, setPendingTrade] = useState<{
@@ -382,22 +384,52 @@ export default function TradeControls() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>
-                <div className="flex items-center gap-1">
-                  {[1, 5, 10, 50, 100].map((step) => (
-                    <button
-                      key={step}
-                      onClick={() => setLimitStep(step)}
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${
-                        limitStep === step
-                          ? "bg-crypto-accent text-white"
-                          : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"
-                      }`}
-                    >
-                      ${step}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-crypto-text-secondary">step ${limitStep}</span>
+                  <button
+                    aria-label="Step settings"
+                    onClick={() => setShowStepSettings(!showStepSettings)}
+                    className={`p-1 rounded transition-all ${showStepSettings ? "bg-crypto-accent text-white" : "text-crypto-text-secondary hover:text-crypto-text"}`}
+                  >
+                    <Settings2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
+
+              {/* Step settings dropdown */}
+              {showStepSettings && (
+                <div className="p-2.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border space-y-2">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {[1, 5, 10, 50, 100].map((step) => (
+                      <button
+                        key={step}
+                        onClick={() => { setLimitStep(step); setCustomStep(""); }}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all ${
+                          limitStep === step && !customStep
+                            ? "bg-crypto-accent text-white"
+                            : "bg-crypto-surface text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"
+                        }`}
+                      >
+                        ${step}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-crypto-text-muted">Custom:</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. 25"
+                      value={customStep}
+                      onChange={(e) => {
+                        setCustomStep(e.target.value);
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val > 0) setLimitStep(val);
+                      }}
+                      className="flex-1 px-2 py-1 rounded bg-crypto-surface border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {

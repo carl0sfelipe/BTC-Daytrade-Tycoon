@@ -144,8 +144,8 @@ export default function LandingPage() {
                 <div className="col-span-8 h-48 rounded-lg bg-crypto-bg border border-crypto-border relative overflow-hidden">
                   <div className="absolute inset-0 flex items-end justify-around px-4 pb-4">
                     {Array.from({ length: 30 }).map((_, i) => {
-                      const isGreen = Math.random() > 0.4;
-                      const h = 20 + Math.random() * 50;
+                      const isGreen = ((i * 7 + 3) % 10) > 4;
+                      const h = 20 + ((i * 13 + 5) % 50);
                       return (
                         <div key={i} className="flex flex-col items-center" style={{ width: 4 }}>
                           <div className="w-px h-2" style={{ backgroundColor: isGreen ? "#00d4a8" : "#ff4757" }} />

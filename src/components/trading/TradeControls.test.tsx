@@ -85,4 +85,44 @@ describe("TradeControls", () => {
     fireEvent.click(limitInput);
     expect(limitInput.value).toBe("50000.00");
   });
+
+  it("adjusts limit price up and down with step buttons", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    fireEvent.click(limitInput); // fill with 50000
+
+    expect(limitInput.value).toBe("50000.00");
+
+    // Default step is $1 — click down
+    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
+    const upBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-up"));
+
+    expect(downBtn).toBeDefined();
+    expect(upBtn).toBeDefined();
+
+    fireEvent.click(downBtn!);
+    expect(limitInput.value).toBe("49999.00");
+
+    fireEvent.click(upBtn!);
+    fireEvent.click(upBtn!);
+    expect(limitInput.value).toBe("50001.00");
+  });
+
+  it("changes step size via step selector buttons", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    fireEvent.click(limitInput);
+
+    // Select $10 step
+    fireEvent.click(screen.getByText("$10"));
+
+    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
+    fireEvent.click(downBtn!);
+
+    expect(limitInput.value).toBe("49990.00");
+  });
 });

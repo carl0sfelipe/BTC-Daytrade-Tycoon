@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings2 } from "lucide-react";
+import { Settings2, ChevronUp, ChevronDown } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
 
@@ -12,6 +12,7 @@ export default function TradeControls() {
   const [leverage, setLeverage] = useState(10);
   const [positionSize, setPositionSize] = useState(1000);
   const [limitPrice, setLimitPrice] = useState("");
+  const [limitStep, setLimitStep] = useState(1);
   const [tpPrice, setTpPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
   const [pendingTrade, setPendingTrade] = useState<{
@@ -379,22 +380,59 @@ export default function TradeControls() {
           {/* Limit Price — visible in both simple and advanced when limit is selected */}
           {!position && orderType === "limit" && (
             <div className="space-y-1.5">
-              <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder={currentPrice.toFixed(2)}
-                  value={limitPrice}
-                  onChange={(e) => setLimitPrice(e.target.value)}
-                  onClick={(e) => {
-                    if (!limitPrice) {
-                      setLimitPrice(currentPrice.toFixed(2));
-                      (e.target as HTMLInputElement).select();
-                    }
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>
+                <div className="flex items-center gap-1">
+                  {[1, 5, 10, 50, 100].map((step) => (
+                    <button
+                      key={step}
+                      onClick={() => setLimitStep(step)}
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${
+                        limitStep === step
+                          ? "bg-crypto-accent text-white"
+                          : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"
+                      }`}
+                    >
+                      ${step}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const val = parseFloat(limitPrice || currentPrice.toFixed(2));
+                    if (!isNaN(val)) setLimitPrice((val - limitStep).toFixed(2));
                   }}
-                  className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent cursor-pointer"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                  className="flex-shrink-0 p-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={currentPrice.toFixed(2)}
+                    value={limitPrice}
+                    onChange={(e) => setLimitPrice(e.target.value)}
+                    onClick={(e) => {
+                      if (!limitPrice) {
+                        setLimitPrice(currentPrice.toFixed(2));
+                        (e.target as HTMLInputElement).select();
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent cursor-pointer"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                </div>
+                <button
+                  onClick={() => {
+                    const val = parseFloat(limitPrice || currentPrice.toFixed(2));
+                    if (!isNaN(val)) setLimitPrice((val + limitStep).toFixed(2));
+                  }}
+                  className="flex-shrink-0 p-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
               </div>
             </div>
           )}

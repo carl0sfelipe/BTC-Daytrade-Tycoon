@@ -124,6 +124,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       isLiquidated: false,
       simulationRealDate: null,
       pendingOrders: [],
+      ordersHistory: [],
       lastCloseReason: null,
     });
   }, []);

@@ -25,6 +25,20 @@ export interface PendingOrder {
   createdAt: string;
 }
 
+export interface OrderHistoryItem {
+  id: string;
+  side: "long" | "short";
+  type: "market" | "limit";
+  status: "pending" | "filled" | "canceled";
+  leverage: number;
+  size: number;
+  price: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export interface Position {
   side: "long" | "short";
   entry: number;
@@ -47,6 +61,7 @@ interface TradingStore {
   position: Position | null;
   activePositions: Position[];
   pendingOrders: PendingOrder[];
+  ordersHistory: OrderHistoryItem[];
   isLoading: boolean;
   lastCloseReason: string | null;
   isLiquidated: boolean;
@@ -77,6 +92,7 @@ interface TradingStore {
   addPendingOrder: (order: Omit<PendingOrder, "id" | "createdAt">) => void;
   cancelPendingOrder: (id: string) => void;
   checkPendingOrders: (currentPrice: number) => void;
+  clearOrdersHistory: () => void;
   setLiquidated: (date: string) => void;
   clearLiquidated: () => void;
   setOnboardingSeen: () => void;
@@ -106,6 +122,7 @@ export const useTradingStore = create<TradingStore>()(
       position: null,
       activePositions: [],
       pendingOrders: [],
+      ordersHistory: [],
       isLoading: false,
       lastCloseReason: null,
       isLiquidated: false,
@@ -132,27 +149,45 @@ export const useTradingStore = create<TradingStore>()(
         })),
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
-        set((state) => ({
-          pendingOrders: [
-            ...state.pendingOrders,
-            {
-              ...order,
-              id: Math.random().toString(36).slice(2, 9),
-              createdAt: new Date().toLocaleString("pt-BR", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              }),
-            },
-          ],
-        })),
+        set((state) => {
+          const id = Math.random().toString(36).slice(2, 9);
+          const now = new Date().toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          const historyItem: OrderHistoryItem = {
+            id,
+            side: order.side,
+            type: "limit",
+            status: "pending",
+            leverage: order.leverage,
+            size: order.size,
+            price: order.limitPrice,
+            tpPrice: order.tpPrice,
+            slPrice: order.slPrice,
+            createdAt: now,
+            updatedAt: null,
+          };
+          return {
+            pendingOrders: [
+              ...state.pendingOrders,
+              { ...order, id, createdAt: now },
+            ],
+            ordersHistory: [...state.ordersHistory, historyItem],
+          };
+        }),
       cancelPendingOrder: (id) =>
         set((state) => ({
           pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
+          ordersHistory: state.ordersHistory.map((o) =>
+            o.id === id ? { ...o, status: "canceled" as const, updatedAt: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) } : o
+          ),
         })),
+      clearOrdersHistory: () => set({ ordersHistory: [] }),
       checkPendingOrders: (currentPrice) => {
         const state = get();
         const executed: PendingOrder[] = [];
@@ -171,7 +206,22 @@ export const useTradingStore = create<TradingStore>()(
         }
 
         if (executed.length > 0) {
-          set({ pendingOrders: remaining });
+          const now = new Date().toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          set({
+            pendingOrders: remaining,
+            ordersHistory: state.ordersHistory.map((o) =>
+              executed.some((e) => e.id === o.id)
+                ? { ...o, status: "filled" as const, updatedAt: now }
+                : o
+            ),
+          });
           for (const order of executed) {
             state.openPosition(
               order.side,
@@ -216,12 +266,38 @@ export const useTradingStore = create<TradingStore>()(
           liquidationPrice: liqPrice,
           entryTime: now,
         };
-        set({
-          position: newPosition,
-          activePositions: [...state.activePositions, newPosition],
-          wallet: state.wallet - margin,
-          lastCloseReason: null,
-        });
+
+        // Add market order to history
+        const isLimit = !!limitPrice;
+        if (!isLimit) {
+          const historyItem: OrderHistoryItem = {
+            id: Math.random().toString(36).slice(2, 9),
+            side,
+            type: "market",
+            status: "filled",
+            leverage,
+            size: positionSize,
+            price: entryPrice,
+            tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
+            slPrice: slPrice && slPrice > 0 ? slPrice : null,
+            createdAt: now,
+            updatedAt: now,
+          };
+          set({
+            position: newPosition,
+            activePositions: [...state.activePositions, newPosition],
+            wallet: state.wallet - margin,
+            lastCloseReason: null,
+            ordersHistory: [...state.ordersHistory, historyItem],
+          });
+        } else {
+          set({
+            position: newPosition,
+            activePositions: [...state.activePositions, newPosition],
+            wallet: state.wallet - margin,
+            lastCloseReason: null,
+          });
+        }
       },
 
       closePosition: (reason = "manual") => {

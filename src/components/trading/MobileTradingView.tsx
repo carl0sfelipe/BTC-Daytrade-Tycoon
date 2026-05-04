@@ -11,6 +11,7 @@ import TradeHistory from "./TradeHistory";
 import PositionPanel from "./PositionPanel";
 import MarketStatus from "../layout/MarketStatus";
 import SimulationClock from "./SimulationClock";
+import OrdersPanel from "./OrdersPanel";
 
 interface MobileTradingViewProps {
   engine: ReturnTypeUseTimewarpEngine;
@@ -78,6 +79,11 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
           ))}
         </div>
       )}
+
+      {/* Orders Panel */}
+      <div className="mx-3 mt-2">
+        <OrdersPanel />
+      </div>
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col mx-3 mt-2 gap-2 overflow-hidden">

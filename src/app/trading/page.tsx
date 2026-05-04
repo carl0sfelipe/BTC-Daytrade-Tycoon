@@ -9,6 +9,7 @@ import TradeControls from "@/components/trading/TradeControls";
 import PositionPanel from "@/components/trading/PositionPanel";
 import PnLDisplay from "@/components/trading/PnLDisplay";
 import TradeHistory from "@/components/trading/TradeHistory";
+import OrdersPanel from "@/components/trading/OrdersPanel";
 import SimulationClock from "@/components/trading/SimulationClock";
 import SimulationLoader from "@/components/trading/SimulationLoader";
 import LiquidationModal from "@/components/trading/LiquidationModal";
@@ -141,6 +142,7 @@ export default function TradingPage() {
               <div className="col-span-12 lg:col-span-4 space-y-4">
                 <PositionPanel />
                 <TradeControls />
+                <OrdersPanel />
                 <PnLDisplay />
               </div>
             </div>

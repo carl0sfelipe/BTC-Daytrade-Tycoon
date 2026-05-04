@@ -90,7 +90,10 @@ export default function MarketStatus() {
 
         {/* Volatility Badge */}
         {isHighVol && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20">
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20 cursor-help"
+            title="Price has been swinging more than usual in the last 24 candles. Risk of sudden moves is higher."
+          >
             <AlertTriangle className="w-3.5 h-3.5 text-crypto-warning" />
             <span className="text-xs font-bold text-crypto-warning uppercase tracking-wider">High Volatility</span>
           </div>

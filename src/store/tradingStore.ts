@@ -152,6 +152,7 @@ export const useTradingStore = create<TradingStore>()(
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
         set((state) => {
+          console.log("[tradingStore] addPendingOrder", order);
           const id = Math.random().toString(36).slice(2, 9);
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
@@ -191,6 +192,7 @@ export const useTradingStore = create<TradingStore>()(
         })),
       clearOrdersHistory: () => set({ ordersHistory: [] }),
       checkPendingOrders: (currentPrice) => {
+        console.log("[tradingStore] checkPendingOrders", { currentPrice, pendingCount: get().pendingOrders.length });
         const state = get();
         const executed: PendingOrder[] = [];
         const remaining: PendingOrder[] = [];
@@ -199,6 +201,7 @@ export const useTradingStore = create<TradingStore>()(
           const shouldExecute =
             (order.side === "long" && currentPrice <= order.limitPrice) ||
             (order.side === "short" && currentPrice >= order.limitPrice);
+          console.log("[tradingStore] evaluating order", { id: order.id, side: order.side, limitPrice: order.limitPrice, currentPrice, shouldExecute });
 
           if (shouldExecute) {
             executed.push(order);
@@ -225,6 +228,7 @@ export const useTradingStore = create<TradingStore>()(
             ),
           });
           for (const order of executed) {
+            console.log("[tradingStore] executing limit order", { id: order.id, side: order.side, size: order.size, limitPrice: order.limitPrice });
             const existing = get().position;
             if (existing && existing.side === order.side) {
               // Add to existing position
@@ -253,6 +257,7 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
+        console.log("[tradingStore] openPosition", { side, leverage, positionSize, limitPrice, currentPrice: get().currentPrice });
         const state = get();
         const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
         if (!entryPrice || entryPrice <= 0) return;

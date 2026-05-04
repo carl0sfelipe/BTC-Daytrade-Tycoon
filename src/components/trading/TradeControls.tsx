@@ -54,8 +54,13 @@ export default function TradeControls() {
     : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
-    if (!canOpen) return;
+    console.log("[TradeControls] handleOpen called", { orderType, side, leverage, positionSize, limitPrice, hasPosition: !!position });
+    if (!canOpen) {
+      console.log("[TradeControls] handleOpen blocked: canOpen=false");
+      return;
+    }
     if (leverage >= 50 && !skipHighLeverageWarning && mode === "simple") {
+      console.log("[TradeControls] showing high leverage modal");
       setPendingTrade({
         side,
         leverage,
@@ -68,7 +73,9 @@ export default function TradeControls() {
     }
     if (orderType === "limit") {
       const li = parseFloat(limitPrice);
+      console.log("[TradeControls] limit order", { limitPriceParsed: li, isValid: !!(li && li > 0) });
       if (!li || li <= 0) return;
+      console.log("[TradeControls] calling addPendingOrder", { side, leverage, size: positionSize, limitPrice: li });
       addPendingOrder({
         side,
         leverage,
@@ -80,13 +87,16 @@ export default function TradeControls() {
       setLimitPrice("");
       setPositionSize(position ? 1000 : positionSize);
     } else {
+      console.log("[TradeControls] calling openPosition (market)", { side, leverage, size: positionSize });
       openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
     }
   };
 
   const handleConfirmHighLeverage = () => {
+    console.log("[TradeControls] handleConfirmHighLeverage", pendingTrade);
     if (!pendingTrade) return;
     if (pendingTrade.limitPrice) {
+      console.log("[TradeControls] confirming limit order from modal", pendingTrade);
       addPendingOrder({
         side: pendingTrade.side,
         leverage: pendingTrade.leverage,
@@ -98,6 +108,7 @@ export default function TradeControls() {
       setLimitPrice("");
       setPositionSize(position ? 1000 : positionSize);
     } else {
+      console.log("[TradeControls] confirming market order from modal", pendingTrade);
       openPosition(
         pendingTrade.side,
         pendingTrade.leverage,
@@ -533,7 +544,7 @@ export default function TradeControls() {
           </div>
 
           {/* Action buttons */}
-          {position ? (
+          {position && orderType !== "limit" ? (
             <div className="space-y-2">
               {sizeDiff > 0 && (
                 <button

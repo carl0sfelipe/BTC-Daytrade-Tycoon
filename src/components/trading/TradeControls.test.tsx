@@ -16,6 +16,7 @@ describe("TradeControls", () => {
       skipHighLeverageWarning: true,
       pendingOrders: [],
       closedTrades: [],
+      reduceOnly: true,
     });
   });
 
@@ -251,7 +252,7 @@ describe("TradeControls", () => {
       expect(useTradingStore.getState().position?.size).toBe(4700);
     });
 
-    it("REDUCE slider max is capped at position.size", () => {
+    it("REDUCE slider max is capped at position.size in reduce only mode", () => {
       openLong5k();
       render(<TradeControls />);
 
@@ -260,6 +261,22 @@ describe("TradeControls", () => {
       const slider = screen.getByRole("slider") as HTMLInputElement;
       // sliderMax in REDUCE = position.size = 5000
       expect(slider.max).toBe("5000");
+    });
+
+    it("hedge mode: slider max allows orders larger than position.size", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+        currentPrice: 50000,
+        reduceOnly: false,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("SHORT"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      // In hedge mode, max should be wallet * leverage = 10000 * 10 = 100000
+      expect(slider.max).toBe("100000");
     });
 
     it("INCREASE slider max scales with wallet and leverage", () => {

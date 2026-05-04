@@ -36,6 +36,7 @@ export default function TradeControls() {
   const updateLeverage = useTradingStore((s) => s.updateLeverage);
   const skipHighLeverageWarning = useTradingStore((s) => s.skipHighLeverageWarning);
   const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
+  const reduceOnly = useTradingStore((s) => s.reduceOnly);
 
   // positionSize represents the *order* size (delta), not the total target position.
   // When a position opens, sync side/leverage but reset order size to 1000 default.
@@ -54,7 +55,7 @@ export default function TradeControls() {
   const isReduceMode = !!(position && side !== position.side);
   const sliderMax = !position
     ? Math.max(100, Math.floor(wallet * leverage))
-    : isReduceMode
+    : isReduceMode && reduceOnly
       ? Math.max(100, Math.floor(position.size))
       : Math.max(100, Math.floor(wallet * leverage));
 
@@ -130,8 +131,6 @@ export default function TradeControls() {
     }
     setPendingTrade(null);
   };
-
-  const reduceOnly = useTradingStore((s) => s.reduceOnly);
 
   const handleUpdate = () => {
     console.log("[TradeControls] handleUpdate", { positionSize, hasPosition: !!position, isReduceMode, reduceOnly });

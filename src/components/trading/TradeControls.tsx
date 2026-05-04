@@ -77,6 +77,8 @@ export default function TradeControls() {
         slPrice: slPrice ? parseFloat(slPrice) : null,
         limitPrice: li,
       });
+      setLimitPrice("");
+      setPositionSize(position ? 1000 : positionSize);
     } else {
       openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
     }
@@ -84,14 +86,27 @@ export default function TradeControls() {
 
   const handleConfirmHighLeverage = () => {
     if (!pendingTrade) return;
-    openPosition(
-      pendingTrade.side,
-      pendingTrade.leverage,
-      pendingTrade.size,
-      pendingTrade.tp,
-      pendingTrade.sl,
-      pendingTrade.limitPrice
-    );
+    if (pendingTrade.limitPrice) {
+      addPendingOrder({
+        side: pendingTrade.side,
+        leverage: pendingTrade.leverage,
+        size: pendingTrade.size,
+        tpPrice: pendingTrade.tp ? parseFloat(pendingTrade.tp) : null,
+        slPrice: pendingTrade.sl ? parseFloat(pendingTrade.sl) : null,
+        limitPrice: parseFloat(pendingTrade.limitPrice),
+      });
+      setLimitPrice("");
+      setPositionSize(position ? 1000 : positionSize);
+    } else {
+      openPosition(
+        pendingTrade.side,
+        pendingTrade.leverage,
+        pendingTrade.size,
+        pendingTrade.tp,
+        pendingTrade.sl,
+        pendingTrade.limitPrice
+      );
+    }
     setPendingTrade(null);
   };
 
@@ -171,13 +186,19 @@ export default function TradeControls() {
               Market
             </button>
             <button
-              onClick={() => !position && setOrderType("limit")}
-              disabled={!!position}
+              onClick={() => {
+                if (position) {
+                  setOrderType("limit");
+                  setSide(position.side);
+                } else {
+                  setOrderType("limit");
+                }
+              }}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 orderType === "limit"
                   ? "bg-crypto-accent-dim text-crypto-accent border border-crypto-accent/30"
                   : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
-              } ${position ? "opacity-50 cursor-not-allowed" : ""}`}
+              }`}
             >
               Limit
             </button>
@@ -213,7 +234,7 @@ export default function TradeControls() {
               </div>
 
               {/* TP / SL Inputs — always visible when no position */}
-              {!position && (
+              {(!position || orderType === "limit") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Take Profit</span>
@@ -248,7 +269,7 @@ export default function TradeControls() {
               {position ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Adjust Size</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{orderType === "limit" ? "Additional Size" : "Adjust Size"}</span>
                     <span className="text-[10px] font-mono text-crypto-text-secondary">Current: ${Math.floor(position.size).toLocaleString()}</span>
                   </div>
                   <input
@@ -274,7 +295,7 @@ export default function TradeControls() {
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Position Size</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{position && orderType === "limit" ? "Additional Size" : "Position Size"}</span>
                     <span className="text-[10px] font-mono text-crypto-text-secondary">Max: ${Math.floor(wallet * leverage).toLocaleString()}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
@@ -471,6 +492,10 @@ export default function TradeControls() {
 
           {/* Summary */}
           <div className="space-y-1.5 pt-2 border-t border-crypto-border">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-crypto-text-muted">Notional Value:</span>
+              <span className="font-mono font-semibold text-crypto-text">${positionSize.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-crypto-text-muted">Required Margin:</span>
               <span className="font-mono font-semibold text-crypto-text">${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>

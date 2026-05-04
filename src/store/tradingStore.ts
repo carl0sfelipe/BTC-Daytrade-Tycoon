@@ -86,6 +86,7 @@ interface TradingStore {
     limitPrice: string | null
   ) => void;
   closePosition: (reason?: Trade["reason"]) => void;
+  addToPosition: (additionalSize: number, price: number, tpPrice: string, slPrice: string) => void;
   updatePositionSize: (newSize: number) => void;
   updateLeverage: (newLeverage: number) => void;
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
@@ -223,14 +224,26 @@ export const useTradingStore = create<TradingStore>()(
             ),
           });
           for (const order of executed) {
-            state.openPosition(
-              order.side,
-              order.leverage,
-              order.size,
-              order.tpPrice?.toString() ?? "",
-              order.slPrice?.toString() ?? "",
-              order.limitPrice.toString()
-            );
+            const existing = get().position;
+            if (existing && existing.side === order.side) {
+              // Add to existing position
+              state.addToPosition(
+                order.size,
+                order.limitPrice,
+                order.tpPrice?.toString() ?? "",
+                order.slPrice?.toString() ?? ""
+              );
+            } else {
+              // Open new position
+              state.openPosition(
+                order.side,
+                order.leverage,
+                order.size,
+                order.tpPrice?.toString() ?? "",
+                order.slPrice?.toString() ?? "",
+                order.limitPrice.toString()
+              );
+            }
           }
         }
       },
@@ -298,6 +311,35 @@ export const useTradingStore = create<TradingStore>()(
             lastCloseReason: null,
           });
         }
+      },
+
+      addToPosition: (additionalSize: number, price: number, tpPriceStr: string, slPriceStr: string) => {
+        const state = get();
+        if (!state.position) return;
+
+        const { side, entry, size, leverage } = state.position;
+        const margin = additionalSize / leverage;
+        if (state.wallet < margin) return;
+
+        // Same side → increase position
+        const newSize = size + additionalSize;
+        const newEntry = (size * entry + additionalSize * price) / newSize;
+
+        const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : state.position.tpPrice;
+        const slPrice = slPriceStr ? parseFloat(slPriceStr) : state.position.slPrice;
+        const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+
+        set({
+          wallet: state.wallet - margin,
+          position: {
+            ...state.position,
+            entry: newEntry,
+            size: newSize,
+            tpPrice: tpPrice && tpPrice > 0 ? tpPrice : state.position.tpPrice,
+            slPrice: slPrice && slPrice > 0 ? slPrice : state.position.slPrice,
+            liquidationPrice: newLiqPrice,
+          },
+        });
       },
 
       closePosition: (reason = "manual") => {

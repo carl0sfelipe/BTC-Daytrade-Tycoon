@@ -335,9 +335,9 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     }
   }, [pause, start, reset]);
 
-  // realDateRange now only shows the start date (no end, since it's infinite)
+  // realDateRange shows start → current simulated end date
   const realDateRange = originalStartDateRef.current
-    ? formatRealDate(originalStartDateRef.current)
+    ? `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(new Date(currentTimeSec * 1000))}`
     : "";
 
   return {

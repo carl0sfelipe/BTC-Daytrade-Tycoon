@@ -417,7 +417,7 @@ export default function TradeControls() {
           )}
 
           {/* Limit Price — visible in both simple and advanced when limit is selected */}
-          {!position && orderType === "limit" && (
+          {orderType === "limit" && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>

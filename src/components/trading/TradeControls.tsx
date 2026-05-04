@@ -55,7 +55,7 @@ export default function TradeControls() {
 
   const handleOpen = () => {
     if (!canOpen) return;
-    if (leverage >= 50 && !skipHighLeverageWarning) {
+    if (leverage >= 50 && !skipHighLeverageWarning && mode === "simple") {
       setPendingTrade({
         side,
         leverage,

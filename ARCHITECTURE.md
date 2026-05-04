@@ -199,6 +199,8 @@ interface TradingStore {
   position: Position | null;        // Active position
   activePositions: Position[];      // Historical array of open positions
   closedTrades: Trade[];            // Closed trade history
+  pendingOrders: PendingOrder[];    // Active limit orders waiting for price
+  ordersHistory: OrderHistoryItem[]; // Complete order log (pending/filled/canceled)
 
   isLiquidated: boolean;
   simulationRealDate: string | null; // Revealed on end/liquidation
@@ -208,9 +210,15 @@ interface TradingStore {
   // Actions
   openPosition(side, leverage, size, tpPrice, slPrice, limitPrice): void;
   closePosition(reason?): void;
+  addToPosition(additionalSize, price, tpPrice, slPrice): void;
+  reducePosition(reducedSize, price): void;
   updatePositionSize(newSize): void;
   updateLeverage(newLeverage): void;
   checkPosition(currentPrice): { closed: boolean; reason? };
+  addPendingOrder(order): void;
+  cancelPendingOrder(id): void;
+  checkPendingOrders(currentPrice): void;
+  clearOrdersHistory(): void;
   setLiquidated(date): void;
   clearLiquidated(): void;
   setOnboardingSeen(): void;
@@ -228,6 +236,31 @@ interface Position {
   tpPrice: number | null;
   slPrice: number | null;
   liquidationPrice: number;
+}
+
+interface PendingOrder {
+  id: string;
+  side: "long" | "short";
+  leverage: number;
+  size: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  limitPrice: number;
+  createdAt: string;
+}
+
+interface OrderHistoryItem {
+  id: string;
+  side: "long" | "short";
+  type: "market" | "limit";
+  status: "pending" | "filled" | "canceled";
+  leverage: number;
+  size: number;
+  price: number;
+  tpPrice: number | null;
+  slPrice: number | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 ```
 
@@ -278,14 +311,17 @@ On close:
 wallet += margin + pnl;
 ```
 
-### Increasing Position Size
+### Increasing Position Size (Market / Limit Add)
 
-- New entry = weighted average: `(oldSize * oldEntry + additionalSize * currentPrice) / newSize`
+- New entry = weighted average: `(oldSize * oldEntry + additionalSize * executionPrice) / newSize`
 - Additional margin is deducted from wallet.
+- Used by `addToPosition()` when a limit order on the same side is executed.
 
-### Decreasing Position Size
+### Decreasing Position Size (Limit Reduce / Close)
 
-- Returns margin for the reduced portion + proportional unrealized PnL.
+- `reducePosition(reducedSize, price)` returns margin for the reduced portion + proportional unrealized PnL.
+- If `reducedSize >= currentSize`, the position is fully closed.
+- Used when a limit order on the opposite side is executed.
 
 ### Updating Leverage
 
@@ -310,10 +346,11 @@ wallet += margin + pnl;
 | Component | File | Responsibility |
 |-----------|------|----------------|
 | `TradingChart` | `components/trading/TradingChart.tsx` | `lightweight-charts` candlestick chart. Crypto-themed colors (green long, red short). Dynamic liquidation price line. |
-| `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs, open/close/increase/decrease buttons. |
-| `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, entry/size/leverage/margin/liquidation display. |
+| `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs (visible in both modes), Market/Limit order types, limit price stepper with configurable step ($1–$100 + custom), open/close/increase/decrease buttons. Limit orders can increase or reduce existing positions. |
+| `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, entry/size/leverage/margin/liquidation display, pending orders list with cancel button. |
+| `OrdersPanel` | `components/trading/OrdersPanel.tsx` | Full order history with filter tabs (All / Pending / Filled / Canceled). Shows side, type, leverage, size, price, TP/SL for each order. |
 | `PnLDisplay` | `components/trading/PnLDisplay.tsx` | Total equity (wallet + margin + unrealizedPnL), session PnL, win rate, best/worst trade. |
-| `SimulationClock` | `components/trading/SimulationClock.tsx` | Elapsed time, progress %, play/pause/end/reset buttons. |
+| `SimulationClock` | `components/trading/SimulationClock.tsx` | Elapsed time, speed badge, play/pause/end/reset buttons. |
 | `OrderBook` | `components/trading/OrderBook.tsx` | Synthetic depth bars around current price. |
 | `TradeHistory` | `components/trading/TradeHistory.tsx` | Timeline of closed trades. |
 | `MobileTradingView` | `components/trading/MobileTradingView.tsx` | Bottom-sheet tabs for mobile (Chart, History, Your Position, Order Controls). |
@@ -336,7 +373,9 @@ wallet += margin + pnl;
 │  │                     │ ├────────────────┤ │
 │  │                     │ │  TradeControls │ │
 │  ├─────────────────────┤ ├────────────────┤ │
-│  │    TradeHistory     │ │   PnLDisplay   │ │
+│  │    TradeHistory     │ │  OrdersPanel   │ │
+│  │                     │ ├────────────────┤ │
+│  │                     │ │   PnLDisplay   │ │
 │  └─────────────────────┘ └────────────────┘ │
 └─────────────────────────────────────────────┘
 ```

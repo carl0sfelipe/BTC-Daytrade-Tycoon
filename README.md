@@ -57,23 +57,26 @@ _________________________________________________________________
 
 ## ✨ Features
 
-- 🕰️ **TimeWarp Trading Simulator** — Experience a random real Bitcoin trading day (Dec 2017 – Dec 2020) with time running **60× faster** (1 real second = 1 simulated minute). The historical date is completely hidden — no time axis, no calendar — forcing you to trade purely on price action.
+- 🕰️ **TimeWarp Trading Simulator** — Experience a random real Bitcoin trading day (Dec 2017 – Dec 2025) with time running **60× faster** (1 real second = 1 simulated minute). The historical date is completely hidden — no time axis, no calendar — forcing you to trade purely on price action.
 - 📈 **Real-Time Candlestick Chart** — Powered by `lightweight-charts` v5 with a live liquidation price overlay.
 - 📖 **Synthetic Order Book** — Real-time depth visualization to gauge market sentiment.
-- 💼 **Position Panel** — Track unrealized P&L, entry price, margin used, liquidation price, and a dynamic risk gauge.
-- ⚙️ **Trade Controls** — Simple and Advanced modes, leverage pills (2x–100x), size slider/pills, and TP/SL inputs.
+- 💼 **Position Panel** — Track unrealized P&L, entry price, margin used, liquidation price, dynamic risk gauge, and pending orders.
+- ⚙️ **Trade Controls** — Simple and Advanced modes, leverage pills (2x–100x), size slider/pills, **TP/SL visible in both modes**, **Market & Limit order types**.
+- 🎯 **Limit Orders** — Place orders at a specific price. Orders stay pending until the market hits your level. Limit orders can **increase** (same side) or **reduce/close** (opposite side) existing positions. Includes a **stepper** with configurable step size ($1–$100 + custom) for quick price adjustment.
+- 📋 **Orders Panel** — Full order history with filter tabs (All / Pending / Filled / Canceled). Track every order from creation to execution.
 - 💰 **Wallet & P&L Stats** — Monitor total equity, session P&L, win rate, and best/worst trades.
 - 📜 **Trade History Timeline** — Complete session log of every trade decision.
 - ⏯️ **Simulation Controls** — Play, pause, end, and reset the simulation clock at any time.
 - 💀 **Liquidation Modal** — When you get rekt, the real historical date is revealed — learn from history.
 - 🏁 **End Simulation Modal** — Full session summary with performance breakdown.
 - 🎓 **Onboarding Modal** — 3-step interactive tutorial for first-time traders.
-- 📱 **Mobile Trading View** — Bottom sheet + tabs for trading on the go.
+- 📱 **Responsive Mobile Trading View** — Fully responsive layout with bottom sheet + tabs for trading on the go.
 - 🏠 **Landing Page** — Polished marketing page with feature highlights.
 - 🔐 **Auth Pages** — Login and signup flows with simulated authentication.
 - 🏆 **Leaderboard & Achievements** — Compete and unlock milestones.
 - ⚠️ **High-Leverage Confirmation** — Safety modal for trades ≥50x leverage.
 - 🔥 **Streak Tracking** — Utility to monitor consecutive wins/losses.
+- 🧪 **Unit Test Suite** — 30+ Vitest tests covering store logic, limit orders, position mechanics, and component rendering.
 
 ---
 
@@ -176,11 +179,12 @@ BTC Daytrade Tycoon follows a **feature-based modular architecture** inside the 
 
 - **App Router (`src/app/`)** — Route segments for landing, trading, auth, leaderboard, and achievements.
 - **State Management (`src/store/`)** — Zustand stores with persist middleware handle simulation state, wallet, positions, and UI modals.
-- **Data Layer (`src/lib/`)** — Binance API integration fetches ~2,000 1-minute historical candles and normalizes them to the current BTC price context.
+- **Data Layer (`src/lib/`)** — Binance API integration fetches historical 1-minute candles and normalizes them to the current BTC price context.
 - **Components (`src/components/`)** — Organized by domain: `trading/`, `pages/`, `layout/`, and reusable `ui/` (Radix-based).
 - **Hooks (`src/hooks/`)** — Custom React hooks for simulation timing, chart synchronization, and streak tracking.
 - **Utilities (`src/utils/`)** — Helper functions for P&L calculations, liquidation math, and formatting.
 - **Types (`src/types/`)** — Centralized TypeScript definitions for trades, positions, candles, and simulation config.
+- **Tests (`src/**/*.test.{ts,tsx}`)** — Vitest unit tests for store logic, engine behavior, and component rendering.
 
 ---
 
@@ -209,11 +213,12 @@ btc-daytrade-tycoon/
 │   ├── components/               # React components
 │   │   ├── layout/               # Shell, navbar, footer
 │   │   ├── pages/                # Page-level sections
-│   │   ├── trading/              # Chart, order book, position panel, controls
+│   │   ├── trading/              # Chart, order book, position panel, controls, orders panel
 │   │   └── ui/                   # Reusable shadcn/Radix UI primitives
 │   ├── hooks/                    # Custom React hooks
 │   ├── lib/                      # API clients, data fetchers, constants
 │   ├── store/                    # Zustand state stores
+│   ├── test/                     # Test setup (localStorage mock for zustand persist)
 │   ├── types/                    # TypeScript interfaces & types
 │   └── utils/                    # Formatters, math helpers, streak tracker
 ├── components.json               # shadcn/ui configuration

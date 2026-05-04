@@ -43,7 +43,8 @@ export default function TradeControls() {
     if (position) {
       setLeverage(position.leverage);
       setSide(position.side);
-      setPositionSize(1000);
+      const max = Math.max(100, Math.floor(position.size));
+      setPositionSize(Math.min(1000, max));
     }
   }, [position]);
 
@@ -99,7 +100,8 @@ export default function TradeControls() {
   const handleConfirmHighLeverage = () => {
     console.log("[TradeControls] handleConfirmHighLeverage", pendingTrade);
     if (!pendingTrade) return;
-    if (pendingTrade.limitPrice) {
+    const li = pendingTrade.limitPrice ? parseFloat(pendingTrade.limitPrice) : null;
+    if (li && li > 0) {
       console.log("[TradeControls] confirming limit order from modal", pendingTrade);
       addPendingOrder({
         side: pendingTrade.side,
@@ -107,11 +109,11 @@ export default function TradeControls() {
         size: pendingTrade.size,
         tpPrice: pendingTrade.tp ? parseFloat(pendingTrade.tp) : null,
         slPrice: pendingTrade.sl ? parseFloat(pendingTrade.sl) : null,
-        limitPrice: parseFloat(pendingTrade.limitPrice),
+        limitPrice: li,
       });
       setLimitPrice("");
       setPositionSize(position ? 1000 : positionSize);
-    } else {
+    } else if (!pendingTrade.limitPrice) {
       console.log("[TradeControls] confirming market order from modal", pendingTrade);
       openPosition(
         pendingTrade.side,
@@ -121,6 +123,10 @@ export default function TradeControls() {
         pendingTrade.sl,
         pendingTrade.limitPrice
       );
+    } else {
+      console.log("[TradeControls] invalid limitPrice, aborting");
+      setPendingTrade(null);
+      return;
     }
     setPendingTrade(null);
   };
@@ -131,7 +137,11 @@ export default function TradeControls() {
     const targetSize = isReduceMode
       ? position.size - positionSize
       : position.size + positionSize;
-    updatePositionSize(targetSize);
+    if (targetSize <= 0) {
+      closePosition("manual");
+    } else {
+      updatePositionSize(targetSize);
+    }
   };
 
   const handleLeverageChange = (newLeverage: number) => {
@@ -400,7 +410,7 @@ export default function TradeControls() {
               </div>
 
               {/* TP / SL Inputs */}
-              {!position && (
+              {(!position || orderType === "limit") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Take Profit</span>
@@ -551,7 +561,7 @@ export default function TradeControls() {
           </div>
 
           {/* Action buttons */}
-          {position && orderType !== "limit" ? (
+          {position ? (
             <div className="space-y-2">
               {side === position.side ? (
                 <button

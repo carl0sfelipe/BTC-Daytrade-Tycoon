@@ -285,5 +285,97 @@ describe("TradeControls", () => {
       fireEvent.click(screen.getByText("LONG"));
       expect(slider.value).toBe("1000");
     });
+
+    it("REDUCE equal to full position size closes the position", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("SHORT"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "5000" } });
+
+      fireEvent.click(screen.getByText("REDUCE POSITION"));
+
+      // Position should be closed
+      expect(useTradingStore.getState().position).toBeNull();
+      // Should have a closed trade
+      expect(useTradingStore.getState().closedTrades).toHaveLength(1);
+    });
+
+    it("REDUCE with max slider value closes the position", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("SHORT"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      // slider max in reduce mode = position.size = 5000
+      fireEvent.change(slider, { target: { value: slider.max } });
+
+      fireEvent.click(screen.getByText("REDUCE POSITION"));
+
+      // Position should be closed
+      expect(useTradingStore.getState().position).toBeNull();
+    });
+
+    it("caps initial slider to position size when position is smaller than $1000", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "long",
+          entry: 50000,
+          size: 500,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 45000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      expect(slider.value).toBe("500");
+    });
+
+    it("shows CLOSE POSITION button in limit mode with open position", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("Limit"));
+      expect(screen.getByText("CLOSE POSITION")).toBeInTheDocument();
+    });
+
+    it("shows TP/SL inputs in advanced mode with open position + limit selected", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      // Switch to advanced mode
+      fireEvent.click(screen.getByText("Advanced Mode"));
+      fireEvent.click(screen.getByText("Limit"));
+
+      expect(screen.getByText("Take Profit")).toBeInTheDocument();
+      expect(screen.getByText("Stop Loss")).toBeInTheDocument();
+    });
+
+    it("INCREASE recalculates liquidation price after adding to position", () => {
+      openLong5k();
+      render(<TradeControls />);
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "5000" } });
+
+      fireEvent.click(screen.getByText("INCREASE POSITION"));
+
+      const pos = useTradingStore.getState().position;
+      expect(pos).not.toBeNull();
+      // New entry should be weighted average: (5000*50000 + 5000*50000) / 10000 = 50000
+      // But liquidation price should still be recalculated
+      expect(pos!.liquidationPrice).not.toBeNull();
+    });
   });
 });

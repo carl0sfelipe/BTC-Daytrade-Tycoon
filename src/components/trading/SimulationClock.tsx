@@ -6,7 +6,6 @@ interface SimulationClockProps {
   elapsedTime: string;
   speed: number;
   isPlaying: boolean;
-  realDateRange: string;
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
@@ -17,7 +16,6 @@ export default function SimulationClock({
   elapsedTime,
   speed,
   isPlaying,
-  realDateRange,
   onPause,
   onResume,
   onReset,
@@ -40,13 +38,7 @@ export default function SimulationClock({
         {/* Divider */}
         <div className="w-px h-8 bg-crypto-border" />
 
-        {/* Historical start date */}
-        {realDateRange && (
-          <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Historical Start</span>
-            <span className="text-xs font-mono text-crypto-text tabular-nums truncate max-w-[200px]">{realDateRange}</span>
-          </div>
-        )}
+
       </div>
 
       {/* Controls */}

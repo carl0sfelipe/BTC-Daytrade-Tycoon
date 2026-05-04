@@ -14,9 +14,10 @@ import SimulationClock from "./SimulationClock";
 
 interface MobileTradingViewProps {
   engine: ReturnTypeUseTimewarpEngine;
+  onEnd: () => void;
 }
 
-export default function MobileTradingView({ engine }: MobileTradingViewProps) {
+export default function MobileTradingView({ engine, onEnd }: MobileTradingViewProps) {
   const [showControls, setShowControls] = useState(false);
   const [activeTab, setActiveTab] = useState<"chart" | "history">("chart");
 
@@ -40,11 +41,10 @@ export default function MobileTradingView({ engine }: MobileTradingViewProps) {
           elapsedTime={engine.elapsedTime}
           speed={60}
           isPlaying={engine.isPlaying}
-          realDateRange={engine.realDateRange}
           onPause={engine.pause}
           onResume={engine.start}
           onReset={engine.reset}
-          onEnd={() => {}}
+          onEnd={onEnd}
         />
       </div>
 

@@ -106,7 +106,7 @@ export default function TradingPage() {
       <Header />
 
       {isMobile ? (
-        <MobileTradingView engine={engine} />
+        <MobileTradingView engine={engine} onEnd={() => setShowEndModal(true)} />
       ) : (
         <>
           <div className="container mx-auto px-4 py-3">
@@ -114,7 +114,6 @@ export default function TradingPage() {
               elapsedTime={engine.elapsedTime}
               speed={60}
               isPlaying={engine.isPlaying}
-              realDateRange={engine.realDateRange}
               onPause={engine.pause}
               onResume={engine.start}
               onReset={engine.reset}

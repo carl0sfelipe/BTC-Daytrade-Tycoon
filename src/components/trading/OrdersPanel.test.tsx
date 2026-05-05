@@ -15,11 +15,11 @@ describe("OrdersPanel", () => {
   it("tab labels include correct counts", () => {
     useTradingStore.setState({
       ordersHistory: [
-        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, tpPrice: null, slPrice: null, createdAt: "t1", updatedAt: "t1" },
-        { id: "2", side: "short", type: "limit", status: "canceled", leverage: 10, size: 500, price: 52000, tpPrice: null, slPrice: null, createdAt: "t2", updatedAt: "t2" },
+        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, executionPrice: null, tpPrice: null, slPrice: null, createdAt: "t1", updatedAt: "t1" },
+        { id: "2", side: "short", type: "limit", status: "canceled", leverage: 10, size: 500, price: 52000, executionPrice: null, tpPrice: null, slPrice: null, createdAt: "t2", updatedAt: "t2" },
       ],
       pendingOrders: [
-        { id: "3", side: "long", leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, createdAt: "t3" },
+        { id: "3", side: "long", orderType: "open" as const, leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, orderPrice: null, createdAt: "t3" },
       ],
     });
     render(<OrdersPanel />);
@@ -33,10 +33,10 @@ describe("OrdersPanel", () => {
   it("clicking Pending filter shows only pending rows", () => {
     useTradingStore.setState({
       ordersHistory: [
-        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, tpPrice: null, slPrice: null, createdAt: "t1", updatedAt: "t1" },
+        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, executionPrice: null, tpPrice: null, slPrice: null, createdAt: "t1", updatedAt: "t1" },
       ],
       pendingOrders: [
-        { id: "2", side: "long", leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, createdAt: "t2" },
+        { id: "2", side: "long", orderType: "open" as const, leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, orderPrice: null, createdAt: "t2" },
       ],
     });
     render(<OrdersPanel />);
@@ -52,10 +52,10 @@ describe("OrdersPanel", () => {
   it("cancel button calls cancelPendingOrder when clicked", () => {
     useTradingStore.setState({
       ordersHistory: [
-        { id: "2", side: "long", type: "limit", status: "pending", leverage: 10, size: 1000, price: 48000, tpPrice: null, slPrice: null, createdAt: "t2", updatedAt: "t2" },
+        { id: "2", side: "long", type: "limit", status: "pending", leverage: 10, size: 1000, price: 48000, executionPrice: null, tpPrice: null, slPrice: null, createdAt: "t2", updatedAt: "t2" },
       ],
       pendingOrders: [
-        { id: "2", side: "long", leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, createdAt: "t2" },
+        { id: "2", side: "long", orderType: "open" as const, leverage: 10, size: 1000, tpPrice: null, slPrice: null, limitPrice: 48000, orderPrice: null, createdAt: "t2" },
       ],
     });
 
@@ -77,7 +77,7 @@ describe("OrdersPanel", () => {
   it("renders order details with side, type, leverage, and TP/SL", () => {
     useTradingStore.setState({
       ordersHistory: [
-        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, tpPrice: 55000, slPrice: 45000, createdAt: "t1", updatedAt: "t1" },
+        { id: "1", side: "long", type: "market", status: "filled", leverage: 10, size: 1000, price: 50000, executionPrice: null, tpPrice: 55000, slPrice: 45000, createdAt: "t1", updatedAt: "t1" },
       ],
       pendingOrders: [],
     });
@@ -85,10 +85,10 @@ describe("OrdersPanel", () => {
 
     // Side, type, and status are rendered as text nodes
     expect(screen.getByText("long")).toBeInTheDocument();
-    expect(screen.getByText("market")).toBeInTheDocument();
+    expect(screen.getByText("Market")).toBeInTheDocument();
     expect(screen.getByText("filled")).toBeInTheDocument();
     // TP and SL values appear in the detail row
-    expect(document.body.textContent).toContain("TP 55000");
-    expect(document.body.textContent).toContain("SL 45000");
+    expect(document.body.textContent).toContain("TP $55000");
+    expect(document.body.textContent).toContain("SL $45000");
   });
 });

@@ -35,8 +35,14 @@ describe("TradeControls", () => {
   it("shows TP and SL inputs in simple mode when no position", () => {
     render(<TradeControls />);
 
-    expect(screen.getByText("Take Profit")).toBeInTheDocument();
-    expect(screen.getByText("Stop Loss")).toBeInTheDocument();
+    // Buttons exist collapsed by default
+    expect(screen.getByRole("button", { name: /Set Take Profit/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Set Stop Loss/i })).toBeInTheDocument();
+
+    // Expand TP section
+    fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
+    expect(screen.getByText("Trigger Price")).toBeInTheDocument();
+    expect(screen.getByText("Order Price")).toBeInTheDocument();
   });
 
   it("creates a pending limit order instead of opening position immediately", () => {
@@ -49,8 +55,9 @@ describe("TradeControls", () => {
     const limitInput = screen.getByPlaceholderText("50000.00");
     fireEvent.change(limitInput, { target: { value: "48000" } });
 
-    // Fill TP
-    const tpInput = screen.getAllByPlaceholderText("0.00")[0];
+    // Expand TP and fill
+    fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
+    const tpInput = screen.getByPlaceholderText("0.00");
     fireEvent.change(tpInput, { target: { value: "55000" } });
 
     // Open position button should say "Place Long Limit"
@@ -96,18 +103,15 @@ describe("TradeControls", () => {
 
     expect(limitInput.value).toBe("50000.00");
 
-    // Default step is $10 — click down
-    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
-    const upBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-up"));
+    // Default step is $10 — use testid to target limit price chevrons specifically
+    const downBtn = screen.getByTestId("limit-price-down");
+    const upBtn = screen.getByTestId("limit-price-up");
 
-    expect(downBtn).toBeDefined();
-    expect(upBtn).toBeDefined();
-
-    fireEvent.click(downBtn!);
+    fireEvent.click(downBtn);
     expect(limitInput.value).toBe("49990.00");
 
-    fireEvent.click(upBtn!);
-    fireEvent.click(upBtn!);
+    fireEvent.click(upBtn);
+    fireEvent.click(upBtn);
     expect(limitInput.value).toBe("50010.00");
   });
 
@@ -116,17 +120,17 @@ describe("TradeControls", () => {
 
     fireEvent.click(screen.getByText("Limit"));
 
-    // Step buttons hidden by default
+    // $1 and $5 are only in limit step settings (not in TP/SL step pills)
     expect(screen.queryByText("$1")).not.toBeInTheDocument();
+    expect(screen.queryByText("$5")).not.toBeInTheDocument();
 
     // Click gear icon
     const gearBtn = screen.getByLabelText("Step settings");
     fireEvent.click(gearBtn);
 
-    // Step buttons now visible
+    // $1 and $5 now visible in limit step settings
     expect(screen.getByText("$1")).toBeInTheDocument();
     expect(screen.getByText("$5")).toBeInTheDocument();
-    expect(screen.getByText("$10")).toBeInTheDocument();
   });
 
   it("changes step size via hidden step selector buttons", () => {
@@ -136,16 +140,12 @@ describe("TradeControls", () => {
     const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
     fireEvent.click(limitInput);
 
-    // Open step settings
+    // Open step settings and select $1 (only in limit step settings, not in TP/SL pills)
     fireEvent.click(screen.getByLabelText("Step settings"));
+    fireEvent.click(screen.getByText("$1"));
 
-    // Select $10 step
-    fireEvent.click(screen.getByText("$10"));
-
-    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
-    fireEvent.click(downBtn!);
-
-    expect(limitInput.value).toBe("49990.00");
+    fireEvent.click(screen.getByTestId("limit-price-down"));
+    expect(limitInput.value).toBe("49999.00");
   });
 
   it("allows custom step value", () => {
@@ -155,16 +155,12 @@ describe("TradeControls", () => {
     const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
     fireEvent.click(limitInput);
 
-    // Open step settings
+    // Open step settings and type custom step
     fireEvent.click(screen.getByLabelText("Step settings"));
-
-    // Type custom step
     const customInput = screen.getByPlaceholderText("e.g. 25");
     fireEvent.change(customInput, { target: { value: "25" } });
 
-    const downBtn = screen.getAllByRole("button").find((b) => b.querySelector("svg")?.classList.contains("lucide-chevron-down"));
-    fireEvent.click(downBtn!);
-
+    fireEvent.click(screen.getByTestId("limit-price-down"));
     expect(limitInput.value).toBe("49975.00");
   });
 
@@ -183,6 +179,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 45000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -268,7 +265,7 @@ describe("TradeControls", () => {
     it("hedge mode: slider max allows orders larger than position.size", () => {
       useTradingStore.setState({
         wallet: 10000,
-        position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
+        position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", entryTimestamp: 0, realizedPnL: 0 },
         currentPrice: 50000,
         reduceOnly: false,
       });
@@ -352,6 +349,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 45000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -426,8 +424,10 @@ describe("TradeControls", () => {
       fireEvent.click(screen.getByText("Advanced Mode"));
       fireEvent.click(screen.getByText("Limit"));
 
-      expect(screen.getByText("Take Profit")).toBeInTheDocument();
-      expect(screen.getByText("Stop Loss")).toBeInTheDocument();
+      // TP/SL collapsed by default — expand to verify
+      fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
+      expect(screen.getByText("Trigger Price")).toBeInTheDocument();
+      expect(screen.getByText("Order Price")).toBeInTheDocument();
     });
 
     it("INCREASE recalculates liquidation price after adding to position", () => {
@@ -463,6 +463,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -514,6 +515,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -560,6 +562,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -599,6 +602,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 49000,
@@ -650,6 +654,7 @@ describe("TradeControls", () => {
           trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 60000,   // SHORT losing hard: closePnl = -200
@@ -686,6 +691,7 @@ describe("TradeControls", () => {
         trailingStopPrice: null,
           liquidationPrice: 55000,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -720,6 +726,7 @@ describe("TradeControls", () => {
         trailingStopPercent: null,
         trailingStopPrice: null,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -773,6 +780,7 @@ describe("TradeControls", () => {
         trailingStopPercent: null,
         trailingStopPrice: null,
           entryTime: "2026-05-04T12:00:00Z",
+          entryTimestamp: 0,
           realizedPnL: 0,
         },
         currentPrice: 50000,
@@ -811,9 +819,14 @@ describe("TradeControls — TP/SL input flows", () => {
   it("TP and SL typed by user are passed to openPosition", () => {
     render(<TradeControls />);
 
-    const [tpInput, slInput] = screen.getAllByPlaceholderText("0.00");
-    fireEvent.change(tpInput, { target: { value: "55000" } });
-    fireEvent.change(slInput, { target: { value: "48000" } });
+    // Expand TP, fill trigger price
+    fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
+    fireEvent.change(screen.getByPlaceholderText("0.00"), { target: { value: "55000" } });
+
+    // Expand SL, fill trigger price
+    fireEvent.click(screen.getByRole("button", { name: /Set Stop Loss/i }));
+    fireEvent.change(screen.getByPlaceholderText("0.00"), { target: { value: "48000" } });
+
     fireEvent.click(screen.getByTestId("trade-controls-action-btn"));
 
     const pos = useTradingStore.getState().position;
@@ -827,9 +840,15 @@ describe("TradeControls — TP/SL input flows", () => {
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000.00");
     fireEvent.change(limitInput, { target: { value: "49000" } });
-    const [tpInput, slInput] = screen.getAllByPlaceholderText("0.00");
-    fireEvent.change(tpInput, { target: { value: "55000" } });
-    fireEvent.change(slInput, { target: { value: "48000" } });
+
+    // Expand and fill TP
+    fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
+    fireEvent.change(screen.getByPlaceholderText("0.00"), { target: { value: "55000" } });
+
+    // Expand and fill SL
+    fireEvent.click(screen.getByRole("button", { name: /Set Stop Loss/i }));
+    fireEvent.change(screen.getByPlaceholderText("0.00"), { target: { value: "48000" } });
+
     fireEvent.click(screen.getByTestId("trade-controls-action-btn"));
 
     const order = useTradingStore.getState().pendingOrders[0];
@@ -838,7 +857,7 @@ describe("TradeControls — TP/SL input flows", () => {
   });
 });
 
-describe("TradeControls — trailing stop input", () => {
+describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
   beforeEach(() => {
     useTradingStore.setState({
       wallet: 9900, currentPrice: 50000,

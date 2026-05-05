@@ -19,7 +19,9 @@ export const makePosition = (overrides: Partial<Position> = {}): Position => ({
 export const makePendingOrder = (overrides: Partial<PendingOrder> = {}): PendingOrder => ({
   id: "order-1",
   side: "long",
+  orderType: "open",
   leverage: 10,
+  orderPrice: null,
   size: 1000,
   tpPrice: null,
   slPrice: null,
@@ -51,6 +53,7 @@ export const makeOrderHistoryItem = (overrides: Partial<OrderHistoryItem> = {}):
   leverage: 10,
   size: 1000,
   price: 50000,
+  executionPrice: null,
   tpPrice: null,
   slPrice: null,
   createdAt: "01/01/2024 00:00:00",

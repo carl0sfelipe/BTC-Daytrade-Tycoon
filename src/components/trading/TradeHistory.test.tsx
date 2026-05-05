@@ -16,8 +16,8 @@ describe("TradeHistory", () => {
   it("shows correct trade count", () => {
     useTradingStore.setState({
       closedTrades: [
-        { pnl: 40, side: "long", reason: "manual", entryPrice: 50000, exitPrice: 52000, size: 1000, leverage: 10, margin: 100, entryTime: "t1", exitTime: "t2" },
-        { pnl: -20, side: "short", reason: "sl", entryPrice: 50000, exitPrice: 51000, size: 1000, leverage: 10, margin: 100, entryTime: "t3", exitTime: "t4" },
+        { pnl: 40, side: "long", reason: "manual", entryPrice: 50000, exitPrice: 52000, size: 1000, leverage: 10, margin: 100, entryTime: "t1", exitTime: "t2", durationSeconds: 0 },
+        { pnl: -20, side: "short", reason: "sl", entryPrice: 50000, exitPrice: 51000, size: 1000, leverage: 10, margin: 100, entryTime: "t3", exitTime: "t4", durationSeconds: 0 },
       ],
     });
     render(<TradeHistory />);
@@ -28,7 +28,7 @@ describe("TradeHistory", () => {
   it("profitable trade renders with '+' sign and long color class", () => {
     useTradingStore.setState({
       closedTrades: [
-        { pnl: 40, side: "long", reason: "manual", entryPrice: 50000, exitPrice: 52000, size: 1000, leverage: 10, margin: 100, entryTime: "t1", exitTime: "t2" },
+        { pnl: 40, side: "long", reason: "manual", entryPrice: 50000, exitPrice: 52000, size: 1000, leverage: 10, margin: 100, entryTime: "t1", exitTime: "t2", durationSeconds: 0 },
       ],
     });
     render(<TradeHistory />);

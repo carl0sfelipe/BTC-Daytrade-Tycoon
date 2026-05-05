@@ -34,6 +34,7 @@ describe("PositionPanel", () => {
         trailingStopPercent: null,
         trailingStopPrice: null,
         entryTime: "now",
+        entryTimestamp: 0,
         realizedPnL: 0,
       },
     });
@@ -60,6 +61,7 @@ describe("PositionPanel", () => {
         trailingStopPercent: null,
         trailingStopPrice: null,
         entryTime: "now",
+        entryTimestamp: 0,
         realizedPnL: 0,
       },
     });
@@ -80,7 +82,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 150,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 150,
       },
     });
     render(<PositionPanel />);
@@ -96,7 +98,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -111,7 +113,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: 5, trailingStopPrice: 47500,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -128,7 +130,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -143,7 +145,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: 55000, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -160,7 +162,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: 48000,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -177,7 +179,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: 55000, slPrice: 48000,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -196,7 +198,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     const { container } = render(<PositionPanel />);
@@ -211,7 +213,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);
@@ -228,7 +230,7 @@ describe("PositionPanel", () => {
         side: "long", entry: 50000, size: 1000, leverage: 10,
         liquidationPrice: 45000, tpPrice: null, slPrice: null,
         trailingStopPercent: null, trailingStopPrice: null,
-        entryTime: "now", realizedPnL: 0,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
     render(<PositionPanel />);

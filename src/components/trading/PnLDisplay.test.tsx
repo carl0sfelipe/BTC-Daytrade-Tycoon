@@ -14,6 +14,7 @@ const baseTrade = {
   margin: 100,
   entryTime: "2026-05-04T12:00:00Z",
   exitTime: "2026-05-04T13:00:00Z",
+  durationSeconds: 0,
 };
 
 describe("PnLDisplay", () => {

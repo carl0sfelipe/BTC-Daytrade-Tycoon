@@ -28,22 +28,25 @@ function generateId(): string {
 export interface PendingOrder {
   id: string;
   side: "long" | "short";
+  orderType: "open" | "take_profit" | "stop_loss";
   leverage: number;
   size: number;
   tpPrice: number | null;
   slPrice: number | null;
-  limitPrice: number;
+  limitPrice: number;   // trigger price
+  orderPrice: number | null; // execution price (null = market)
   createdAt: string;
 }
 
 export interface OrderHistoryItem {
   id: string;
   side: "long" | "short";
-  type: "market" | "limit";
+  type: "market" | "limit" | "tp" | "sl";
   status: "pending" | "filled" | "canceled";
   leverage: number;
   size: number;
-  price: number;
+  price: number;           // trigger price (limit/tp/sl) or fill price (market)
+  executionPrice: number | null; // actual fill price for tp/sl (set when executed)
   tpPrice: number | null;
   slPrice: number | null;
   createdAt: string;
@@ -118,6 +121,8 @@ interface TradingStore {
   checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
   addPendingOrder: (order: Omit<PendingOrder, "id" | "createdAt">) => void;
   cancelPendingOrder: (id: string) => void;
+  cancelPendingOrdersForPosition: () => void;
+  setPositionTpSl: (tpPrice: string, slPrice: string) => void;
   checkPendingOrders: (currentPrice: number) => void;
   clearOrdersHistory: () => void;
   setLiquidated: (date: string) => void;
@@ -209,6 +214,7 @@ export const useTradingStore = create<TradingStore>()(
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
         set((state) => {
+          console.log(`[addPendingOrder] ${order.orderType} ${order.side.toUpperCase()} $${order.size} x${order.leverage} limit@${order.limitPrice} tp=${order.tpPrice||"-"} sl=${order.slPrice||"-"}`, formatStoreState(state));
           const id = generateId();
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
@@ -221,7 +227,7 @@ export const useTradingStore = create<TradingStore>()(
           const historyItem: OrderHistoryItem = {
             id,
             side: order.side,
-            type: "limit",
+            type: order.orderType === "take_profit" ? "tp" : order.orderType === "stop_loss" ? "sl" : "limit",
             status: "pending",
             leverage: order.leverage,
             size: order.size,
@@ -229,6 +235,7 @@ export const useTradingStore = create<TradingStore>()(
             tpPrice: order.tpPrice,
             slPrice: order.slPrice,
             createdAt: now,
+            executionPrice: null,
             updatedAt: null,
           };
           return {
@@ -240,12 +247,41 @@ export const useTradingStore = create<TradingStore>()(
           };
         }),
       cancelPendingOrder: (id) => {
+        const order = get().pendingOrders.find((o) => o.id === id);
+        if (!order) {
+          console.log(`[cancelPendingOrder] id=${id} — already cancelled/filled, skipping`);
+          return;
+        }
+        console.log(`[cancelPendingOrder] id=${id} order=`, order, formatStoreState(get()));
         set((state) => ({
           pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
           ordersHistory: state.ordersHistory.map((o) =>
             o.id === id ? { ...o, status: "canceled" as const, updatedAt: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) } : o
           ),
         }));
+      },
+      cancelPendingOrdersForPosition: () => {
+        set((state) => {
+          if (!state.position) return state;
+          const { side } = state.position;
+          const toCancel = state.pendingOrders.filter(
+            (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
+          );
+          const now = new Date().toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit", second: "2-digit",
+          });
+          return {
+            pendingOrders: state.pendingOrders.filter(
+              (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
+            ),
+            ordersHistory: state.ordersHistory.map((o) =>
+              toCancel.some((c) => c.id === o.id)
+                ? { ...o, status: "canceled" as const, updatedAt: now }
+                : o
+            ),
+          };
+        });
       },
       clearOrdersHistory: () => set({ ordersHistory: [] }),
       checkPendingOrders: (currentPrice) => {
@@ -255,10 +291,26 @@ export const useTradingStore = create<TradingStore>()(
         const remaining: PendingOrder[] = [];
 
         for (const order of state.pendingOrders) {
-          const shouldExecute =
-            (order.side === "long" && currentPrice <= order.limitPrice) ||
-            (order.side === "short" && currentPrice >= order.limitPrice);
-
+          let shouldExecute = false;
+          if (order.orderType === "open") {
+            shouldExecute =
+              (order.side === "long" && currentPrice <= order.limitPrice) ||
+              (order.side === "short" && currentPrice >= order.limitPrice);
+          } else if (order.orderType === "take_profit") {
+            const pos = state.position;
+            if (pos && pos.side === order.side) {
+              shouldExecute =
+                (pos.side === "long" && currentPrice >= order.limitPrice) ||
+                (pos.side === "short" && currentPrice <= order.limitPrice);
+            }
+          } else if (order.orderType === "stop_loss") {
+            const pos = state.position;
+            if (pos && pos.side === order.side) {
+              shouldExecute =
+                (pos.side === "long" && currentPrice <= order.limitPrice) ||
+                (pos.side === "short" && currentPrice >= order.limitPrice);
+            }
+          }
 
           if (shouldExecute) {
             executed.push(order);
@@ -268,6 +320,9 @@ export const useTradingStore = create<TradingStore>()(
         }
 
         if (executed.length > 0) {
+          for (const o of executed) {
+            console.log(`[checkPendingOrders] EXECUTED ${o.orderType} ${o.side.toUpperCase()} $${o.size} x${o.leverage} @${o.limitPrice} price=${currentPrice.toFixed(2)}`, formatStoreState(state));
+          }
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
@@ -278,28 +333,51 @@ export const useTradingStore = create<TradingStore>()(
           });
           set({
             pendingOrders: remaining,
-            ordersHistory: state.ordersHistory.map((o) =>
-              executed.some((e) => e.id === o.id)
-                ? { ...o, status: "filled" as const, updatedAt: now }
-                : o
-            ),
+            ordersHistory: state.ordersHistory.map((o) => {
+              const exec = executed.find((e) => e.id === o.id);
+              if (!exec) return o;
+              const isTpSl = exec.orderType === "take_profit" || exec.orderType === "stop_loss";
+              return {
+                ...o,
+                status: "filled" as const,
+                executionPrice: isTpSl ? currentPrice : o.executionPrice,
+                updatedAt: now,
+              };
+            }),
           });
           for (const order of executed) {
-
-            const existing = get().position;
-            if (existing && existing.side === order.side) {
-              // Add to existing position
-              state.addToPosition(
-                order.size,
-                order.limitPrice,
-                order.tpPrice?.toString() ?? "",
-                order.slPrice?.toString() ?? ""
-              );
-            } else if (existing && existing.side !== order.side) {
-              // Reduce, close, or flip existing position (opposite side)
-              const shouldFlip = !get().reduceOnly && order.size > existing.size;
-              if (shouldFlip) {
-                // Hedge mode: close existing and open flipped position
+            if (order.orderType === "take_profit") {
+              state.closePosition("tp");
+            } else if (order.orderType === "stop_loss") {
+              state.closePosition("sl");
+            } else {
+              const existing = get().position;
+              if (existing && existing.side === order.side) {
+                // Add to existing position
+                state.addToPosition(
+                  order.size,
+                  order.limitPrice,
+                  order.tpPrice?.toString() ?? "",
+                  order.slPrice?.toString() ?? ""
+                );
+              } else if (existing && existing.side !== order.side) {
+                // Reduce, close, or flip existing position (opposite side)
+                const shouldFlip = !get().reduceOnly && order.size > existing.size;
+                if (shouldFlip) {
+                  // Hedge mode: close existing and open flipped position
+                  state.openPosition(
+                    order.side,
+                    order.leverage,
+                    order.size,
+                    order.tpPrice?.toString() ?? "",
+                    order.slPrice?.toString() ?? "",
+                    order.limitPrice.toString()
+                  );
+                } else {
+                  state.reducePosition(order.size, order.limitPrice);
+                }
+              } else {
+                // Open new position
                 state.openPosition(
                   order.side,
                   order.leverage,
@@ -308,19 +386,7 @@ export const useTradingStore = create<TradingStore>()(
                   order.slPrice?.toString() ?? "",
                   order.limitPrice.toString()
                 );
-              } else {
-                state.reducePosition(order.size, order.limitPrice);
               }
-            } else {
-              // Open new position
-              state.openPosition(
-                order.side,
-                order.leverage,
-                order.size,
-                order.tpPrice?.toString() ?? "",
-                order.slPrice?.toString() ?? "",
-                order.limitPrice.toString()
-              );
             }
           }
         }
@@ -328,6 +394,7 @@ export const useTradingStore = create<TradingStore>()(
 
       openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
         const state = get();
+        console.log(`[openPosition] ${side.toUpperCase()} $${positionSize} x${leverage}${limitPrice ? ` limit@${limitPrice}` : ""} tp=${tpPriceStr||"-"} sl=${slPriceStr||"-"}`, formatStoreState(state));
         const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
         if (!entryPrice || entryPrice <= 0) {
           set({ lastActionError: "Invalid entry price" });
@@ -370,6 +437,28 @@ export const useTradingStore = create<TradingStore>()(
 
         const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
         const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
+
+        // Validate TP/SL won't trigger immediately at entry price
+        if (tpPrice && tpPrice > 0) {
+          if (side === "long" && entryPrice >= tpPrice) {
+            set({ lastActionError: `TP inválido: para LONG o Take Profit deve ser ACIMA do entry ($${entryPrice.toFixed(2)}). Coloque um valor > $${entryPrice.toFixed(2)}.` });
+            return;
+          }
+          if (side === "short" && entryPrice <= tpPrice) {
+            set({ lastActionError: `TP inválido: para SHORT o Take Profit deve ser ABAIXO do entry ($${entryPrice.toFixed(2)}). Coloque um valor < $${entryPrice.toFixed(2)}.` });
+            return;
+          }
+        }
+        if (slPrice && slPrice > 0) {
+          if (side === "long" && entryPrice <= slPrice) {
+            set({ lastActionError: `SL inválido: para LONG o Stop Loss deve ser ABAIXO do entry ($${entryPrice.toFixed(2)}). Coloque um valor < $${entryPrice.toFixed(2)}.` });
+            return;
+          }
+          if (side === "short" && entryPrice >= slPrice) {
+            set({ lastActionError: `SL inválido: para SHORT o Stop Loss deve ser ACIMA do entry ($${entryPrice.toFixed(2)}). Coloque um valor > $${entryPrice.toFixed(2)}.` });
+            return;
+          }
+        }
 
         const now = new Date().toLocaleString("pt-BR", {
           day: "2-digit",
@@ -434,6 +523,7 @@ export const useTradingStore = create<TradingStore>()(
               tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
               slPrice: slPrice && slPrice > 0 ? slPrice : null,
               createdAt: now,
+              executionPrice: null,
               updatedAt: now,
             };
 
@@ -445,6 +535,9 @@ export const useTradingStore = create<TradingStore>()(
               ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
               lastCloseReason: null,
             });
+            if ((tpPrice && tpPrice > 0) || (slPrice && slPrice > 0)) {
+              get().setPositionTpSl(tpPriceStr, slPriceStr);
+            }
             return;
           } else {
             // Partial reduce in hedge mode — same as reduce only
@@ -465,6 +558,7 @@ export const useTradingStore = create<TradingStore>()(
               tpPrice: existing.tpPrice,
               slPrice: existing.slPrice,
               createdAt: now,
+              executionPrice: null,
               updatedAt: now,
             };
 
@@ -538,6 +632,7 @@ export const useTradingStore = create<TradingStore>()(
             tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
             slPrice: slPrice && slPrice > 0 ? slPrice : null,
             createdAt: now,
+            executionPrice: null,
             updatedAt: now,
           };
           set({
@@ -552,6 +647,9 @@ export const useTradingStore = create<TradingStore>()(
             wallet: state.wallet - margin,
             lastCloseReason: null,
           });
+        }
+        if ((tpPrice && tpPrice > 0) || (slPrice && slPrice > 0)) {
+          get().setPositionTpSl(tpPriceStr, slPriceStr);
         }
       },
 
@@ -569,7 +667,10 @@ export const useTradingStore = create<TradingStore>()(
 
         const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : state.position.tpPrice;
         const slPrice = slPriceStr ? parseFloat(slPriceStr) : state.position.slPrice;
-        const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+        const rawLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+        const newLiqPrice = side === "short"
+          ? Math.min(rawLiqPrice, state.position.liquidationPrice)
+          : Math.max(rawLiqPrice, state.position.liquidationPrice);
 
         set({
           wallet: state.wallet - margin,
@@ -643,8 +744,31 @@ export const useTradingStore = create<TradingStore>()(
       closePosition: (reason = "manual") => {
         const state = get();
         if (!state.position) return;
+        console.log(`[closePosition] reason=${reason} price=${state.currentPrice.toFixed(2)}`, formatStoreState(state));
 
-        const { side, entry, size, leverage } = state.position;
+        // Always cancel any TP/SL pending orders when position closes
+        const { side } = state.position;
+        const toCancel = state.pendingOrders.filter(
+          (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
+        );
+        if (toCancel.length > 0) {
+          const now = new Date().toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit", second: "2-digit",
+          });
+          set({
+            pendingOrders: state.pendingOrders.filter(
+              (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
+            ),
+            ordersHistory: state.ordersHistory.map((o) =>
+              toCancel.some((c) => c.id === o.id)
+                ? { ...o, status: "canceled" as const, updatedAt: now }
+                : o
+            ),
+          });
+        }
+
+        const { entry, size, leverage } = state.position;
         const price = state.currentPrice;
 
         // PnL = (priceDiff / entry) * positionSize
@@ -682,9 +806,25 @@ export const useTradingStore = create<TradingStore>()(
           durationSeconds,
         };
 
+        const closeHistoryItem: OrderHistoryItem = {
+          id: generateId(),
+          side: side === "long" ? "short" : "long",
+          type: "market",
+          status: "filled",
+          leverage,
+          size,
+          price,
+          tpPrice: null,
+          slPrice: null,
+          createdAt: now,
+          executionPrice: null,
+          updatedAt: now,
+        };
+
         set({
           wallet: Math.max(0, newWallet),
           closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
+          ordersHistory: [...state.ordersHistory, closeHistoryItem].slice(-MAX_ORDERS_HISTORY),
           realizedPnL: state.realizedPnL + pnl,
           position: null,
           lastCloseReason:
@@ -707,6 +847,7 @@ export const useTradingStore = create<TradingStore>()(
       updatePositionSize: (newSize: number, orderSide?: "long" | "short") => {
         const state = get();
         if (!state.position || newSize <= 0) return;
+        console.log(`[updatePositionSize] ${state.position.side.toUpperCase()} ${state.position.size} → ${newSize} price=${state.currentPrice.toFixed(2)}`, formatStoreState(state));
 
         const { side, entry, size, leverage } = state.position;
         const price = state.currentPrice;
@@ -726,7 +867,11 @@ export const useTradingStore = create<TradingStore>()(
           if (state.wallet < marginDiff) return;
           const additionalSize = newSize - size;
           const newEntry = (size * entry + additionalSize * price) / newSize;
-          const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+          const rawLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+          // Liq price must always move toward current price when increasing — never away
+          const newLiqPrice = side === "short"
+            ? Math.min(rawLiqPrice, state.position.liquidationPrice)
+            : Math.max(rawLiqPrice, state.position.liquidationPrice);
           const historyItem: OrderHistoryItem = {
             id: generateId(),
             side: historySide,
@@ -738,6 +883,7 @@ export const useTradingStore = create<TradingStore>()(
             tpPrice: state.position.tpPrice,
             slPrice: state.position.slPrice,
             createdAt: now,
+            executionPrice: null,
             updatedAt: now,
           };
           set({
@@ -762,6 +908,7 @@ export const useTradingStore = create<TradingStore>()(
             tpPrice: state.position.tpPrice,
             slPrice: state.position.slPrice,
             createdAt: now,
+            executionPrice: null,
             updatedAt: now,
           };
           set({
@@ -776,6 +923,7 @@ export const useTradingStore = create<TradingStore>()(
       updateLeverage: (newLeverage: number) => {
         const state = get();
         if (!state.position) return;
+        console.log(`[updateLeverage] ${state.position.leverage}x → ${newLeverage}x`, formatStoreState(state));
 
         const { size, leverage: oldLeverage } = state.position;
         const oldMargin = size / oldLeverage;
@@ -803,6 +951,7 @@ export const useTradingStore = create<TradingStore>()(
           setTrailingStop: (percent: number | null) => {
         const state = get();
         if (!state.position) return;
+        console.log(`[setTrailingStop] ${percent === null ? "remove" : `${percent}%`} price=${state.currentPrice.toFixed(2)}`, formatStoreState(state));
         if (percent === null || percent <= 0) {
           set({
             position: { ...state.position, trailingStopPercent: null, trailingStopPrice: null },
@@ -812,6 +961,129 @@ export const useTradingStore = create<TradingStore>()(
         const newStopPrice = calcTrailingStopPrice(state.position.side, state.currentPrice, percent);
         set({
           position: { ...state.position, trailingStopPercent: percent, trailingStopPrice: newStopPrice },
+        });
+      },
+
+      setPositionTpSl: (tpPriceStr: string, slPriceStr: string) => {
+        const state = get();
+        if (!state.position) return;
+        console.log(`[setPositionTpSl] tp=${tpPriceStr||"-"} sl=${slPriceStr||"-"} price=${state.currentPrice.toFixed(2)}`, formatStoreState(state));
+
+        const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
+        const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
+        const { side, leverage, size } = state.position;
+        const ref = state.currentPrice;
+
+        if (tpPrice && tpPrice > 0) {
+          if (side === "long" && ref >= tpPrice) {
+            set({ lastActionError: `TP inválido: para LONG o Take Profit deve ser ACIMA do preço atual ($${ref.toFixed(2)}). Coloque um valor > $${ref.toFixed(2)}.` });
+            return;
+          }
+          if (side === "short" && ref <= tpPrice) {
+            set({ lastActionError: `TP inválido: para SHORT o Take Profit deve ser ABAIXO do preço atual ($${ref.toFixed(2)}). Coloque um valor < $${ref.toFixed(2)}.` });
+            return;
+          }
+        }
+        if (slPrice && slPrice > 0) {
+          if (side === "long" && ref <= slPrice) {
+            set({ lastActionError: `SL inválido: para LONG o Stop Loss deve ser ABAIXO do preço atual ($${ref.toFixed(2)}). Coloque um valor < $${ref.toFixed(2)}.` });
+            return;
+          }
+          if (side === "short" && ref >= slPrice) {
+            set({ lastActionError: `SL inválido: para SHORT o Stop Loss deve ser ACIMA do preço atual ($${ref.toFixed(2)}). Coloque um valor > $${ref.toFixed(2)}.` });
+            return;
+          }
+        }
+
+        // Cancel existing TP/SL pending orders for this position
+        const toCancel = state.pendingOrders.filter(
+          (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
+        );
+
+        let newPendingOrders = state.pendingOrders.filter(
+          (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
+        );
+
+        const now = new Date().toLocaleString("pt-BR", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+        });
+
+        const newOrdersHistory = state.ordersHistory.map((o) =>
+          toCancel.some((c) => c.id === o.id)
+            ? { ...o, status: "canceled" as const, updatedAt: now }
+            : o
+        );
+
+        // Create new TP/SL pending orders if valid
+        if (tpPrice && tpPrice > 0) {
+          const tpOrder: PendingOrder = {
+            id: generateId(),
+            side,
+            orderType: "take_profit",
+            leverage,
+            size,
+            limitPrice: tpPrice,
+            orderPrice: null,
+            tpPrice: null,
+            slPrice: null,
+            createdAt: now,
+          };
+          newPendingOrders = [...newPendingOrders, tpOrder];
+          newOrdersHistory.push({
+            id: tpOrder.id,
+            side,
+            type: "market",
+            status: "pending",
+            leverage,
+            size,
+            price: tpPrice,
+            tpPrice: null,
+            slPrice: null,
+            createdAt: now,
+            executionPrice: null,
+            updatedAt: null,
+          });
+        }
+
+        if (slPrice && slPrice > 0) {
+          const slOrder: PendingOrder = {
+            id: generateId(),
+            side,
+            orderType: "stop_loss",
+            leverage,
+            size,
+            limitPrice: slPrice,
+            orderPrice: null,
+            tpPrice: null,
+            slPrice: null,
+            createdAt: now,
+          };
+          newPendingOrders = [...newPendingOrders, slOrder];
+          newOrdersHistory.push({
+            id: slOrder.id,
+            side,
+            type: "market",
+            status: "pending",
+            leverage,
+            size,
+            price: slPrice,
+            tpPrice: null,
+            slPrice: null,
+            createdAt: now,
+            executionPrice: null,
+            updatedAt: null,
+          });
+        }
+
+        set({
+          position: {
+            ...state.position,
+            tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
+            slPrice: slPrice && slPrice > 0 ? slPrice : null,
+          },
+          pendingOrders: newPendingOrders,
+          ordersHistory: newOrdersHistory.slice(-MAX_ORDERS_HISTORY),
         });
       },
 
@@ -834,10 +1106,12 @@ export const useTradingStore = create<TradingStore>()(
 
         // Check liquidation (highest precedence)
         if (side === "long" && currentPrice <= liquidationPrice) {
+          console.log(`[checkPosition] 💀 LIQUIDATION long price=${currentPrice.toFixed(2)} liq=${liquidationPrice.toFixed(2)}`, formatStoreState(state));
           state.closePosition("liquidation");
           return { closed: true, reason: "liquidation" };
         }
         if (side === "short" && currentPrice >= liquidationPrice) {
+          console.log(`[checkPosition] 💀 LIQUIDATION short price=${currentPrice.toFixed(2)} liq=${liquidationPrice.toFixed(2)}`, formatStoreState(state));
           state.closePosition("liquidation");
           return { closed: true, reason: "liquidation" };
         }
@@ -848,6 +1122,7 @@ export const useTradingStore = create<TradingStore>()(
             (side === "long" && currentPrice <= trailingStopPrice) ||
             (side === "short" && currentPrice >= trailingStopPrice)
           ) {
+            console.log(`[checkPosition] 📉 TRAILING STOP ${side} price=${currentPrice.toFixed(2)} stop=${trailingStopPrice.toFixed(2)}`, formatStoreState(state));
             state.closePosition("trailing_stop");
             return { closed: true, reason: "trailing_stop" };
           }
@@ -856,10 +1131,12 @@ export const useTradingStore = create<TradingStore>()(
         // Check SL
         if (slPrice) {
           if (side === "long" && currentPrice <= slPrice) {
+            console.log(`[checkPosition] 🛡️ SL HIT long price=${currentPrice.toFixed(2)} sl=${slPrice.toFixed(2)}`, formatStoreState(state));
             state.closePosition("sl");
             return { closed: true, reason: "sl" };
           }
           if (side === "short" && currentPrice >= slPrice) {
+            console.log(`[checkPosition] 🛡️ SL HIT short price=${currentPrice.toFixed(2)} sl=${slPrice.toFixed(2)}`, formatStoreState(state));
             state.closePosition("sl");
             return { closed: true, reason: "sl" };
           }
@@ -868,10 +1145,12 @@ export const useTradingStore = create<TradingStore>()(
         // Check TP
         if (tpPrice) {
           if (side === "long" && currentPrice >= tpPrice) {
+            console.log(`[checkPosition] 🎯 TP HIT long price=${currentPrice.toFixed(2)} tp=${tpPrice.toFixed(2)}`, formatStoreState(state));
             state.closePosition("tp");
             return { closed: true, reason: "tp" };
           }
           if (side === "short" && currentPrice <= tpPrice) {
+            console.log(`[checkPosition] 🎯 TP HIT short price=${currentPrice.toFixed(2)} tp=${tpPrice.toFixed(2)}`, formatStoreState(state));
             state.closePosition("tp");
             return { closed: true, reason: "tp" };
           }

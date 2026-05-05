@@ -17,7 +17,13 @@ export default function TradeControls() {
   const [showStepSettings, setShowStepSettings] = useState(false);
   const [customStep, setCustomStep] = useState("");
   const [tpPrice, setTpPrice] = useState("");
+  const [tpOrderPrice, setTpOrderPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
+  const [slOrderPrice, setSlOrderPrice] = useState("");
+  const [showTp, setShowTp] = useState(false);
+  const [showSl, setShowSl] = useState(false);
+  const [tpSlStep, setTpSlStep] = useState(100);
+  const [showTpSlStep, setShowTpSlStep] = useState(false);
   const [trailingStopInput, setTrailingStopInput] = useState("");
   const [pendingTrade, setPendingTrade] = useState<{
     side: "long" | "short";
@@ -101,16 +107,24 @@ export default function TradeControls() {
       if (!li || li <= 0) return;
       addPendingOrder({
         side,
+        orderType: "open",
         leverage,
         size: positionSize,
         tpPrice: tpPrice ? parseFloat(tpPrice) : null,
         slPrice: slPrice ? parseFloat(slPrice) : null,
         limitPrice: li,
+        orderPrice: null,
       });
       setLimitPrice("");
+      setTpPrice(""); setTpOrderPrice("");
+      setSlPrice(""); setSlOrderPrice("");
+      setShowTp(false); setShowSl(false);
       setPositionSize(position ? 1000 : positionSize);
     } else {
       openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
+      setTpPrice(""); setTpOrderPrice("");
+      setSlPrice(""); setSlOrderPrice("");
+      setShowTp(false); setShowSl(false);
     }
   };
 
@@ -120,13 +134,18 @@ export default function TradeControls() {
     if (li && li > 0) {
       addPendingOrder({
         side: pendingTrade.side,
+        orderType: "open",
         leverage: pendingTrade.leverage,
         size: pendingTrade.size,
         tpPrice: pendingTrade.tp ? parseFloat(pendingTrade.tp) : null,
         slPrice: pendingTrade.sl ? parseFloat(pendingTrade.sl) : null,
         limitPrice: li,
+        orderPrice: null,
       });
       setLimitPrice("");
+      setTpPrice(""); setTpOrderPrice("");
+      setSlPrice(""); setSlOrderPrice("");
+      setShowTp(false); setShowSl(false);
       setPositionSize(position ? 1000 : positionSize);
     } else if (!pendingTrade.limitPrice) {
       openPosition(
@@ -137,6 +156,8 @@ export default function TradeControls() {
         pendingTrade.sl,
         pendingTrade.limitPrice
       );
+      setTpPrice("");
+      setSlPrice("");
     } else {
       setPendingTrade(null);
       return;
@@ -356,33 +377,91 @@ export default function TradeControls() {
 
               {/* TP / SL Inputs — always visible when no position */}
               {(!position || orderType === "limit") && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Take Profit</span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="0.00"
-                        value={tpPrice}
-                        onChange={(e) => setTpPrice(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
-                    </div>
+                <div className="space-y-2">
+                  {/* TP / SL — collapsed by default */}
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => { setShowTp(!showTp); if (!showTp) setShowSl(false); }}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showTp ? "bg-crypto-long-dim border-crypto-long text-crypto-long" : tpPrice ? "bg-crypto-long-dim/30 border-crypto-long/30 text-crypto-long" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-long/50 hover:text-crypto-long"}`}>
+                      🎯 {tpPrice ? `TP $${parseFloat(tpPrice).toFixed(0)}` : "Set Take Profit"}
+                    </button>
+                    <button type="button" onClick={() => { setShowSl(!showSl); if (!showSl) setShowTp(false); }}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showSl ? "bg-crypto-short-dim border-crypto-short text-crypto-short" : slPrice ? "bg-crypto-short-dim/30 border-crypto-short/30 text-crypto-short" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-short/50 hover:text-crypto-short"}`}>
+                      🛡️ {slPrice ? `SL $${parseFloat(slPrice).toFixed(0)}` : "Set Stop Loss"}
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Stop Loss</span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="0.00"
-                        value={slPrice}
-                        onChange={(e) => setSlPrice(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                  {/* step selector */}
+                  {(showTp || showSl) && (
+                    <div className="flex items-center justify-end gap-1">
+                      <button type="button" onClick={() => setShowTpSlStep(!showTpSlStep)}
+                        className="text-[10px] font-mono text-crypto-text-secondary hover:text-crypto-text transition-colors">
+                        step ${tpSlStep}
+                      </button>
+                      {showTpSlStep && [10, 50, 100, 250].map((s) => (
+                        <button type="button" key={s} onClick={() => { setTpSlStep(s); setShowTpSlStep(false); }}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${tpSlStep === s ? "bg-crypto-accent text-white" : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"}`}>
+                          ${s}
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  )}
+                  {/* Take Profit expanded */}
+                  {showTp && (
+                    <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-long-dim/10 border border-crypto-long/20">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-long uppercase tracking-wider">Trigger Price</span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setTpPrice(((parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="0.00" value={tpPrice} onChange={(e) => setTpPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-long/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-long" />
+                            {tpPrice && <button type="button" onClick={() => setTpPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setTpPrice(((parseFloat(tpPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="mercado" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                            {tpOrderPrice && <button type="button" onClick={() => setTpOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Stop Loss expanded */}
+                  {showSl && (
+                    <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-short-dim/10 border border-crypto-short/20">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-short uppercase tracking-wider">Trigger Price</span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setSlPrice(((parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="0.00" value={slPrice} onChange={(e) => setSlPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-short/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-short" />
+                            {slPrice && <button type="button" onClick={() => setSlPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setSlPrice(((parseFloat(slPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="mercado" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                            {slOrderPrice && <button type="button" onClick={() => setSlOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -411,55 +490,7 @@ export default function TradeControls() {
                     <span>${Math.floor(sliderMax).toLocaleString()}</span>
                   </div>
 
-                  {/* Trailing Stop — only when increasing (not reduce mode) */}
-                  {!isReduceMode && (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Trailing Stop</span>
-                        {position.trailingStopPercent != null && (
-                          <span className="text-[10px] font-mono text-crypto-warning">
-                            @{position.trailingStopPrice?.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <input
-                            type="number"
-                            min={0.1}
-                            max={20}
-                            step={0.1}
-                            placeholder="0.0"
-                            value={trailingStopInput}
-                            onChange={(e) => setTrailingStopInput(e.target.value)}
-                            className="w-full px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">%</span>
-                        </div>
-                        {position.trailingStopPercent != null ? (
-                          <button
-                            type="button"
-                            onClick={() => { setTrailingStop(null); setTrailingStopInput(""); }}
-                            className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-short transition-colors"
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const val = parseFloat(trailingStopInput);
-                              if (val > 0 && val <= 20) setTrailingStop(val);
-                            }}
-                            disabled={!trailingStopInput || parseFloat(trailingStopInput) <= 0 || parseFloat(trailingStopInput) > 20}
-                            className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Set
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* Trailing Stop UI removed — logic kept in store */}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -536,33 +567,91 @@ export default function TradeControls() {
 
               {/* TP / SL Inputs */}
               {(!position || orderType === "limit") && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Take Profit</span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="0.00"
-                        value={tpPrice}
-                        onChange={(e) => setTpPrice(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
-                    </div>
+                <div className="space-y-2">
+                  {/* TP / SL — collapsed by default */}
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => { setShowTp(!showTp); if (!showTp) setShowSl(false); }}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showTp ? "bg-crypto-long-dim border-crypto-long text-crypto-long" : tpPrice ? "bg-crypto-long-dim/30 border-crypto-long/30 text-crypto-long" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-long/50 hover:text-crypto-long"}`}>
+                      🎯 {tpPrice ? `TP $${parseFloat(tpPrice).toFixed(0)}` : "Set Take Profit"}
+                    </button>
+                    <button type="button" onClick={() => { setShowSl(!showSl); if (!showSl) setShowTp(false); }}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showSl ? "bg-crypto-short-dim border-crypto-short text-crypto-short" : slPrice ? "bg-crypto-short-dim/30 border-crypto-short/30 text-crypto-short" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-short/50 hover:text-crypto-short"}`}>
+                      🛡️ {slPrice ? `SL $${parseFloat(slPrice).toFixed(0)}` : "Set Stop Loss"}
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Stop Loss</span>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="0.00"
-                        value={slPrice}
-                        onChange={(e) => setSlPrice(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">USDT</span>
+                  {/* step selector */}
+                  {(showTp || showSl) && (
+                    <div className="flex items-center justify-end gap-1">
+                      <button type="button" onClick={() => setShowTpSlStep(!showTpSlStep)}
+                        className="text-[10px] font-mono text-crypto-text-secondary hover:text-crypto-text transition-colors">
+                        step ${tpSlStep}
+                      </button>
+                      {showTpSlStep && [10, 50, 100, 250].map((s) => (
+                        <button type="button" key={s} onClick={() => { setTpSlStep(s); setShowTpSlStep(false); }}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${tpSlStep === s ? "bg-crypto-accent text-white" : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"}`}>
+                          ${s}
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  )}
+                  {/* Take Profit expanded */}
+                  {showTp && (
+                    <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-long-dim/10 border border-crypto-long/20">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-long uppercase tracking-wider">Trigger Price</span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setTpPrice(((parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="0.00" value={tpPrice} onChange={(e) => setTpPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-long/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-long" />
+                            {tpPrice && <button type="button" onClick={() => setTpPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setTpPrice(((parseFloat(tpPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="mercado" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                            {tpOrderPrice && <button type="button" onClick={() => setTpOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Stop Loss expanded */}
+                  {showSl && (
+                    <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-short-dim/10 border border-crypto-short/20">
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-short uppercase tracking-wider">Trigger Price</span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setSlPrice(((parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="0.00" value={slPrice} onChange={(e) => setSlPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-short/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-short" />
+                            {slPrice && <button type="button" onClick={() => setSlPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setSlPrice(((parseFloat(slPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                          <div className="relative flex-1">
+                            <input type="text" placeholder="mercado" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
+                              className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                            {slOrderPrice && <button type="button" onClick={() => setSlOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                          </div>
+                          <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -623,6 +712,7 @@ export default function TradeControls() {
               )}
               <div className="flex items-center gap-2">
                 <button type="button"
+                  data-testid="limit-price-down"
                   onClick={() => {
                     const val = parseFloat(limitPrice || currentPrice.toFixed(2));
                     if (!isNaN(val)) setLimitPrice((val - limitStep).toFixed(2));
@@ -656,6 +746,7 @@ export default function TradeControls() {
                   )}
                 </div>
                 <button type="button"
+                  data-testid="limit-price-up"
                   onClick={() => {
                     const val = parseFloat(limitPrice || currentPrice.toFixed(2));
                     if (!isNaN(val)) setLimitPrice((val + limitStep).toFixed(2));
@@ -769,7 +860,7 @@ export default function TradeControls() {
               <button type="button"
                 data-testid="trade-controls-action-btn"
                 onClick={handleOpen}
-                disabled={isReduceMode && !reduceOnly ? !canFlip : !canOpen}
+                disabled={isReduceMode ? (!reduceOnly ? !canFlip : !canDecrease) : !canOpen}
                 className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
                   (isReduceMode && !reduceOnly ? canFlip : canOpen)
                     ? isLong

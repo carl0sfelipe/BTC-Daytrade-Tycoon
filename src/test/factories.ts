@@ -7,6 +7,8 @@ export const makePosition = (overrides: Partial<Position> = {}): Position => ({
   leverage: 10,
   tpPrice: null,
   slPrice: null,
+  trailingStopPercent: null,
+  trailingStopPrice: null,
   liquidationPrice: 45000,
   entryTime: "01/01/2024 00:00:00",
   realizedPnL: 0,

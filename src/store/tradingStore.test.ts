@@ -130,7 +130,7 @@ describe("TradingStore — Limit Orders", () => {
   it("addToPosition increases existing position and updates average entry", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
     });
 
     useTradingStore.getState().addToPosition(1000, 55000, "", "");
@@ -144,7 +144,7 @@ describe("TradingStore — Limit Orders", () => {
   it("reducePosition partially closes position", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 
@@ -159,7 +159,7 @@ describe("TradingStore — Limit Orders", () => {
   it("reducePosition closes entire position when reducedSize >= current", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 
@@ -186,7 +186,7 @@ describe("TradingStore — Order History Side Tracking", () => {
 
   it("updatePositionSize increase logs history with provided orderSide", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
     });
 
     useTradingStore.getState().updatePositionSize(2000, "long");
@@ -199,7 +199,7 @@ describe("TradingStore — Order History Side Tracking", () => {
 
   it("updatePositionSize reduce logs history with opposite orderSide (short reducing long)", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 
@@ -214,7 +214,7 @@ describe("TradingStore — Order History Side Tracking", () => {
 
   it("updatePositionSize reduce logs history with opposite orderSide (long reducing short)", () => {
     useTradingStore.setState({
-      position: { side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 48000,
     });
 
@@ -228,7 +228,7 @@ describe("TradingStore — Order History Side Tracking", () => {
 
   it("updatePositionSize falls back to position side when orderSide is omitted", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
     });
 
     useTradingStore.getState().updatePositionSize(2000);
@@ -253,7 +253,7 @@ describe("TradingStore — Order History Side Tracking", () => {
   it("closePosition includes prior realizedPnL in trade.pnl after partial reduces", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 150 },
+      position: { side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 150 },
       realizedPnL: 150, // global already includes partial closes
       currentPrice: 48000,
     });
@@ -273,7 +273,7 @@ describe("TradingStore — Order History Side Tracking", () => {
   it("closePosition with no prior realizedPnL works as before", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 
@@ -302,7 +302,7 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
 
   it("reduceOnly=true: opposite market order reduces position", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
     });
 
     useTradingStore.getState().openPosition("short", 10, 300, "", "", null);
@@ -315,7 +315,7 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
 
   it("reduceOnly=false: opposite market order larger than position flips side", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       reduceOnly: false,
     });
 
@@ -337,7 +337,7 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
     useTradingStore.setState({
       wallet: 10000,
       currentPrice: 52000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 25 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 25 },
       reduceOnly: false,
       realizedPnL: 25,
       closedTrades: [],
@@ -368,7 +368,7 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
 
   it("reduceOnly=false: opposite market order smaller than position reduces (no flip)", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       reduceOnly: false,
     });
 
@@ -382,7 +382,7 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
 
   it("reduceOnly=false: exact-size opposite order closes position", () => {
     useTradingStore.setState({
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, trailingStopPercent: null, trailingStopPrice: null, entryTime: "now", realizedPnL: 0 },
       reduceOnly: false,
     });
 
@@ -416,6 +416,8 @@ describe("TradingStore — checkPosition", () => {
         liquidationPrice: 45000,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -442,6 +444,8 @@ describe("TradingStore — checkPosition", () => {
         liquidationPrice: 45000,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -464,6 +468,8 @@ describe("TradingStore — checkPosition", () => {
         liquidationPrice: 55000,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -486,7 +492,9 @@ describe("TradingStore — checkPosition", () => {
         leverage: 10,
         liquidationPrice: 45000,
         tpPrice: null,
-        slPrice: 48000,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
+slPrice: 48000,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -510,7 +518,9 @@ describe("TradingStore — checkPosition", () => {
         leverage: 10,
         liquidationPrice: 55000,
         tpPrice: null,
-        slPrice: 52000,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
+slPrice: 52000,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -534,6 +544,8 @@ describe("TradingStore — checkPosition", () => {
         liquidationPrice: 45000,
         tpPrice: 55000,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -558,6 +570,8 @@ describe("TradingStore — checkPosition", () => {
         liquidationPrice: 55000,
         tpPrice: 45000,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -580,7 +594,9 @@ describe("TradingStore — checkPosition", () => {
         leverage: 10,
         liquidationPrice: 45000,
         tpPrice: 55000,
-        slPrice: 48000,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
+slPrice: 48000,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -603,7 +619,9 @@ describe("TradingStore — checkPosition", () => {
         leverage: 10,
         liquidationPrice: 45000,
         tpPrice: null,
-        slPrice: 46000,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
+slPrice: 46000,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -627,6 +645,8 @@ describe("TradingStore — updateLeverage", () => {
         liquidationPrice: 45000,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -650,6 +670,8 @@ describe("TradingStore — updateLeverage", () => {
         liquidationPrice: 45000,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },
@@ -672,6 +694,8 @@ describe("TradingStore — updateLeverage", () => {
         liquidationPrice: 47500,
         tpPrice: null,
         slPrice: null,
+        trailingStopPercent: null,
+        trailingStopPrice: null,
         entryTime: "now",
         realizedPnL: 0,
       },

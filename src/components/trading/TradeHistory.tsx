@@ -1,9 +1,9 @@
 "use client";
 
-import { Target, Shield, Skull, Hand, ArrowRight, Clock } from "lucide-react";
+import { Target, Shield, Skull, Hand, ArrowRight, Clock, TrendingDown } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 
-type TradeReason = "manual" | "tp" | "sl" | "liquidation";
+type TradeReason = "manual" | "tp" | "sl" | "liquidation" | "trailing_stop";
 
 function getReasonIcon(reason: TradeReason) {
   switch (reason) {
@@ -11,6 +11,8 @@ function getReasonIcon(reason: TradeReason) {
       return <Target className="w-3.5 h-3.5 text-crypto-long" />;
     case "sl":
       return <Shield className="w-3.5 h-3.5 text-crypto-warning" />;
+    case "trailing_stop":
+      return <TrendingDown className="w-3.5 h-3.5 text-crypto-warning" />;
     case "liquidation":
       return <Skull className="w-3.5 h-3.5 text-crypto-short" />;
     case "manual":
@@ -24,6 +26,8 @@ function getReasonLabel(reason: TradeReason) {
       return "Take Profit";
     case "sl":
       return "Stop Loss";
+    case "trailing_stop":
+      return "Trailing Stop";
     case "liquidation":
       return "Liquidated";
     case "manual":

@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export interface Trade {
   pnl: number;
   side: "long" | "short";
-  reason: "manual" | "tp" | "sl" | "liquidation";
+  reason: "manual" | "tp" | "sl" | "liquidation" | "trailing_stop";
   entryPrice: number;
   exitPrice: number;
   size: number;
@@ -46,9 +46,17 @@ export interface Position {
   leverage: number;
   tpPrice: number | null;
   slPrice: number | null;
+  trailingStopPercent: number | null;
+  trailingStopPrice: number | null;
   liquidationPrice: number;
   entryTime: string;
   realizedPnL: number;
+}
+
+function calcTrailingStopPrice(side: "long" | "short", currentPrice: number, percent: number): number {
+  return side === "long"
+    ? currentPrice * (1 - percent / 100)
+    : currentPrice * (1 + percent / 100);
 }
 
 interface TradingStore {
@@ -89,6 +97,7 @@ interface TradingStore {
     limitPrice: string | null
   ) => void;
   closePosition: (reason?: Trade["reason"]) => void;
+  setTrailingStop: (percent: number | null) => void;
   addToPosition: (additionalSize: number, price: number, tpPrice: string, slPrice: string) => void;
   reducePosition: (reducedSize: number, price: number) => void;
   updatePositionSize: (newSize: number, orderSide?: "long" | "short") => void;
@@ -374,6 +383,8 @@ export const useTradingStore = create<TradingStore>()(
               leverage,
               tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
               slPrice: slPrice && slPrice > 0 ? slPrice : null,
+              trailingStopPercent: null,
+              trailingStopPrice: null,
               liquidationPrice: newLiqPrice,
               entryTime: now,
               realizedPnL: 0,
@@ -470,6 +481,8 @@ export const useTradingStore = create<TradingStore>()(
           leverage,
           tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
           slPrice: slPrice && slPrice > 0 ? slPrice : null,
+          trailingStopPercent: null,
+          trailingStopPrice: null,
           liquidationPrice: liqPrice,
           entryTime: now,
           realizedPnL: 0,
@@ -747,11 +760,44 @@ export const useTradingStore = create<TradingStore>()(
         });
       },
 
+          setTrailingStop: (percent: number | null) => {
+        const state = get();
+        if (!state.position) return;
+        if (percent === null || percent <= 0) {
+          set({
+            position: { ...state.position, trailingStopPercent: null, trailingStopPrice: null },
+          });
+          return;
+        }
+        const newStopPrice = calcTrailingStopPrice(state.position.side, state.currentPrice, percent);
+        set({
+          position: { ...state.position, trailingStopPercent: percent, trailingStopPrice: newStopPrice },
+        });
+      },
+
       checkPosition: (currentPrice) => {
         const state = get();
         if (!state.position) return { closed: false };
 
-        const { side, tpPrice, slPrice, liquidationPrice } = state.position;
+        const { side, tpPrice, slPrice, liquidationPrice, trailingStopPercent, trailingStopPrice } = state.position;
+
+        // Update trailing stop if price moved favorably
+        if (trailingStopPercent && trailingStopPrice !== null) {
+          const newStopPrice = calcTrailingStopPrice(side, currentPrice, trailingStopPercent);
+          if (
+            (side === "long" && newStopPrice > trailingStopPrice) ||
+            (side === "short" && newStopPrice < trailingStopPrice)
+          ) {
+            set({ position: { ...state.position, trailingStopPrice: newStopPrice } });
+          }
+          if (
+            (side === "long" && currentPrice <= trailingStopPrice) ||
+            (side === "short" && currentPrice >= trailingStopPrice)
+          ) {
+            state.closePosition("trailing_stop");
+            return { closed: true, reason: "trailing_stop" };
+          }
+        }
 
         // Check liquidation
         if (side === "long" && currentPrice <= liquidationPrice) {

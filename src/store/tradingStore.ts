@@ -184,7 +184,6 @@ export const useTradingStore = create<TradingStore>()(
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
         set((state) => {
-          console.log("[tradingStore] addPendingOrder", { order, state: formatStoreState(state) });
           const id = Math.random().toString(36).slice(2, 9);
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
@@ -216,7 +215,6 @@ export const useTradingStore = create<TradingStore>()(
           };
         }),
       cancelPendingOrder: (id) => {
-        console.log("[tradingStore] cancelPendingOrder", { id, state: formatStoreState(get()) });
         set((state) => ({
           pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
           ordersHistory: state.ordersHistory.map((o) =>
@@ -228,7 +226,6 @@ export const useTradingStore = create<TradingStore>()(
       checkPendingOrders: (currentPrice) => {
         const state = get();
         if (state.pendingOrders.length === 0) return;
-        console.log("[tradingStore] checkPendingOrders", { currentPrice: currentPrice.toFixed(2), pendingCount: state.pendingOrders.length, state: formatStoreState(state) });
         const executed: PendingOrder[] = [];
         const remaining: PendingOrder[] = [];
 
@@ -246,7 +243,6 @@ export const useTradingStore = create<TradingStore>()(
         }
 
         if (executed.length > 0) {
-          console.log("[tradingStore] limit orders executed", executed.map(o => ({ side: o.side, size: o.size, limitPrice: o.limitPrice })));
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
@@ -306,7 +302,6 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
-        console.log("[tradingStore] openPosition", { side, leverage, positionSize, limitPrice, state: formatStoreState(get()) });
         const state = get();
         const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
         if (!entryPrice || entryPrice <= 0) return;
@@ -512,7 +507,6 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       addToPosition: (additionalSize: number, price: number, tpPriceStr: string, slPriceStr: string) => {
-        console.log("[tradingStore] addToPosition", { additionalSize, price, tpPriceStr, slPriceStr, state: formatStoreState(get()) });
         const state = get();
         if (!state.position) return;
 
@@ -543,7 +537,6 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       reducePosition: (reducedSize: number, price: number) => {
-        console.log("[tradingStore] reducePosition", { reducedSize, price, state: formatStoreState(get()) });
         const state = get();
         if (!state.position) return;
 
@@ -597,7 +590,6 @@ export const useTradingStore = create<TradingStore>()(
       },
 
       closePosition: (reason = "manual") => {
-        console.log("[tradingStore] closePosition", { reason, state: formatStoreState(get()) });
         const state = get();
         if (!state.position) return;
 

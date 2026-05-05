@@ -798,3 +798,42 @@ describe("TradeControls", () => {
     });
   });
 });
+
+
+describe("TradeControls — TP/SL input flows", () => {
+  beforeEach(() => {
+    useTradingStore.setState({
+      wallet: 10000, currentPrice: 50000, position: null,
+      reduceOnly: true, skipHighLeverageWarning: true,
+    });
+  });
+
+  it("TP and SL typed by user are passed to openPosition", () => {
+    render(<TradeControls />);
+
+    const [tpInput, slInput] = screen.getAllByPlaceholderText("0.00");
+    fireEvent.change(tpInput, { target: { value: "55000" } });
+    fireEvent.change(slInput, { target: { value: "48000" } });
+    fireEvent.click(screen.getByTestId("trade-controls-action-btn"));
+
+    const pos = useTradingStore.getState().position;
+    expect(pos!.tpPrice).toBe(55000);
+    expect(pos!.slPrice).toBe(48000);
+  });
+
+  it("TP and SL are passed to addPendingOrder in limit mode", () => {
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("50000.00");
+    fireEvent.change(limitInput, { target: { value: "49000" } });
+    const [tpInput, slInput] = screen.getAllByPlaceholderText("0.00");
+    fireEvent.change(tpInput, { target: { value: "55000" } });
+    fireEvent.change(slInput, { target: { value: "48000" } });
+    fireEvent.click(screen.getByTestId("trade-controls-action-btn"));
+
+    const order = useTradingStore.getState().pendingOrders[0];
+    expect(order.tpPrice).toBe(55000);
+    expect(order.slPrice).toBe(48000);
+  });
+});

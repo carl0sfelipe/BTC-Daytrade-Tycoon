@@ -439,7 +439,7 @@ export default function TradeControls() {
                               const val = parseFloat(trailingStopInput);
                               if (val > 0 && val <= 20) setTrailingStop(val);
                             }}
-                            disabled={!trailingStopInput || parseFloat(trailingStopInput) <= 0}
+                            disabled={!trailingStopInput || parseFloat(trailingStopInput) <= 0 || parseFloat(trailingStopInput) > 20}
                             className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Set
@@ -757,9 +757,9 @@ export default function TradeControls() {
               <button type="button"
                 data-testid="trade-controls-action-btn"
                 onClick={handleOpen}
-                disabled={!canOpen}
+                disabled={isReduceMode && !reduceOnly ? !canFlip : !canOpen}
                 className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
-                  canOpen
+                  (isReduceMode && !reduceOnly ? canFlip : canOpen)
                     ? isLong
                       ? "btn-long shadow-glow-long"
                       : "btn-short shadow-glow-short"

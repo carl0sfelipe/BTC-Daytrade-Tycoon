@@ -24,7 +24,7 @@
 
 ## Overview & Core Concept
 
-**TimeWarp Trading Simulator** drops the user into a random, real Bitcoin trading day between December 2017 and December 2020. The historical date is intentionally hidden — there is no time axis, no calendar, and no date labels on the chart. The goal is pure price-action trading without temporal bias.
+**TimeWarp Trading Simulator** drops the user into a random, real Bitcoin trading day between December 2017 and December 2025. The historical date is intentionally hidden — there is no time axis, no calendar, and no date labels on the chart. The goal is pure price-action trading without temporal bias.
 
 | Parameter | Value |
 |-----------|-------|
@@ -200,6 +200,8 @@ interface TradingStore {
   closedTrades: Trade[];            // Closed trade history
   pendingOrders: PendingOrder[];    // Active limit orders waiting for price
   ordersHistory: OrderHistoryItem[]; // Complete order log (pending/filled/canceled)
+  realizedPnL: number;              // Session-wide realized P&L from partial closes
+  reduceOnly: boolean;              // true = one-way mode (default), false = hedge mode
 
   isLiquidated: boolean;
   simulationRealDate: string | null; // Revealed on end/liquidation
@@ -221,6 +223,7 @@ interface TradingStore {
   setLiquidated(date): void;
   clearLiquidated(): void;
   setOnboardingSeen(): void;
+  setReduceOnly(value): void;
 }
 ```
 
@@ -277,6 +280,10 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
 
 This is actively used by E2E tests to inject positions for liquidation scenarios.
 
+### Debug Logging
+
+All user actions (open, update, close, pause, resume, end, cancel order, etc.) are logged to the console with full store state context via `formatStoreState()`. In production, these logs are stripped by tree-shaking.
+
 ---
 
 ## Position Mechanics
@@ -324,6 +331,15 @@ wallet += margin + pnl;
 - If `reducedSize >= currentSize`, the position is fully closed.
 - Used when a limit order on the opposite side is executed.
 
+### Realized P&L Tracking
+
+When a position is partially closed (via slider REDUCE or opposite-side limit order), the P&L of that portion is accumulated separately:
+
+- `position.realizedPnL` — P&L realized **only on the currently open position** (shown in PositionPanel).
+- `store.realizedPnL` — P&L realized **across the entire session** (shown in PnLDisplay).
+
+When `closePosition` is called, the final trade P&L includes all prior partial-close realized P&L, so the Trade History reflects the true total profit/loss of that trade.
+
 ### Updating Leverage
 
 - Recalculates margin requirement: `newMargin = size / newLeverage`
@@ -347,7 +363,7 @@ wallet += margin + pnl;
 | Component | File | Responsibility |
 |-----------|------|----------------|
 | `TradingChart` | `components/trading/TradingChart.tsx` | `lightweight-charts` candlestick chart. Crypto-themed colors (green long, red short). Dynamic liquidation price line. |
-| `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs (visible in both modes), Market/Limit order types, limit price stepper with configurable step ($1–$100 + custom), open/close/increase/decrease buttons. Limit orders can increase or reduce existing positions. |
+| `TradeControls` | `components/trading/TradeControls.tsx` | Simple/Advanced modes, leverage pills (2×–100×), size slider/pills, TP/SL inputs (visible in both modes), Market/Limit order types, limit price stepper with configurable step ($1–$100 + custom), open/close/increase/decrease buttons. Limit orders can increase or reduce existing positions. **Reduce Only / Hedge Mode toggle** when position is open. |
 | `PositionPanel` | `components/trading/PositionPanel.tsx` | Risk gauge, unrealized PnL, realized PnL from partial closes, distance-to-liquidation bar, entry/size/leverage/margin/liquidation display, pending orders list with cancel button. |
 | `OrdersPanel` | `components/trading/OrdersPanel.tsx` | Full order history with filter tabs (All / Pending / Filled / Canceled). Shows side, type, leverage, size, price, TP/SL for each order. |
 | `PnLDisplay` | `components/trading/PnLDisplay.tsx` | Total equity (wallet + margin + unrealizedPnL), session PnL, win rate, best/worst trade. |
@@ -429,7 +445,7 @@ Playwright tests live in `e2e/`.
 | `trading.spec.ts` | `TRADING-01` | Full simulation journey: skip onboarding, loader, chart advancing, pause, new session. |
 | `date-reveal.spec.ts` | `DATE-REVEAL` | End button reveals date modal; liquidation modal reveals date via `__tradingStore` injection. |
 | `manual-trading.spec.ts` | — | Position lifecycle: open LONG 10× at 50%, increase via slider, decrease via slider, close via panel. |
-| `production-bar.spec.ts` | — | Smoke test against live Vercel deployment verifying distance-to-liquidation bar moves as price changes. |
+| `production-bar.spec.ts` | — | Smoke test against live Vercel deployment verifying the distance-to-liquidation bar moves as price changes during simulation. |
 
 ### Test Helpers
 

@@ -67,7 +67,7 @@ _________________________________________________________________
 - 📜 **Trade History Timeline** — Complete session log of every trade decision.
 - ⏯️ **Simulation Controls** — Play, pause, end, and reset the simulation clock at any time.
 - 🕵️ **Blind Date Rule** — The real historical date is completely hidden during simulation. Only revealed upon liquidation or manual end. Once revealed, you cannot return to the simulation.
-- 🔄 **One-Way Position Mode** — Opposite-side orders automatically reduce or close the existing position (default behavior). No simultaneous long + short positions.
+- 🔄 **Reduce Only / Hedge Mode Toggle** — Default "Reduce Only" mode: opposite-side orders only reduce/close the existing position. Switch to "Hedge Mode" to allow flips (e.g. long $50k → short $70k closes long and opens short $20k).
 - 💀 **Liquidation Modal** — When you get rekt, the real historical date is revealed — learn from history.
 - 🏁 **End Simulation Modal** — Full session summary with performance breakdown.
 - 🎓 **Onboarding Modal** — 3-step interactive tutorial for first-time traders.
@@ -77,7 +77,7 @@ _________________________________________________________________
 - 🏆 **Leaderboard & Achievements** — Compete and unlock milestones.
 - ⚠️ **High-Leverage Confirmation** — Safety modal for trades ≥50x leverage.
 - 🔥 **Streak Tracking** — Utility to monitor consecutive wins/losses.
-- 🧪 **Unit Test Suite** — 55+ Vitest tests across 8 files covering store logic, limit orders, position mechanics, component rendering, engine behavior, and order history side tracking.
+- 🧪 **Unit Test Suite** — 65+ Vitest tests across store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
 
 ---
 

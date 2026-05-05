@@ -46,7 +46,7 @@ export function calculateMovingAverage(prices: number[], period: number): number
   return sum / period;
 }
 
-export function generateVolatilityEngine(): VolatilityData {
+function generateVolatilityEngine(): VolatilityData {
   const historicalVolatilitys: number[] = Array.from({ length: 50 }, () => 
     Math.random() * 3 + 1.5 // Random volatility between 1.5 and 4.5
   );

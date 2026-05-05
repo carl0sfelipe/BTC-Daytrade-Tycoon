@@ -12,12 +12,11 @@ export interface Trade {
   margin: number;
   entryTime: string;
   exitTime: string;
+  durationSeconds: number;
 }
 
 const MAX_CLOSED_TRADES = 500;
 const MAX_ORDERS_HISTORY = 500;
-const MAX_PRICE_HISTORY = 200;
-
 export interface PendingOrder {
   id: string;
   side: "long" | "short";
@@ -54,6 +53,7 @@ export interface Position {
   trailingStopPrice: number | null;
   liquidationPrice: number;
   entryTime: string;
+  entryTimestamp: number;
   realizedPnL: number;
 }
 
@@ -366,6 +366,7 @@ export const useTradingStore = create<TradingStore>()(
             const excessSize = positionSize - existing.size;
             const excessMargin = excessSize / leverage;
 
+            const durationSeconds = Math.floor((Date.now() - existing.entryTimestamp) / 1000);
             const trade: Trade = {
               pnl: totalRealized,
               side: existing.side,
@@ -377,6 +378,7 @@ export const useTradingStore = create<TradingStore>()(
               margin: returnedMargin,
               entryTime: existing.entryTime || now,
               exitTime: now,
+              durationSeconds,
             };
 
             const newLiqPrice = calcLiquidationPrice(entryPrice, leverage, side);
@@ -391,6 +393,7 @@ export const useTradingStore = create<TradingStore>()(
               trailingStopPrice: null,
               liquidationPrice: newLiqPrice,
               entryTime: now,
+              entryTimestamp: Date.now(),
               realizedPnL: 0,
             };
 
@@ -444,6 +447,7 @@ export const useTradingStore = create<TradingStore>()(
               const closePnl = (priceDiff / existing.entry) * existing.size;
               const totalRealized = existing.realizedPnL + closePnl;
               const margin = existing.size / existing.leverage;
+              const durationSeconds = Math.floor((Date.now() - existing.entryTimestamp) / 1000);
               const trade: Trade = {
                 pnl: totalRealized,
                 side: existing.side,
@@ -455,6 +459,7 @@ export const useTradingStore = create<TradingStore>()(
                 margin,
                 entryTime: existing.entryTime || now,
                 exitTime: now,
+                durationSeconds,
               };
               set({
                 wallet: state.wallet + margin + closePnl,
@@ -489,6 +494,7 @@ export const useTradingStore = create<TradingStore>()(
           trailingStopPrice: null,
           liquidationPrice: liqPrice,
           entryTime: now,
+          entryTimestamp: Date.now(),
           realizedPnL: 0,
         };
 
@@ -571,6 +577,7 @@ export const useTradingStore = create<TradingStore>()(
           const pnl = (priceDiff / entry) * size;
           const margin = size * marginPerUnit;
           const totalRealized = state.position.realizedPnL + pnl;
+          const durationSeconds = Math.floor((Date.now() - state.position.entryTimestamp) / 1000);
           const trade: Trade = {
             pnl: totalRealized,
             side,
@@ -582,6 +589,7 @@ export const useTradingStore = create<TradingStore>()(
             margin,
             entryTime: state.position.entryTime || now,
             exitTime: now,
+            durationSeconds,
           };
           set({
             wallet: state.wallet + margin + pnl,
@@ -633,6 +641,7 @@ export const useTradingStore = create<TradingStore>()(
           second: "2-digit",
         });
 
+        const durationSeconds = Math.floor((Date.now() - state.position.entryTimestamp) / 1000);
         const trade: Trade = {
           pnl: totalPnl,
           side,
@@ -644,6 +653,7 @@ export const useTradingStore = create<TradingStore>()(
           margin,
           entryTime: state.position.entryTime || now,
           exitTime: now,
+          durationSeconds,
         };
 
         set({

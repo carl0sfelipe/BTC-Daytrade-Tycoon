@@ -105,7 +105,7 @@ export function normalizeCandlesToBasePrice(
     const closePct = c.close / firstOpen;
 
     return {
-      time: Math.floor(c.openTime / 1000) as unknown as number,
+      time: Math.floor(c.openTime / 1000),
       open: basePrice * openPct,
       high: basePrice * highPct,
       low: basePrice * lowPct,

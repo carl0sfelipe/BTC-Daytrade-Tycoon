@@ -17,10 +17,10 @@ export function useTradeNotifications() {
   // Position opened
   useEffect(() => {
     const hasPosition = !!position;
-    if (hasPosition && !prevPositionRef.current) {
+    if (hasPosition && !prevPositionRef.current && position) {
       toast({
-        title: `📈 ${position!.side.toUpperCase()} Position Opened`,
-        description: `Size: $${position!.size.toLocaleString()} @ ${position!.leverage}x`,
+        title: `📈 ${position.side.toUpperCase()} Position Opened`,
+        description: `Size: $${position.size.toLocaleString()} @ ${position.leverage}x`,
       });
     }
     prevPositionRef.current = hasPosition;

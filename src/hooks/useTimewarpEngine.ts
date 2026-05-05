@@ -97,10 +97,6 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const mountedRef = useRef(true);
   const startSimulationRef = useRef<(() => void) | null>(null);
 
-  const storeSetPrice = useTradingStore((s) => s.setPrice);
-  const storeSetCurrentPrice = useTradingStore((s) => s.setCurrentPrice);
-  const storeSetMarketTrend = useTradingStore((s) => s.setMarketTrend);
-  const storeSetVolatility = useTradingStore((s) => s.setVolatility);
   const storeAddPriceHistory = useTradingStore((s) => s.addPriceHistory);
   const storeCheckPosition = useTradingStore((s) => s.checkPosition);
   const storeCheckPendingOrders = useTradingStore((s) => s.checkPendingOrders);
@@ -361,11 +357,11 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   // Expose engine control for E2E tests
   useEffect(() => {
     if (typeof window !== "undefined") {
-      (window as any).__timewarpEngine = { pause, start, reset };
+      (window as Window & { __timewarpEngine?: { pause: () => void; start: () => void; reset: () => void } }).__timewarpEngine = { pause, start, reset };
     }
     return () => {
       if (typeof window !== "undefined") {
-        delete (window as any).__timewarpEngine;
+        delete (window as Window & { __timewarpEngine?: unknown }).__timewarpEngine;
       }
     };
   }, [pause, start, reset]);

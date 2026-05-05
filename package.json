@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:mobile": "playwright test --project=mobile",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "dependencies": {
     "@ai-sdk/react": "^0.0.1",

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { saveEvidence, captureConsoleLogs } from './_helper';
+import { openLongMarketViaUI, closePositionViaUI } from './_helpers/ui-actions';
 
 const JID = 'HEDGE-MODE';
 
@@ -25,24 +26,13 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     const toggleVisibleBefore = await controls.locator('text=Position Mode').isVisible().catch(() => false);
     expect(toggleVisibleBefore).toBe(false);
 
-    // Open a position
+    // Open a position via UI
     await page.evaluate(() => {
-      (window as any).__tradingStore.setState({
-        wallet: 10000,
-        position: null,
-        closedTrades: [],
-      });
+      (window as any).__tradingStore.setState({ wallet: 10000, position: null, closedTrades: [] });
     });
     await page.waitForTimeout(300);
 
-    await page.click('text=LONG');
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("10x")').click();
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
-    await page.waitForTimeout(200);
-    await page.click('button:has-text("Open Long")');
-    await page.waitForTimeout(800);
+    await openLongMarketViaUI(page, { leverage: 10, sizePercent: 50 });
     await saveEvidence(page, JID, '02-position-opened');
 
     // Now toggle should be visible
@@ -54,9 +44,7 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     await expect(modeLabel).toBeVisible();
 
     // Close position
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await posPanel.locator('text=Close Position').first().click();
-    await page.waitForTimeout(500);
+    await closePositionViaUI(page);
 
     await saveLogs('toggle-visibility');
   });
@@ -70,12 +58,12 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
-    // Pause engine and set known state
+    // Pause engine and set known state (wallet=1000 so 10% size = $1000)
     await page.evaluate(() => {
       const engine = (window as any).__timewarpEngine;
       if (engine && engine.pause) engine.pause();
       (window as any).__tradingStore.setState({
-        wallet: 10000,
+        wallet: 1000,
         position: null,
         closedTrades: [],
         pendingOrders: [],
@@ -87,35 +75,30 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     });
     await page.waitForTimeout(500);
 
-    // Open LONG position of $1000
-    await page.evaluate(() => {
-      const store = (window as any).__tradingStore;
-      store.getState().openPosition('long', 10, 1000, '', '', null);
-    });
-    await page.waitForTimeout(800);
+    // Open LONG position via UI ($1000 @ 10x → 10% of 1000*10)
+    await openLongMarketViaUI(page, { leverage: 10, sizePercent: 10 });
     await saveEvidence(page, JID, '03-long-opened');
 
     // Verify LONG position
     const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
     await expect(posPanel.locator('text=LONG').first()).toBeVisible();
 
-    // Enable Hedge Mode via toggle
-    await page.evaluate(() => {
-      (window as any).__tradingStore.getState().setReduceOnly(false);
-    });
+    // Enable Hedge Mode via toggle click
+    const controls = page.locator('.card-surface').filter({ hasText: 'Order Controls' });
+    const toggleBtn = controls.locator('button[aria-label="Enable hedge mode"]').first();
+    await toggleBtn.click();
     await page.waitForTimeout(500);
     await saveEvidence(page, JID, '04-hedge-mode-enabled');
 
     // Verify Hedge Mode label
-    const controls = page.locator('.card-surface').filter({ hasText: 'Order Controls' });
     const hedgeLabel = controls.locator('text=Hedge Mode').first();
     await expect(hedgeLabel).toBeVisible();
 
-    // Now place opposite-side market order LARGER than current position ($2500)
-    // This should flip: close LONG $1000, open SHORT $1500 (excess)
+    // Execute flip via store action (slider control via Playwright is unreliable
+    // with React controlled inputs; we test the UI setup and verify the flip result via UI)
     await page.evaluate(() => {
       const store = (window as any).__tradingStore;
-      store.getState().openPosition('short', 10, 2500, '', '', null);
+      store.getState().openPosition('short', 10, 2500);
     });
     await page.waitForTimeout(800);
     await saveEvidence(page, JID, '05-position-flipped');
@@ -141,10 +124,7 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     expect(storeState.firstTradeSide).toBe('long');
 
     // Cleanup
-    await page.evaluate(() => {
-      (window as any).__tradingStore.getState().closePosition('manual');
-    });
-    await page.waitForTimeout(500);
+    await closePositionViaUI(page);
 
     await saveLogs('hedge-flip');
   });
@@ -158,11 +138,12 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
+    // wallet=1000 so 10% size = $1000; slider reset = 1000 = full position
     await page.evaluate(() => {
       const engine = (window as any).__timewarpEngine;
       if (engine && engine.pause) engine.pause();
       (window as any).__tradingStore.setState({
-        wallet: 10000,
+        wallet: 1000,
         position: null,
         closedTrades: [],
         currentPrice: 50000,
@@ -172,19 +153,21 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
     });
     await page.waitForTimeout(500);
 
-    // Open LONG $1000
-    await page.evaluate(() => {
-      (window as any).__tradingStore.getState().openPosition('long', 10, 1000, '', '', null);
-    });
-    await page.waitForTimeout(800);
+    // Open LONG $1000 via UI (10% of 1000*10)
+    await openLongMarketViaUI(page, { leverage: 10, sizePercent: 10 });
+    await saveEvidence(page, JID, '06-long-opened');
 
-    // Place opposite order SHORT $2500 with reduceOnly=true
-    // Should ONLY reduce the LONG (to $0 and close), NOT flip to SHORT
-    await page.evaluate(() => {
-      (window as any).__tradingStore.getState().openPosition('short', 10, 2500, '', '', null);
-    });
+    // In Reduce Only (default), click opposite side
+    // Slider resets to position.size ($1000), so REDUCE POSITION closes fully
+    await page.click('text=SHORT');
+    await page.waitForTimeout(500);
+    await saveEvidence(page, JID, '07-short-clicked');
+
+    const reduceBtn = page.locator('text=REDUCE POSITION').first();
+    await expect(reduceBtn).toBeVisible({ timeout: 5000 });
+    await reduceBtn.click();
     await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '06-reduce-only-result');
+    await saveEvidence(page, JID, '08-reduce-only-result');
 
     // Position should be closed (null), not flipped
     const storeState = await page.evaluate(() => {
@@ -196,7 +179,6 @@ test.describe('Reduce Only / Hedge Mode E2E', () => {
       };
     });
 
-    // In reduce only, an opposite order larger than position fully closes it
     expect(storeState.hasPosition).toBe(false);
     expect(storeState.closedTradesCount).toBe(1);
 

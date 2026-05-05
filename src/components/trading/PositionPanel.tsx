@@ -1,14 +1,37 @@
 "use client";
 
-import { TrendingUp, TrendingDown, AlertTriangle, Crosshair } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, TrendingDown, AlertTriangle, Crosshair, Target, Shield, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PositionPanel() {
   const position = useTradingStore((s) => s.position);
   const currentPrice = useTradingStore((s) => s.currentPrice);
   const closePosition = useTradingStore((s) => s.closePosition);
   const lastCloseReason = useTradingStore((s) => s.lastCloseReason);
+  const pendingOrders = useTradingStore((s) => s.pendingOrders);
+  const setPositionTpSl = useTradingStore((s) => s.setPositionTpSl);
+  const cancelPendingOrder = useTradingStore((s) => s.cancelPendingOrder);
+  const lastActionError = useTradingStore((s) => s.lastActionError);
+  const clearLastActionError = useTradingStore((s) => s.clearLastActionError);
+  const { toast } = useToast();
 
+  useEffect(() => {
+    if (lastActionError) {
+      toast({ title: "⚠️ Ordem inválida", description: lastActionError, variant: "destructive" });
+      clearLastActionError();
+    }
+  }, [lastActionError, toast, clearLastActionError]);
+
+  const [tpInput, setTpInput] = useState("");
+  const [tpOrderInput, setTpOrderInput] = useState("");
+  const [slInput, setSlInput] = useState("");
+  const [slOrderInput, setSlOrderInput] = useState("");
+  const [showTp, setShowTp] = useState(false);
+  const [showSl, setShowSl] = useState(false);
+  const [tpSlStep, setTpSlStep] = useState(100);
+  const [showTpSlStep, setShowTpSlStep] = useState(false);
 
   if (!position) {
     return (
@@ -51,6 +74,23 @@ export default function PositionPanel() {
   const isCritical = barPercent < 15;
   const isDanger = barPercent < 40;
 
+  const tpPending = pendingOrders.filter((o) => o.side === side && o.orderType === "take_profit");
+  const slPending = pendingOrders.filter((o) => o.side === side && o.orderType === "stop_loss");
+
+  const handleSetTpSl = () => {
+    setPositionTpSl(tpInput, slInput);
+    setTpInput(""); setTpOrderInput(""); setShowTp(false);
+    setSlInput(""); setSlOrderInput(""); setShowSl(false);
+  };
+
+  const handleCancelTp = (id: string) => {
+    cancelPendingOrder(id);
+  };
+
+  const handleCancelSl = (id: string) => {
+    cancelPendingOrder(id);
+  };
+
   return (
     <div className={`card-surface overflow-hidden ${isCritical ? "animate-pulse-glow border-crypto-short/50" : ""}`}>
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
@@ -74,7 +114,7 @@ export default function PositionPanel() {
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Unrealized P&L</span>
             <div className="flex items-baseline gap-2">
               <span data-testid="position-panel-pnl" className={`text-2xl font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short"}`}>
-                {pnl >= 0 ? "+" : ""}${pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
               </span>
               <span data-testid="position-panel-pnl-percent" className={`text-sm font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
                 ({pnl >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
@@ -84,7 +124,7 @@ export default function PositionPanel() {
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Realized P&L</span>
                 <span className={`text-xs font-bold font-mono tabular-nums ${position.realizedPnL >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
-                  {position.realizedPnL >= 0 ? "+" : ""}${position.realizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {position.realizedPnL >= 0 ? "+" : ""}${position.realizedPnL.toFixed(2)}
                 </span>
               </div>
             )}
@@ -99,7 +139,7 @@ export default function PositionPanel() {
           <div className="flex flex-col">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Entry Price</span>
             <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
-              ${entry.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              ${entry.toFixed(2)}
             </span>
           </div>
           <div className="flex flex-col">
@@ -113,7 +153,7 @@ export default function PositionPanel() {
           <div className="flex flex-col">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Margin</span>
             <span className="text-sm font-mono font-semibold text-crypto-text tabular-nums">
-              ${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              ${margin.toFixed(2)}
             </span>
           </div>
         </div>
@@ -136,7 +176,7 @@ export default function PositionPanel() {
           </div>
         )}
 
-        {/* TP / SL */}
+        {/* Active TP / SL from position */}
         {(tpPrice || slPrice) && (
           <div className="grid grid-cols-2 gap-2">
             {tpPrice && (
@@ -154,6 +194,143 @@ export default function PositionPanel() {
           </div>
         )}
 
+        {/* Pending TP / SL Orders */}
+        {(tpPending.length > 0 || slPending.length > 0) && (
+          <div className="space-y-2">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Pending Orders</span>
+            {tpPending.map((order) => (
+              <div key={order.id} className="flex items-center justify-between p-2 rounded-lg bg-crypto-long-dim/30 border border-crypto-long/20">
+                <div className="flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-crypto-long" />
+                  <span className="text-xs font-mono text-crypto-long">TP @ ${order.limitPrice.toFixed(2)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCancelTp(order.id)}
+                  className="text-[10px] text-crypto-text-muted hover:text-crypto-short transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
+            {slPending.map((order) => (
+              <div key={order.id} className="flex items-center justify-between p-2 rounded-lg bg-crypto-short-dim/30 border border-crypto-short/20">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-crypto-short" />
+                  <span className="text-xs font-mono text-crypto-short">SL @ ${order.limitPrice.toFixed(2)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCancelSl(order.id)}
+                  className="text-[10px] text-crypto-text-muted hover:text-crypto-short transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Set TP / SL on open position */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => { setShowTp(!showTp); if (!showTp) setShowSl(false); }}
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showTp ? "bg-crypto-long-dim border-crypto-long text-crypto-long" : tpInput ? "bg-crypto-long-dim/30 border-crypto-long/30 text-crypto-long" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-long/50 hover:text-crypto-long"}`}>
+              🎯 {tpInput ? `TP $${parseFloat(tpInput).toFixed(0)}` : "Set Take Profit"}
+            </button>
+            <button type="button" onClick={() => { setShowSl(!showSl); if (!showSl) setShowTp(false); }}
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${showSl ? "bg-crypto-short-dim border-crypto-short text-crypto-short" : slInput ? "bg-crypto-short-dim/30 border-crypto-short/30 text-crypto-short" : "bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-short/50 hover:text-crypto-short"}`}>
+              🛡️ {slInput ? `SL $${parseFloat(slInput).toFixed(0)}` : "Set Stop Loss"}
+            </button>
+          </div>
+
+          {/* step selector */}
+          {(showTp || showSl) && (
+            <div className="flex items-center justify-end gap-1">
+              <button type="button" onClick={() => setShowTpSlStep(!showTpSlStep)}
+                className="text-[10px] font-mono text-crypto-text-secondary hover:text-crypto-text transition-colors">
+                step ${tpSlStep}
+              </button>
+              {showTpSlStep && [10, 50, 100, 250].map((s) => (
+                <button type="button" key={s} onClick={() => { setTpSlStep(s); setShowTpSlStep(false); }}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono transition-all ${tpSlStep === s ? "bg-crypto-accent text-white" : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border hover:border-crypto-text-muted"}`}>
+                  ${s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Take Profit expanded */}
+          {showTp && (
+            <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-long-dim/10 border border-crypto-long/20">
+              <div className="space-y-1">
+                <span className="text-[9px] text-crypto-long uppercase tracking-wider">Trigger Price {isLong ? "▲ acima" : "▼ abaixo"}</span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => setTpInput(((parseFloat(tpInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                  <div className="relative flex-1">
+                    <input type="text" placeholder={isLong ? `> ${currentPrice.toFixed(0)}` : `< ${currentPrice.toFixed(0)}`}
+                      value={tpInput} onChange={(e) => setTpInput(e.target.value)}
+                      className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-long/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-long" />
+                    {tpInput && <button type="button" onClick={() => setTpInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                  </div>
+                  <button type="button" onClick={() => setTpInput(((parseFloat(tpInput) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => setTpOrderInput(((parseFloat(tpOrderInput) || parseFloat(tpInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                  <div className="relative flex-1">
+                    <input type="text" placeholder="mercado" value={tpOrderInput} onChange={(e) => setTpOrderInput(e.target.value)}
+                      className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                    {tpOrderInput && <button type="button" onClick={() => setTpOrderInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                  </div>
+                  <button type="button" onClick={() => setTpOrderInput(((parseFloat(tpOrderInput) || parseFloat(tpInput) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                </div>
+              </div>
+              <button type="button" onClick={handleSetTpSl} disabled={!tpInput}
+                className="w-full py-1.5 rounded-lg bg-crypto-long-dim border border-crypto-long/30 text-crypto-long text-xs font-semibold hover:bg-crypto-long/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Apply Take Profit
+              </button>
+            </div>
+          )}
+
+          {/* Stop Loss expanded */}
+          {showSl && (
+            <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-short-dim/10 border border-crypto-short/20">
+              <div className="space-y-1">
+                <span className="text-[9px] text-crypto-short uppercase tracking-wider">Trigger Price {isLong ? "▼ abaixo" : "▲ acima"}</span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => setSlInput(((parseFloat(slInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                  <div className="relative flex-1">
+                    <input type="text" placeholder={isLong ? `< ${currentPrice.toFixed(0)}` : `> ${currentPrice.toFixed(0)}`}
+                      value={slInput} onChange={(e) => setSlInput(e.target.value)}
+                      className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-short/30 text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-short" />
+                    {slInput && <button type="button" onClick={() => setSlInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                  </div>
+                  <button type="button" onClick={() => setSlInput(((parseFloat(slInput) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => setSlOrderInput(((parseFloat(slOrderInput) || parseFloat(slInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
+                  <div className="relative flex-1">
+                    <input type="text" placeholder="mercado" value={slOrderInput} onChange={(e) => setSlOrderInput(e.target.value)}
+                      className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
+                    {slOrderInput && <button type="button" onClick={() => setSlOrderInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
+                  </div>
+                  <button type="button" onClick={() => setSlOrderInput(((parseFloat(slOrderInput) || parseFloat(slInput) || currentPrice) + tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronUp className="w-3 h-3" /></button>
+                </div>
+              </div>
+              <button type="button" onClick={handleSetTpSl} disabled={!slInput}
+                className="w-full py-1.5 rounded-lg bg-crypto-short-dim border border-crypto-short/30 text-crypto-short text-xs font-semibold hover:bg-crypto-short/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Apply Stop Loss
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Liquidation Price */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-crypto-short-dim border border-crypto-short/20">
           <div className="flex items-center gap-2">
@@ -161,7 +338,7 @@ export default function PositionPanel() {
             <span className="text-xs font-semibold text-crypto-short">Liquidation Price</span>
           </div>
           <span className="text-sm font-bold font-mono text-crypto-short tabular-nums">
-            ${liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            ${liquidationPrice.toFixed(2)}
           </span>
         </div>
 

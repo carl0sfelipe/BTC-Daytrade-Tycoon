@@ -54,7 +54,7 @@ export default function MarketStatus() {
           </div>
           <div className="flex flex-col">
             <span className="text-xl md:text-2xl font-bold font-mono text-crypto-text tabular-nums tracking-tight">
-              ${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              ${Math.round(currentPrice).toLocaleString("en-US")}
             </span>
           </div>
         </div>

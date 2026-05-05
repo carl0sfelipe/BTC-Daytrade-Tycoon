@@ -180,7 +180,7 @@ export default function OrdersPanel() {
 
                     {isPending && (
                       <span className="text-[9px] font-mono text-crypto-text-muted">
-                        now ${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        now ${Math.round(currentPrice).toLocaleString("en-US")}
                         {isTpSl && (
                           <span className={
                             isTp

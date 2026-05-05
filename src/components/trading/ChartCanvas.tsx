@@ -86,7 +86,7 @@ export default function ChartCanvas() {
     // Price label
     ctx.fillStyle = "#fff";
     ctx.font = "12px monospace";
-    ctx.fillText(`$${currentPrice.toFixed(2)}`, lastX + 8, lastY - 8);
+    ctx.fillText(`$${Math.round(currentPrice).toLocaleString("en-US")}`, lastX + 8, lastY - 8);
 
   }, [priceHistory, currentPrice, dimensions]);
 

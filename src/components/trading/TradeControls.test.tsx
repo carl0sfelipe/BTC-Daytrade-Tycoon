@@ -29,7 +29,7 @@ describe("TradeControls", () => {
 
     // Should show Limit Price label and input
     expect(screen.getByText("Limit Price")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("50000.00")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("50000")).toBeInTheDocument();
   });
 
   it("shows TP and SL inputs in simple mode when no position", () => {
@@ -52,7 +52,7 @@ describe("TradeControls", () => {
     fireEvent.click(screen.getByText("Limit"));
 
     // Fill limit price
-    const limitInput = screen.getByPlaceholderText("50000.00");
+    const limitInput = screen.getByPlaceholderText("50000");
     fireEvent.change(limitInput, { target: { value: "48000" } });
 
     // Expand TP and fill
@@ -87,21 +87,21 @@ describe("TradeControls", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
-    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
 
     expect(limitInput.value).toBe("");
     fireEvent.click(limitInput);
-    expect(limitInput.value).toBe("50000.00");
+    expect(limitInput.value).toBe("50000");
   });
 
   it("adjusts limit price up and down with step buttons", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
-    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
     fireEvent.click(limitInput); // fill with 50000
 
-    expect(limitInput.value).toBe("50000.00");
+    expect(limitInput.value).toBe("50000");
 
     // Default step is $10 — use testid to target limit price chevrons specifically
     const downBtn = screen.getByTestId("limit-price-down");
@@ -137,7 +137,7 @@ describe("TradeControls", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
-    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
     fireEvent.click(limitInput);
 
     // Open step settings and select $1 (only in limit step settings, not in TP/SL pills)
@@ -152,7 +152,7 @@ describe("TradeControls", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
-    const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+    const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
     fireEvent.click(limitInput);
 
     // Open step settings and type custom step
@@ -378,7 +378,7 @@ describe("TradeControls", () => {
       fireEvent.click(screen.getByText("Limit"));
 
       // Fill limit price
-      const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+      const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
       fireEvent.change(limitInput, { target: { value: "48000" } });
 
       // Click the Place Short Limit button
@@ -402,7 +402,7 @@ describe("TradeControls", () => {
       fireEvent.click(screen.getByText("Limit"));
 
       // Fill limit price
-      const limitInput = screen.getByPlaceholderText("50000.00") as HTMLInputElement;
+      const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
       fireEvent.change(limitInput, { target: { value: "52000" } });
 
       // Click the Place Long Limit button
@@ -838,7 +838,7 @@ describe("TradeControls — TP/SL input flows", () => {
     render(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
-    const limitInput = screen.getByPlaceholderText("50000.00");
+    const limitInput = screen.getByPlaceholderText("50000");
     fireEvent.change(limitInput, { target: { value: "49000" } });
 
     // Expand and fill TP

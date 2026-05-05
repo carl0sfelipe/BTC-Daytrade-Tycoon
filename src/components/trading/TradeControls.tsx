@@ -714,7 +714,7 @@ export default function TradeControls() {
                 <button type="button"
                   data-testid="limit-price-down"
                   onClick={() => {
-                    const val = parseFloat(limitPrice || currentPrice.toFixed(2));
+                    const val = parseFloat(limitPrice || currentPrice.toFixed(0));
                     if (!isNaN(val)) setLimitPrice((val - limitStep).toFixed(2));
                   }}
                   className="flex-shrink-0 p-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
@@ -724,12 +724,12 @@ export default function TradeControls() {
                 <div className="relative flex-1">
                   <input
                     type="text"
-                    placeholder={currentPrice.toFixed(2)}
+                    placeholder={currentPrice.toFixed(0)}
                     value={limitPrice}
                     onChange={(e) => setLimitPrice(e.target.value)}
                     onClick={(e) => {
                       if (!limitPrice) {
-                        setLimitPrice(currentPrice.toFixed(2));
+                        setLimitPrice(currentPrice.toFixed(0));
                         (e.target as HTMLInputElement).select();
                       }
                     }}
@@ -748,7 +748,7 @@ export default function TradeControls() {
                 <button type="button"
                   data-testid="limit-price-up"
                   onClick={() => {
-                    const val = parseFloat(limitPrice || currentPrice.toFixed(2));
+                    const val = parseFloat(limitPrice || currentPrice.toFixed(0));
                     if (!isNaN(val)) setLimitPrice((val + limitStep).toFixed(2));
                   }}
                   className="flex-shrink-0 p-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"

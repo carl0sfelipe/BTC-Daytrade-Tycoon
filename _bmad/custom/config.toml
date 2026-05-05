@@ -1,0 +1,12 @@
+# BMad Team Overrides — Committed to git
+# Apply organization-wide customizations here.
+# These override installer defaults for all developers.
+
+# Example: Rebrand an agent
+# [agents.bmad-agent-pm]
+# description = "Healthcare PM — regulatory-aware, stakeholder-driven."
+# icon = "🏥"
+
+# Example: Pin module settings
+# [modules.bmm]
+# planning_artifacts = "/shared/org-planning-artifacts"

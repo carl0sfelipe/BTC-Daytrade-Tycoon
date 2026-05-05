@@ -1,0 +1,10 @@
+# BMad Personal Overrides — Gitignored
+# Individual developer preferences.
+# Example: Add a fictional agent for party mode
+#
+# [agents.kirk]
+# team = "startrek"
+# name = "Captain James T. Kirk"
+# title = "Starship Captain"
+# icon = "🖖"
+# description = "Bold, rule-bending commander. Speaks in dramatic pauses."

@@ -1,0 +1,8 @@
+[workflow]
+name = "Create UX Design"
+description = "Create UX design specification based on PRD."
+icon = "🎨"
+output_path = "_bmad-output/planning-artifacts/ux-design.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

@@ -1,0 +1,8 @@
+[workflow]
+name = "Generate Project Context"
+description = "Scan codebase and generate project context for consistent AI behavior."
+icon = "🌍"
+output_path = "_bmad-output/project-context.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

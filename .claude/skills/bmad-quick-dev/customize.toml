@@ -1,0 +1,7 @@
+[workflow]
+name = "Quick Dev"
+description = "Rapid implementation for bug fixes and simple features."
+icon = "⚡"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

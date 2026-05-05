@@ -1,0 +1,15 @@
+[workflow]
+name = "Party Mode"
+description = "Orchestrate multi-agent group discussions with BMad's named agents."
+icon = "🎉"
+
+max_agents = 4
+min_agents = 2
+rotation_threshold = 6
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []
+
+[workflow.on_complete]
+action = "Summarize discussion and write to _bmad-output/party-mode-sessions/party-mode-{timestamp}.md"

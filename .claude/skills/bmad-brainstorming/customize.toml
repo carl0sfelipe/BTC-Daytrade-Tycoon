@@ -1,0 +1,14 @@
+[workflow]
+name = "Brainstorming"
+description = "Facilitate interactive brainstorming sessions with proven ideation techniques."
+icon = "💡"
+
+ideas_target = 100
+domain_shift_interval = 10
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []
+
+[workflow.on_complete]
+action = "Write session output to _bmad-output/brainstorming-session-{date}.md"

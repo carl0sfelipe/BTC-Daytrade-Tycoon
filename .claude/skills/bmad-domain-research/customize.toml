@@ -1,0 +1,8 @@
+[workflow]
+name = "Domain Research"
+description = "Research the problem domain."
+icon = "🔬"
+output_path = "_bmad-output/planning-artifacts/domain-research.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

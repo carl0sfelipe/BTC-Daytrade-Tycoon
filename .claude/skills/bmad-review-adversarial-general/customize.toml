@@ -1,0 +1,14 @@
+[workflow]
+name = "Adversarial Review (General)"
+description = "Cynical review that finds what's missing and what's wrong. Must find 10+ issues."
+icon = "🔍"
+
+min_findings = 10
+review_dimensions = ["completeness", "correctness", "quality", "security", "performance", "maintainability"]
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []
+
+[workflow.on_complete]
+action = "Present findings with severity levels and actionable recommendations."

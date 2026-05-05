@@ -1,0 +1,8 @@
+[workflow]
+name = "Market Research"
+description = "Analyze market, competitors, and positioning."
+icon = "🌐"
+output_path = "_bmad-output/planning-artifacts/market-research.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

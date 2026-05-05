@@ -1,0 +1,8 @@
+[workflow]
+name = "Sprint Planning"
+description = "Initialize sprint tracking from epics and stories."
+icon = "🏃"
+output_path = "_bmad-output/implementation-artifacts/sprint-status.yaml"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

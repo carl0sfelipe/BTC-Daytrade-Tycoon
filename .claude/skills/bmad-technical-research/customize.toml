@@ -1,0 +1,8 @@
+[workflow]
+name = "Technical Research"
+description = "Research technical options and approaches."
+icon = "⚙️"
+output_path = "_bmad-output/planning-artifacts/technical-research.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

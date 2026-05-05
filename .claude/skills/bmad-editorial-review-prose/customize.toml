@@ -1,0 +1,8 @@
+[workflow]
+name = "Editorial Review (Prose)"
+description = "Clinical copy-editing focused on communication clarity."
+icon = "✏️"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

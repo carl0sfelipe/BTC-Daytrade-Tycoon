@@ -1,0 +1,8 @@
+[workflow]
+name = "Editorial Review (Structure)"
+description = "Structural editing — proposes cuts, merges, moves, and condensing."
+icon = "📐"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

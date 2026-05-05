@@ -1,0 +1,13 @@
+[workflow]
+name = "Edge Case Hunter"
+description = "Exhaustive branching-path analysis for unhandled edge cases."
+icon = "🐛"
+
+edge_classes = ["missing_else", "unguarded_input", "off_by_one", "arithmetic_overflow", "type_coercion", "race_condition", "timeout_gap"]
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []
+
+[workflow.on_complete]
+action = "Report unhandled edge cases as structured JSON with location, trigger, guard, and consequence."

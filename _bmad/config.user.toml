@@ -1,0 +1,8 @@
+# BMad User Configuration — Installer-owned
+# Personal preferences. Gitignored. Regenerated on install.
+
+[user]
+name = "Developer"
+language = "pt-BR"
+communication_style = "concise"
+skill_level = "advanced"

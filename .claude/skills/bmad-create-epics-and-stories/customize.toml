@@ -1,0 +1,8 @@
+[workflow]
+name = "Create Epics & Stories"
+description = "Break down PRD into epics and technically-informed stories."
+icon = "📦"
+output_path = "_bmad-output/planning-artifacts/epics-and-stories.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

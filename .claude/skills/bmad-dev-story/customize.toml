@@ -1,0 +1,7 @@
+[workflow]
+name = "Develop Story"
+description = "Implement a story with code and tests."
+icon = "🔨"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

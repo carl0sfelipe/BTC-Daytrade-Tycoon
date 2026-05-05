@@ -1,0 +1,8 @@
+[workflow]
+name = "PRFAQ"
+description = "Working Backwards challenge to stress-test product concept."
+icon = "📰"
+output_path = "_bmad-output/planning-artifacts/prfaq.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

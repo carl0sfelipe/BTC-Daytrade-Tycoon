@@ -1,0 +1,8 @@
+[workflow]
+name = "Advanced Elicitation"
+description = "Push LLM output through iterative refinement methods."
+icon = "🎯"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

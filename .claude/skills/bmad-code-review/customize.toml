@@ -1,0 +1,7 @@
+[workflow]
+name = "Code Review"
+description = "Review implemented code against acceptance criteria and quality standards."
+icon = "👀"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

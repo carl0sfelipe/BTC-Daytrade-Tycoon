@@ -1,0 +1,8 @@
+[workflow]
+name = "Distillator"
+description = "Lossless LLM-optimized compression of source documents."
+icon = "🗜️"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

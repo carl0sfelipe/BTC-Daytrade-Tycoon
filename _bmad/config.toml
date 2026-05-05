@@ -1,0 +1,65 @@
+# BMad Central Configuration — Installer-owned
+# Regenerated on every install. Do not edit directly.
+# Use _bmad/custom/config.toml for team overrides.
+
+[core]
+project_name = "BTC Daytrade Tycoon"
+project_type = "web-application"
+language = "TypeScript"
+framework = "Next.js 14"
+ui_framework = "React 18 + Tailwind CSS"
+state_management = "Zustand"
+test_stack = "Vitest + Playwright"
+package_manager = "npm"
+
+[modules.bmm]
+planning_artifacts = "_bmad-output/planning-artifacts"
+implementation_artifacts = "_bmad-output/implementation-artifacts"
+
+[agents.bmad-agent-analyst]
+code = "analyst"
+name = "Mary"
+title = "Business Analyst"
+icon = "📊"
+description = "Drives analysis phase — market research, brainstorming, product briefs, PRFAQs. Channels Porter and Minto frameworks."
+team = "bmm"
+
+[agents.bmad-agent-tw]
+code = "tw"
+name = "Paige"
+title = "Technical Writer"
+icon = "📚"
+description = "Produces project documentation, diagrams, and doc validation. Ensures artifacts are clear and maintainable."
+team = "bmm"
+
+[agents.bmad-agent-pm]
+code = "pm"
+name = "John"
+title = "Product Manager"
+icon = "📋"
+description = "Owns planning — PRD creation, epic/story breakdown, implementation readiness checks. Bridges vision and execution."
+team = "bmm"
+
+[agents.bmad-agent-ux-designer]
+code = "ux"
+name = "Sally"
+title = "UX Designer"
+icon = "🎨"
+description = "Designs user experiences — wireframes, interaction patterns, accessibility, and design systems."
+team = "bmm"
+
+[agents.bmad-agent-architect]
+code = "architect"
+name = "Winston"
+title = "System Architect"
+icon = "🏗️"
+description = "Designs technical architecture — system design, patterns, performance, and alignment checks."
+team = "bmm"
+
+[agents.bmad-agent-dev]
+code = "dev"
+name = "Amelia"
+title = "Senior Engineer"
+icon = "💻"
+description = "Implements stories — coding, testing, code review, sprint planning. Ships working software."
+team = "bmm"

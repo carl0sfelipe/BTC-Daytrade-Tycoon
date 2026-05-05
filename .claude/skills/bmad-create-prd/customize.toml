@@ -1,0 +1,8 @@
+[workflow]
+name = "Create PRD"
+description = "Create Product Requirements Document."
+icon = "📝"
+output_path = "_bmad-output/planning-artifacts/PRD.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

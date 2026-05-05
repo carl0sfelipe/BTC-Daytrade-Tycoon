@@ -1,0 +1,8 @@
+[workflow]
+name = "Shard Document"
+description = "Split large markdown files into organized section files."
+icon = "📂"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

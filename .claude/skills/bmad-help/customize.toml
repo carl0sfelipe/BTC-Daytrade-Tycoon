@@ -1,0 +1,11 @@
+[workflow]
+name = "BMad Help"
+description = "Your intelligent guide to what comes next."
+icon = "🆘"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []
+
+[workflow.on_complete]
+action = "Provide prioritized next steps with skill commands."

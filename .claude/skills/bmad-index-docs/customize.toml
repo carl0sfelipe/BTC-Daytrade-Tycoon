@@ -1,0 +1,8 @@
+[workflow]
+name = "Index Documents"
+description = "Generate or update an index of all docs in a folder."
+icon = "📑"
+
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

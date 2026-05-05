@@ -1,0 +1,7 @@
+[workflow]
+name = "Document Project"
+description = "Scan project and document its current state."
+icon = "📖"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

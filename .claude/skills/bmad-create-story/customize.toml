@@ -1,0 +1,8 @@
+[workflow]
+name = "Create Story"
+description = "Create a complete story file from epic for implementation."
+icon = "📄"
+output_folder = "stories"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

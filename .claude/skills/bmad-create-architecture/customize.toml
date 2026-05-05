@@ -1,0 +1,8 @@
+[workflow]
+name = "Create Architecture"
+description = "Create technical architecture document."
+icon = "🏛️"
+output_path = "_bmad-output/planning-artifacts/architecture.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

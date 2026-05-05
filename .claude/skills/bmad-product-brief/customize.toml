@@ -1,0 +1,8 @@
+[workflow]
+name = "Product Brief"
+description = "Create product brief capturing vision and market positioning."
+icon = "📰"
+output_path = "_bmad-output/planning-artifacts/product-brief.md"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

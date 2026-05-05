@@ -1,0 +1,7 @@
+[workflow]
+name = "Customize BMad"
+description = "Guided authoring helper for BMad customization overrides."
+icon = "🔧"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

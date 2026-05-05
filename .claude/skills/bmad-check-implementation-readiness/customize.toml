@@ -1,0 +1,7 @@
+[workflow]
+name = "Check Implementation Readiness"
+description = "Validate cohesion across all planning documents before implementation."
+icon = "✅"
+activation_steps_prepend = []
+activation_steps_append = []
+persistent_facts = []

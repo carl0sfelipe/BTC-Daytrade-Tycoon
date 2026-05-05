@@ -310,6 +310,13 @@ export const useTradingStore = create<TradingStore>()(
         const state = get();
         const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
         if (!entryPrice || entryPrice <= 0) return;
+        if (!positionSize || positionSize <= 0) return;
+        if (!leverage || leverage <= 0) return;
+
+        // Guard against silently overwriting a same-side position
+        if (state.position && state.position.side === side) {
+          return;
+        }
 
         const margin = positionSize / leverage;
 

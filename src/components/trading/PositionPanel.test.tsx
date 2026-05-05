@@ -134,5 +134,54 @@ describe("PositionPanel", () => {
     render(<PositionPanel />);
 
     expect(screen.queryByText("Trailing Stop")).not.toBeInTheDocument();
+
+  it("shows Take Profit tag when tpPrice is set, not SL", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: 55000, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.getByText("Take Profit")).toBeInTheDocument();
+    expect(screen.getByText("$55000.00")).toBeInTheDocument();
+    expect(screen.queryByText("Stop Loss")).not.toBeInTheDocument();
+  });
+
+  it("shows Stop Loss tag when slPrice is set, not TP", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: 48000,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.getByText("Stop Loss")).toBeInTheDocument();
+    expect(screen.getByText("$48000.00")).toBeInTheDocument();
+    expect(screen.queryByText("Take Profit")).not.toBeInTheDocument();
+  });
+
+  it("shows both TP and SL tags when both are set", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: 55000, slPrice: 48000,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.getByText("Take Profit")).toBeInTheDocument();
+    expect(screen.getByText("Stop Loss")).toBeInTheDocument();
   });
 });

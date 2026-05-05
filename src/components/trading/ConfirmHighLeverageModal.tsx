@@ -56,7 +56,7 @@ export default function ConfirmHighLeverageModal({
               <p className="text-sm text-crypto-text leading-relaxed">
                 You are about to open a position with extreme leverage.
                 <span className="text-crypto-warning font-semibold"> Potential for quick liquidation. </span>
-                A movement of <span className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> against your position will result in total margin loss.
+                A movement of <span data-testid="high-leverage-risk-pct" className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> against your position will result in total margin loss.
               </p>
             </div>
 
@@ -79,6 +79,7 @@ export default function ConfirmHighLeverageModal({
             {/* Don't show again checkbox */}
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
+                data-testid="high-leverage-skip-checkbox"
                 type="checkbox"
                 checked={dontShowAgain}
                 onChange={(e) => setDontShowAgain(e.target.checked)}
@@ -90,12 +91,16 @@ export default function ConfirmHighLeverageModal({
             {/* Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
+                type="button"
+                data-testid="high-leverage-cancel"
                 onClick={onCancel}
                 className="py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                data-testid="high-leverage-confirm"
                 onClick={handleConfirm}
                 className="py-3 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-all text-sm font-bold shadow-glow-warning"
               >

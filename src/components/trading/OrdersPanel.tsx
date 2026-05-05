@@ -36,7 +36,9 @@ export default function OrdersPanel() {
       <div className="flex items-center gap-1 px-3 pt-3 pb-2 overflow-x-auto">
         {filters.map((f) => (
           <button
+            type="button"
             key={f.key}
+            data-testid={`orders-panel-filter-${f.key}`}
             onClick={() => setFilter(f.key)}
             className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all whitespace-nowrap ${
               filter === f.key
@@ -51,14 +53,13 @@ export default function OrdersPanel() {
 
       <div className="px-3 pb-3 space-y-1.5 max-h-[300px] overflow-y-auto">
         {filtered.length === 0 ? (
-          <div className="flex items-center justify-center py-6">
+          <div data-testid="orders-panel-empty" className="flex items-center justify-center py-6">
             <p className="text-xs text-crypto-text-muted">No orders</p>
           </div>
         ) : (
           filtered.map((order) => {
             const isPending = order.status === "pending";
             const isFilled = order.status === "filled";
-            const isCanceled = order.status === "canceled";
 
             return (
               <div
@@ -120,6 +121,8 @@ export default function OrdersPanel() {
                   </span>
                   {isPending && (
                     <button
+                      type="button"
+                      data-testid={`orders-panel-cancel-${order.id}`}
                       onClick={() => cancelPendingOrder(order.id)}
                       aria-label="Cancel order"
                       className="p-1 rounded bg-crypto-short-dim text-crypto-short hover:bg-crypto-short/20 transition-colors"

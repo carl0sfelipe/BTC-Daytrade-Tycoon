@@ -17,10 +17,10 @@ export default function PositionPanel() {
           <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Your Position</h3>
         </div>
         {lastCloseReason && (
-          <p className="text-center text-crypto-warning text-xs py-2">{lastCloseReason}</p>
+          <p data-testid="position-panel-last-close-reason" className="text-center text-crypto-warning text-xs py-2">{lastCloseReason}</p>
         )}
 
-        <div className="flex items-center justify-center min-h-[120px]">
+        <div data-testid="position-panel-empty" className="flex items-center justify-center min-h-[120px]">
           <p className="text-sm text-crypto-text-muted">No open position</p>
         </div>
       </div>
@@ -73,10 +73,10 @@ export default function PositionPanel() {
           <div className="flex flex-col">
             <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Unrealized P&L</span>
             <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short"}`}>
+              <span data-testid="position-panel-pnl" className={`text-2xl font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short"}`}>
                 {pnl >= 0 ? "+" : ""}${pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
-              <span className={`text-sm font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
+              <span data-testid="position-panel-pnl-percent" className={`text-sm font-bold font-mono tabular-nums ${pnl >= 0 ? "text-crypto-long" : "text-crypto-short"}`}>
                 ({pnl >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
               </span>
             </div>
@@ -185,6 +185,8 @@ export default function PositionPanel() {
 
         {/* Close button */}
         <button
+          type="button"
+          data-testid="position-panel-close-btn"
           onClick={() => closePosition("manual")}
           className="w-full py-2.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-semibold"
         >

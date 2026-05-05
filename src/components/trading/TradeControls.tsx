@@ -70,10 +70,6 @@ export default function TradeControls() {
         : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
-    const safeEntry = position?.entry || 1;
-    const posPnL = position
-      ? ((position.side === "long" ? currentPrice - safeEntry : safeEntry - currentPrice) / safeEntry) * position.size
-      : 0;
     if (!canOpen) {
       return;
     }
@@ -137,10 +133,6 @@ export default function TradeControls() {
   };
 
   const handleUpdate = () => {
-    const safeEntry = position?.entry || 1;
-    const posPnL = position
-      ? ((position.side === "long" ? currentPrice - safeEntry : safeEntry - currentPrice) / safeEntry) * position.size
-      : 0;
     if (!position) return;
 
     // Hedge mode: opposite-side orders can flip the position if size exceeds current
@@ -192,7 +184,7 @@ export default function TradeControls() {
         {/* Header with mode toggle */}
         <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
           <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Order Controls</h3>
-          <button
+          <button type="button"
             onClick={() => setMode(mode === "simple" ? "advanced" : "simple")}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
@@ -204,7 +196,8 @@ export default function TradeControls() {
         <div className="p-4 space-y-4">
           {/* Side Tabs */}
           <div className="grid grid-cols-2 gap-2">
-            <button
+            <button type="button"
+              data-testid="trade-controls-side-long"
               onClick={() => {
                 setSide("long");
                 if (position && orderType === "market") {
@@ -234,7 +227,8 @@ export default function TradeControls() {
                 <span className="block text-[8px] font-normal normal-case opacity-70">Reduce</span>
               )}
             </button>
-            <button
+            <button type="button"
+              data-testid="trade-controls-side-short"
               onClick={() => {
                 setSide("short");
                 if (position && orderType === "market") {
@@ -268,7 +262,7 @@ export default function TradeControls() {
 
           {/* Order Type */}
           <div className="flex items-center gap-2">
-            <button
+            <button type="button"
               onClick={() => setOrderType("market")}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 orderType === "market"
@@ -278,7 +272,7 @@ export default function TradeControls() {
             >
               Market
             </button>
-            <button
+            <button type="button"
               onClick={() => setOrderType("limit")}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 orderType === "limit"
@@ -299,7 +293,8 @@ export default function TradeControls() {
                   {reduceOnly ? "Reduce Only" : "Hedge Mode"}
                 </span>
               </div>
-              <button
+              <button type="button"
+                data-testid="trade-controls-reduce-only-toggle"
                 onClick={() => {
                   const store = useTradingStore.getState();
                   store.setReduceOnly(!reduceOnly);
@@ -325,7 +320,7 @@ export default function TradeControls() {
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Leverage</span>
                 <div className="grid grid-cols-6 gap-1.5">
                   {leverageOptions.map((opt) => (
-                    <button
+                    <button type="button"
                       key={opt}
                       onClick={() => handleLeverageChange(opt)}
                       className={`py-1.5 rounded-md text-xs font-bold font-mono transition-all ${
@@ -389,6 +384,7 @@ export default function TradeControls() {
                     <span className="text-[10px] font-mono text-crypto-text-secondary">Current: ${Math.floor(position.size).toLocaleString()}</span>
                   </div>
                   <input
+                    data-testid="trade-controls-size-slider"
                     type="range"
                     min={100}
                     max={Math.max(100, sliderMax)}
@@ -430,6 +426,7 @@ export default function TradeControls() {
                         </div>
                         {position.trailingStopPercent != null ? (
                           <button
+                            type="button"
                             onClick={() => { setTrailingStop(null); setTrailingStopInput(""); }}
                             className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-short transition-colors"
                           >
@@ -437,6 +434,7 @@ export default function TradeControls() {
                           </button>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => {
                               const val = parseFloat(trailingStopInput);
                               if (val > 0 && val <= 20) setTrailingStop(val);
@@ -461,7 +459,7 @@ export default function TradeControls() {
                     {sizeOptions.map((pct) => {
                       const targetSize = Math.floor(wallet * leverage * (pct / 100));
                       return (
-                        <button
+                        <button type="button"
                           key={pct}
                           onClick={() => setPositionSize(targetSize)}
                           className={`py-1.5 rounded-md text-xs font-bold transition-all ${
@@ -566,7 +564,7 @@ export default function TradeControls() {
                 <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Limit Price</span>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-crypto-text-secondary">step ${limitStep}</span>
-                  <button
+                  <button type="button"
                     aria-label="Step settings"
                     onClick={() => setShowStepSettings(!showStepSettings)}
                     className={`p-1 rounded transition-all ${showStepSettings ? "bg-crypto-accent text-white" : "text-crypto-text-secondary hover:text-crypto-text"}`}
@@ -582,6 +580,7 @@ export default function TradeControls() {
                   <div className="flex items-center gap-1 flex-wrap">
                     {[1, 5, 10, 50, 100].map((step) => (
                       <button
+                        type="button"
                         key={step}
                         onClick={() => { setLimitStep(step); setCustomStep(""); }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all ${
@@ -611,7 +610,7 @@ export default function TradeControls() {
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={() => {
                     const val = parseFloat(limitPrice || currentPrice.toFixed(2));
                     if (!isNaN(val)) setLimitPrice((val - limitStep).toFixed(2));
@@ -636,7 +635,7 @@ export default function TradeControls() {
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted pointer-events-none">USDT</span>
                   {limitPrice && (
-                    <button
+                    <button type="button"
                       onClick={() => setLimitPrice("")}
                       className="absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded text-crypto-text-muted hover:text-crypto-short hover:bg-crypto-short-dim transition-all"
                     >
@@ -644,7 +643,7 @@ export default function TradeControls() {
                     </button>
                   )}
                 </div>
-                <button
+                <button type="button"
                   onClick={() => {
                     const val = parseFloat(limitPrice || currentPrice.toFixed(2));
                     if (!isNaN(val)) setLimitPrice((val + limitStep).toFixed(2));
@@ -665,7 +664,7 @@ export default function TradeControls() {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-crypto-text-muted">Required Margin:</span>
-              <span className="font-mono font-semibold text-crypto-text">
+              <span data-testid="trade-controls-summary-margin" className="font-mono font-semibold text-crypto-text">
                 ${(() => {
                   // In Hedge Mode flip, only the excess needs new margin
                   if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
@@ -678,7 +677,7 @@ export default function TradeControls() {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-crypto-text-muted">Available after:</span>
-              <span className="font-mono font-semibold text-crypto-text">
+              <span data-testid="trade-controls-summary-available" className="font-mono font-semibold text-crypto-text">
                 ${(() => {
                   if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
                     const safePosEntry = position.entry || 1;
@@ -700,7 +699,8 @@ export default function TradeControls() {
           {position && orderType === "market" ? (
             <div className="space-y-2">
               {side === position.side ? (
-                <button
+                <button type="button"
+                  data-testid="trade-controls-action-btn"
                   onClick={handleUpdate}
                   disabled={!canIncrease}
                   className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
@@ -714,7 +714,8 @@ export default function TradeControls() {
                   INCREASE POSITION
                 </button>
               ) : reduceOnly ? (
-                <button
+                <button type="button"
+                  data-testid="trade-controls-action-btn"
                   onClick={handleUpdate}
                   disabled={!canDecrease}
                   className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
@@ -726,7 +727,8 @@ export default function TradeControls() {
                   REDUCE POSITION
                 </button>
               ) : (
-                <button
+                <button type="button"
+                  data-testid="trade-controls-action-btn"
                   onClick={handleUpdate}
                   disabled={!canFlip}
                   className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
@@ -742,7 +744,8 @@ export default function TradeControls() {
                     : "REDUCE POSITION"}
                 </button>
               )}
-              <button
+              <button type="button"
+                data-testid="trade-controls-close-btn"
                 onClick={() => closePosition("manual")}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
               >
@@ -751,7 +754,8 @@ export default function TradeControls() {
             </div>
           ) : position && orderType === "limit" ? (
             <div className="space-y-2">
-              <button
+              <button type="button"
+                data-testid="trade-controls-action-btn"
                 onClick={handleOpen}
                 disabled={!canOpen}
                 className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${
@@ -764,7 +768,8 @@ export default function TradeControls() {
               >
                 {`Place ${isLong ? "Long" : "Short"} Limit`}
               </button>
-              <button
+              <button type="button"
+                data-testid="trade-controls-close-btn"
                 onClick={() => closePosition("manual")}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
               >
@@ -772,7 +777,8 @@ export default function TradeControls() {
               </button>
             </div>
           ) : (
-            <button
+            <button type="button"
+              data-testid="trade-controls-action-btn"
               onClick={handleOpen}
               disabled={!canOpen}
               className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${

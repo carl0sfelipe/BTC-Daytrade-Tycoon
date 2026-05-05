@@ -37,6 +37,26 @@ Make every session feel unique, replayable, and competitive.
 - [ ] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
 - [x] **Reduce Only / Hedge Mode toggle** — `Reduce Only` (default, one-way): opposite-side orders reduce or close the existing position only. When unchecked (hedge mode): opposite-side orders can open a new position on the other side if the size exceeds the current position (e.g., long $50k + short $70k = close long + open short $20k).
 
+### Chart Trading Overlays *(Visual trading directly on the chart)*
+
+- [ ] **Position marker on chart** — Active position shown as a labeled marker on the price axis with side (long/short), size, and entry price. Includes an **X button** to close the position instantly without scrolling to the panel.
+- [ ] **Breakeven line** — Horizontal line at the exact price where PnL = $0 (entry ± fees). Color-coded and labeled.
+- [ ] **Stop Loss line** — Horizontal dashed line at SL price with label. Visual cue for risk zone.
+- [ ] **Take Profit line** — Horizontal dashed line at TP price with label.
+- [ ] **Pending orders on chart** — Limit orders displayed as flags/markers at their target price on the chart. Shows order type (buy/sell), size, and side. Tappable to edit or cancel.
+- [ ] **Liquidation zone shading** — Area between entry price and liquidation price shaded in red (short) or orange (long) to visualize risk exposure.
+- [ ] **Floating PnL label** — Real-time unrealized PnL shown next to the position marker on the chart, updating as price moves.
+- [ ] **Crosshair PnL projection** — When hovering/dragging crosshair, show projected PnL at that price point without opening a position.
+- [ ] **Draggable TP/SL lines** — Click and drag TP/SL lines directly on the chart to adjust prices, TradingView-style. Confirm with a tap or auto-save after a short delay.
+- [ ] **Trade templates / presets** — Save recurring trade configurations (e.g., "Scalp $500 / 25x / TP +2% / SL -1%") as named presets. One tap fills all fields.
+- [ ] **Ruler / Measure Tool on chart** — Drag between two price points on the chart to see: distance %, target price, and projected PnL with current leverage. TradingView-style visual analysis before entering.
+- [ ] **Desktop hotkeys** — Keyboard shortcuts for power users: B = Buy Long, S = Sell Short, ESC = Close Position, L = Toggle Limit Order mode, +/- = Adjust leverage.
+- [ ] **Integrated Position Size Calculator** — Visual risk calculator: set desired risk % of wallet → app auto-calculates position size, shows projected liquidation price, TP profit, and SL loss before confirming the trade.
+
+### Mobile Trading Drawer
+
+- [ ] **Swipe-up trade drawer** — Consolidated mobile trading controls in a bottom sheet (via `vaul`). Replaces cramped sidebar with full-screen trading panel on swipe. Includes quick-close gesture and mini-chart thumbnail.
+
 ---
 
 ## Phase 3 — Social & Competition *(Next 1–2 months)*

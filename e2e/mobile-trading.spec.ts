@@ -29,22 +29,49 @@ test.describe('Mobile Trading Flow', () => {
     await expect(page.locator('text=Trade History').first()).toBeVisible();
   });
 
-  test('mobile bottom sheet opens when position is opened', async ({ page }, testInfo) => {
+  test('mobile bottom sheet toggle shows and hides TradeControls', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Only runs on mobile viewport');
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
-    // Open bottom sheet and then position
-    await page.click('text=Open Position');
+    // TradeControls hidden by default on mobile (showControls = false)
+    const orderControls = page.locator('h3').filter({ hasText: 'Order Controls' });
+    await expect(orderControls).not.toBeVisible();
+
+    // Click the toggle button to open controls
+    const toggleBtn = page.locator('button').filter({ hasText: /Open Position|Close Controls/i }).first();
+    await toggleBtn.click();
+    await page.waitForTimeout(400);
+
+    // TradeControls now visible
+    await expect(orderControls).toBeVisible();
+
+    // Click again to close
+    const closeBtn = page.locator('button').filter({ hasText: /Close Controls/i }).first();
+    await closeBtn.click();
+    await page.waitForTimeout(400);
+
+    await expect(orderControls).not.toBeVisible();
+  });
+
+  test('mobile bottom sheet opens when position is opened via UI', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'Only runs on mobile viewport');
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Open controls panel
+    await page.locator('button').filter({ hasText: /Open Position/i }).first().click();
     await page.waitForTimeout(500);
-    await page.click('text=LONG');
+
+    await page.getByTestId('trade-controls-side-long').click();
     await page.waitForTimeout(200);
-    await page.locator('button:has-text("10x")').click();
+    await page.locator('button:has-text("10x")').first().click();
     await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
+    await page.locator('button:has-text("50%")').first().click();
     await page.waitForTimeout(200);
-    await page.click('button:has-text("Open Long")');
+    await page.getByTestId('trade-controls-action-btn').click();
     await page.waitForTimeout(1000);
 
     // Position panel should be visible

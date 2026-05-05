@@ -96,4 +96,33 @@ describe("PnLDisplay", () => {
     expect(screen.queryByText("Best Trade")).not.toBeInTheDocument();
     expect(screen.queryByText("Worst Trade")).not.toBeInTheDocument();
   });
+
+  it("totalEquity includes open position margin and unrealized PnL", () => {
+    // LONG $1000 @ 10x, entry 50000, price 52000
+    // margin = 100, unrealized PnL = (52000-50000)/50000 * 1000 = 40
+    // wallet = 9900 (margin deducted on open)
+    // totalEquity = 9900 + 100 + 40 = 10040
+    useTradingStore.setState({
+      wallet: 9900,
+      currentPrice: 52000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+      closedTrades: [],
+      realizedPnL: 0,
+    });
+
+    render(<PnLDisplay />);
+
+    expect(screen.getByText("$10,040.00")).toBeInTheDocument();
+  });
+
+  it("totalEquity equals wallet when no position open", () => {
+    useTradingStore.setState({ wallet: 12500, position: null, closedTrades: [], realizedPnL: 0, currentPrice: 50000 });
+    render(<PnLDisplay />);
+    expect(screen.getByText("$12,500.00")).toBeInTheDocument();
+  });
 });

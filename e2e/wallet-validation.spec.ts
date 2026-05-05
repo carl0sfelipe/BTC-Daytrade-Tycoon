@@ -41,6 +41,34 @@ test.describe('Wallet Validation', () => {
     await saveLogs('wallet-too-small');
   });
 
+  test('open button is visually disabled when wallet < required margin', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'production', 'Uses store injection for setup');
+
+    await page.goto('/trading');
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // Set wallet to $50 — margin for $1000 @ 10x is $100 > $50
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({ wallet: 50, position: null, skipHighLeverageWarning: true });
+    });
+    await page.waitForTimeout(300);
+
+    // Action button (Open Long by default) must be disabled
+    const actionBtn = page.getByTestId('trade-controls-action-btn');
+    await expect(actionBtn).toBeDisabled();
+
+    // Increase wallet enough — $200 covers margin for $1000 @ 10x
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({ wallet: 200 });
+    });
+    await page.waitForTimeout(300);
+
+    await expect(actionBtn).toBeEnabled();
+
+    await saveEvidence(page, JID, '03-open-btn-disabled');
+  });
+
   test('wallet updates correctly after opening and closing a position', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();

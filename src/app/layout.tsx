@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 const inter = Inter({
@@ -29,6 +30,7 @@ export default function RootLayout({
         style={{ background: "linear-gradient(180deg,#0a0a0f 0%,#0f0f1a 100%)" }}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

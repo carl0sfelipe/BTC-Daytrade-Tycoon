@@ -19,6 +19,7 @@ import MobileTradingView from "@/components/trading/MobileTradingView";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import { useTradingStore } from "@/store/tradingStore";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTradeNotifications } from "@/hooks/useTradeNotifications";
 
 const INITIAL_WALLET = 10000;
 
@@ -28,6 +29,7 @@ export default function TradingPage() {
   const [capturedRealDateRange, setCapturedRealDateRange] = useState("");
   const engine = useTimewarpEngine();
   const isMobile = useIsMobile();
+  useTradeNotifications();
 
   const isLiquidated = useTradingStore((s) => s.isLiquidated);
   const simulationRealDate = useTradingStore((s) => s.simulationRealDate);

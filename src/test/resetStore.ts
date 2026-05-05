@@ -24,9 +24,10 @@ export const initialStoreState = {
 export function resetStore() {
   const actions = useTradingStore.getState();
   const fullState = { ...initialStoreState } as Record<string, unknown>;
-  for (const k of Object.keys(actions)) {
-    if (typeof (actions as Record<string, unknown>)[k] === "function") {
-      fullState[k] = (actions as Record<string, unknown>)[k];
+  const actionsRecord = actions as unknown as Record<string, unknown>;
+  for (const k of Object.keys(actionsRecord)) {
+    if (typeof actionsRecord[k] === "function") {
+      fullState[k] = actionsRecord[k];
     }
   }
   useTradingStore.setState(fullState, true);

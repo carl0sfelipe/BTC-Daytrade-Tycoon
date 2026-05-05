@@ -87,10 +87,15 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const originalStartDateRef = useRef<Date | null>(null);
   const simulationStartRealTimeRef = useRef<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const candlesRef = useRef<SimulatedCandle[]>([]);
   const isPlayingRef = useRef(false);
   const isFetchingMoreRef = useRef(false);
   const basePriceRef = useRef<number>(0);
+  const hasLiquidatedRef = useRef(false);
+  const elapsedTimeRef = useRef("00:00:00");
+  const mountedRef = useRef(true);
+  const startSimulationRef = useRef<(() => void) | null>(null);
 
   const storeSetPrice = useTradingStore((s) => s.setPrice);
   const storeSetCurrentPrice = useTradingStore((s) => s.setCurrentPrice);
@@ -108,6 +113,10 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    elapsedTimeRef.current = elapsedTime;
+  }, [elapsedTime]);
 
   const resetStore = useCallback(() => {
     useTradingStore.setState({
@@ -145,7 +154,10 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       if (newHistorical.length === 0) {
         // No more historical data available — pause and show error
         setIsPlaying(false);
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
         setError("No more historical data available for this period.");
         return;
       }
@@ -219,9 +231,9 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       setIsLoading(false);
 
       // Auto-start (with delay for React to render the initial state)
-      setTimeout(() => {
-        if (candlesRef.current.length > 0) {
-          startSimulation();
+      autoStartTimeoutRef.current = setTimeout(() => {
+        if (candlesRef.current.length > 0 && mountedRef.current) {
+          startSimulationRef.current?.();
         }
       }, 500);
     } catch (err) {
@@ -276,9 +288,11 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     // Checks pending limit orders
     storeCheckPendingOrders(price);
 
-    // Checks liquidation / SL / TP
+    // Checks liquidation / SL / TP (skip if already liquidated)
+    if (hasLiquidatedRef.current) return;
     const checkResult = storeCheckPosition(price);
     if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
+      hasLiquidatedRef.current = true;
       const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
       const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
       useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
@@ -293,6 +307,10 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     intervalRef.current = setInterval(tick, TICK_MS);
   }, [tick]);
 
+  useEffect(() => {
+    startSimulationRef.current = startSimulation;
+  }, [startSimulation]);
+
   const pause = useCallback(() => {
     setIsPlaying(false);
     isPlayingRef.current = false;
@@ -305,8 +323,8 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const start = useCallback(() => {
     if (!isPlayingRef.current && candlesRef.current.length > 0) {
       // Resume from where we paused
-      if (elapsedTime !== "00:00:00") {
-        const parts = elapsedTime.split(":").map(Number);
+      if (elapsedTimeRef.current !== "00:00:00") {
+        const parts = elapsedTimeRef.current.split(":").map(Number);
         const elapsedSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
         simulationStartRealTimeRef.current = Date.now() - elapsedSec * 1000;
       } else {
@@ -316,7 +334,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       isPlayingRef.current = true;
       intervalRef.current = setInterval(tick, TICK_MS);
     }
-  }, [elapsedTime, tick]);
+  }, [tick]);
 
   const reset = useCallback(() => {
     pause();
@@ -324,9 +342,19 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   }, [pause, loadSession]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    hasLiquidatedRef.current = false;
     loadSession();
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      mountedRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (autoStartTimeoutRef.current) {
+        clearTimeout(autoStartTimeoutRef.current);
+        autoStartTimeoutRef.current = null;
+      }
     };
   }, [loadSession]);
 
@@ -335,6 +363,11 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     if (typeof window !== "undefined") {
       (window as any).__timewarpEngine = { pause, start, reset };
     }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).__timewarpEngine;
+      }
+    };
   }, [pause, start, reset]);
 
   // realDateRange shows start → current simulated end date

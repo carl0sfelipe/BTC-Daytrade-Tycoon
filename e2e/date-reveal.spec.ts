@@ -45,7 +45,7 @@ test.describe('Historical date reveal', () => {
 
     // Verify time stats are shown
     await expect(page.locator('text=Your Time').first()).toBeVisible();
-    await expect(page.locator('text=Historical Data Simulated').first()).toBeVisible();
+    await expect(page.locator('text=Historical Time Covered').first()).toBeVisible();
 
     await page.click('button:has-text("Back")');
     await page.waitForTimeout(500);
@@ -63,11 +63,11 @@ test.describe('Historical date reveal', () => {
     }
     await page.waitForTimeout(2000);
 
-    // Inject position with liquidationPrice above current price (long liquidated on next tick)
-    // and set simulationRealDate to ensure the modal has a valid date.
+    // Inject a 100x long position and immediately trigger liquidation
     await page.evaluate(() => {
       const store = (window as unknown as { __tradingStore: { getState: () => { currentPrice: number }; setState: (s: object) => void } }).__tradingStore;
       const cp = store.getState().currentPrice;
+      const liqPrice = cp * 0.99;
       store.setState({
         position: {
           side: 'long',
@@ -76,9 +76,18 @@ test.describe('Historical date reveal', () => {
           leverage: 100,
           tpPrice: null,
           slPrice: null,
-          liquidationPrice: cp * 1.5,
+          liquidationPrice: liqPrice,
+          entryTime: 'now',
+          realizedPnL: 0,
         },
+        currentPrice: liqPrice,
+        price: liqPrice,
       });
+      // Force checkPosition to trigger liquidation immediately
+      const state = store.getState();
+      state.checkPosition(liqPrice);
+      // Set liquidated state so modal appears
+      store.setState({ isLiquidated: true, simulationRealDate: '01/01/2020 → 02/01/2020' });
     });
 
     await page.waitForSelector('text=ACCOUNT LIQUIDATED', { timeout: 5000 });

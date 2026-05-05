@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page, ConsoleMessage } from '@playwright/test';
 import fs from 'fs';
 
 const EVIDENCE_DIR = './test-evidence';
@@ -37,4 +37,48 @@ export async function saveEvidence(page: Page, journeyId: string, label: string)
   } catch {
     // ignore
   }
+}
+
+/**
+ * Attach a console log listener to a page and return a function to save all captured logs.
+ * Call startCapture() early in the test and saveLogs() at the end or on failure.
+ */
+export function captureConsoleLogs(page: Page, journeyId: string): {
+  startCapture: () => void;
+  saveLogs: (label?: string) => Promise<void>;
+  getLogs: () => string[];
+} {
+  const logs: string[] = [];
+
+  const startCapture = () => {
+    page.on('console', (msg: ConsoleMessage) => {
+      const type = msg.type();
+      const text = msg.text();
+      const line = `[${type.toUpperCase()}] ${text}`;
+      logs.push(line);
+      // Also echo to Node stdout so they appear in test output
+      if (type === 'error') {
+        console.error('🌐 PAGE ERROR:', text);
+      } else if (type === 'warning') {
+        console.warn('🌐 PAGE WARN:', text);
+      }
+    });
+
+    page.on('pageerror', (err) => {
+      const line = `[PAGEERROR] ${err.message}`;
+      logs.push(line);
+      console.error('🌐 PAGEERROR:', err.message);
+    });
+  };
+
+  const saveLogs = async (label = 'console-logs') => {
+    const dir = getJourneyDir(journeyId);
+    const timestamp = Date.now();
+    const content = logs.join('\n') || '(no console logs captured)';
+    fs.writeFileSync(`${dir}/${journeyId}-${label}-${timestamp}.log`, content, 'utf-8');
+  };
+
+  const getLogs = () => [...logs];
+
+  return { startCapture, saveLogs, getLogs };
 }

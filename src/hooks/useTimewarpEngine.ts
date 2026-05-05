@@ -366,7 +366,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
   // Expose engine control for E2E tests
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_ENABLE_E2E_HELPERS === "true") {
       (window as Window & { __timewarpEngine?: { pause: () => void; start: () => void; reset: () => void } }).__timewarpEngine = { pause, start, reset };
     }
     return () => {

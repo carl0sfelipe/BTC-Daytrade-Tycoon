@@ -97,7 +97,7 @@ export default function TradingChart({
     }
   }, [candles]);
 
-  // Render visible candles
+  // Render visible candles — optimized: setData only on new candle, update() for price changes
   useEffect(() => {
     if (!seriesRef.current || candles.length === 0) return;
 
@@ -112,18 +112,34 @@ export default function TradingChart({
       currentIdx = candles.length - 1;
     }
 
-    const visible = candles.slice(0, currentIdx + 1).map((c, i) => {
-      const isLast = i === currentIdx;
-      return {
+    const prevIdx = lastIdxRef.current;
+    const sameCandle = currentIdx === prevIdx && prevIdx >= 0;
+
+    if (sameCandle) {
+      // Only current price changed — update last candle in-place
+      const c = candles[currentIdx];
+      seriesRef.current.update({
         time: c.time as Time,
         open: c.open,
-        high: isLast ? Math.max(c.open, currentPrice) : c.high,
-        low: isLast ? Math.min(c.open, currentPrice) : c.low,
-        close: isLast ? currentPrice : c.close,
-      };
-    });
+        high: Math.max(c.open, currentPrice),
+        low: Math.min(c.open, currentPrice),
+        close: currentPrice,
+      });
+    } else {
+      // New candle reached (or reset) — rebuild visible slice
+      const visible = candles.slice(0, currentIdx + 1).map((c, i) => {
+        const isLast = i === currentIdx;
+        return {
+          time: c.time as Time,
+          open: c.open,
+          high: isLast ? Math.max(c.open, currentPrice) : c.high,
+          low: isLast ? Math.min(c.open, currentPrice) : c.low,
+          close: isLast ? currentPrice : c.close,
+        };
+      });
+      seriesRef.current.setData(visible);
+    }
 
-    seriesRef.current.setData(visible);
     lastIdxRef.current = currentIdx;
 
     if (priceLineRef.current) {

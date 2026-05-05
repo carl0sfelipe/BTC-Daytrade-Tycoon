@@ -18,9 +18,22 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
+  // NOTE: This is a demo-only authentication flow. No real auth backend is used.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    if (authMode === "signup" && !username.trim()) {
+      setFormError("Username is required");
+      return;
+    }
+    if (!email.trim() || !email.includes("@")) {
+      setFormError("Please enter a valid email");
+      return;
+    }
+
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
@@ -147,6 +160,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   />
                 </div>
               </div>
+            )}
+
+            {formError && (
+              <p className="text-xs text-crypto-short text-center">{formError}</p>
             )}
 
             <button

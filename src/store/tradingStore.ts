@@ -17,6 +17,14 @@ export interface Trade {
 
 const MAX_CLOSED_TRADES = 500;
 const MAX_ORDERS_HISTORY = 500;
+
+function generateId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+}
+
 export interface PendingOrder {
   id: string;
   side: "long" | "short";
@@ -201,7 +209,7 @@ export const useTradingStore = create<TradingStore>()(
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
         set((state) => {
-          const id = Math.random().toString(36).slice(2, 9);
+          const id = generateId();
           const now = new Date().toLocaleString("pt-BR", {
             day: "2-digit",
             month: "2-digit",
@@ -416,7 +424,7 @@ export const useTradingStore = create<TradingStore>()(
             };
 
             const historyItem: OrderHistoryItem = {
-              id: Math.random().toString(36).slice(2, 9),
+              id: generateId(),
               side,
               type: limitPrice ? "limit" : "market",
               status: "filled",
@@ -447,7 +455,7 @@ export const useTradingStore = create<TradingStore>()(
             const newSize = existing.size - reducedSize;
 
             const historyItem: OrderHistoryItem = {
-              id: Math.random().toString(36).slice(2, 9),
+              id: generateId(),
               side,
               type: limitPrice ? "limit" : "market",
               status: "filled",
@@ -520,7 +528,7 @@ export const useTradingStore = create<TradingStore>()(
         const isLimit = !!limitPrice;
         if (!isLimit) {
           const historyItem: OrderHistoryItem = {
-            id: Math.random().toString(36).slice(2, 9),
+            id: generateId(),
             side,
             type: "market",
             status: "filled",
@@ -720,7 +728,7 @@ export const useTradingStore = create<TradingStore>()(
           const newEntry = (size * entry + additionalSize * price) / newSize;
           const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
           const historyItem: OrderHistoryItem = {
-            id: Math.random().toString(36).slice(2, 9),
+            id: generateId(),
             side: historySide,
             type: "market",
             status: "filled",
@@ -744,7 +752,7 @@ export const useTradingStore = create<TradingStore>()(
           const pnlPartial = (priceDiff / entry) * reducedSize;
           const marginReturned = reducedSize * marginPerUnit;
           const historyItem: OrderHistoryItem = {
-            id: Math.random().toString(36).slice(2, 9),
+            id: generateId(),
             side: historySide,
             type: "market",
             status: "filled",

@@ -63,7 +63,7 @@ export default function TradeHistory() {
 
       <div className="flex-1 overflow-y-auto min-h-[200px] max-h-[400px]">
         <div className="divide-y divide-crypto-border/50">
-          {trades.map((trade, idx) => {
+          {trades.map((trade) => {
             const isProfit = trade.pnl >= 0;
             const pnlPercent = trade.margin ? (trade.pnl / trade.margin) * 100 : 0;
             const priceChange = trade.entryPrice
@@ -73,7 +73,7 @@ export default function TradeHistory() {
               : 0;
 
             return (
-              <div key={idx} className="px-4 py-3 hover:bg-crypto-surface-elevated/30 transition-colors">
+              <div key={trade.entryTime + trade.exitTime + trade.pnl + trade.side} className="px-4 py-3 hover:bg-crypto-surface-elevated/30 transition-colors">
                 {/* Row 1: Side + Leverage | Reason | P&L */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">

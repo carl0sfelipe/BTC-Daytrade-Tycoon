@@ -5,7 +5,8 @@ import { test, expect } from '@playwright/test';
  * the distance-to-liquidation bar actually moves as price changes.
  */
 test.describe('Production Vercel — Distance Bar Smoke', () => {
-  test('bar moves during live simulation', async ({ page }) => {
+  test('bar moves during live simulation', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'production', 'Only runs against production deployment');
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(2500);

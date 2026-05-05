@@ -309,21 +309,23 @@ test.describe('Manual Trading Validation', () => {
     });
     await page.waitForTimeout(300);
 
-    // Open LONG with 100x leverage and small size so liquidation is very close
-    // 100x leverage = 1% distance to liquidation initially
+    // Pause engine for deterministic price control
+    await page.evaluate(() => {
+      const engine = (window as any).__timewarpEngine;
+      if (engine && engine.pause) engine.pause();
+    });
+    await page.waitForTimeout(300);
+
+    // Open LONG with 10x leverage at a known price
+    await page.evaluate(() => {
+      (window as any).__tradingStore.setState({ currentPrice: 50000, price: 50000 });
+    });
+    await page.waitForTimeout(200);
     await page.click('text=LONG');
     await page.waitForTimeout(200);
-    // Select 100x leverage if available, otherwise use the highest available
-    const leverageBtn = page.locator('button:has-text("100x")');
-    const has100x = await leverageBtn.isVisible().catch(() => false);
-    if (has100x) {
-      await leverageBtn.click();
-    } else {
-      // Use 50x as fallback
-      await page.locator('button:has-text("50x")').click();
-    }
+    await page.locator('button:has-text("10x")').click();
     await page.waitForTimeout(200);
-    await page.locator('button:has-text("10%")').click();
+    await page.locator('button:has-text("50%")').click();
     await page.waitForTimeout(200);
     await page.click('button:has-text("Open Long")');
     await page.waitForTimeout(800);
@@ -340,18 +342,18 @@ test.describe('Manual Trading Validation', () => {
     const width1 = await getBarWidth();
     console.log('Initial bar width (natural):', width1);
 
-    // Wait up to 20 seconds for the simulation to naturally move price against the position
-    let width2 = width1;
-    let attempts = 0;
-    while (attempts < 20) {
-      await page.waitForTimeout(1000);
-      width2 = await getBarWidth();
-      console.log(`Bar width after ${attempts + 1}s:`, width2);
-      if (Math.abs(width2 - width1) > 0.5) break;
-      attempts++;
-    }
+    // Force price toward liquidation so bar changes deterministically
+    // For LONG 10x @ 50000, liqPrice ≈ 45000. Move to 48000 (40% distance → bar ~60%)
+    await page.evaluate(() => {
+      const store = (window as any).__tradingStore;
+      store.setState({ currentPrice: 48000, price: 48000 });
+    });
+    await page.waitForTimeout(500);
 
-    // The bar should have changed (price moved during simulation)
+    const width2 = await getBarWidth();
+    console.log('Bar width after forced price move:', width2);
+
+    // The bar should have changed (price moved closer to liquidation)
     expect(Math.abs(width2 - width1)).toBeGreaterThan(0.5);
 
     await posPanel.locator('text=Close Position').first().click();

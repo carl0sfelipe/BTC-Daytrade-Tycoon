@@ -7,7 +7,8 @@ test.describe('Mobile Trading Flow', () => {
     });
   });
 
-  test('mobile shows Chart tab by default and can switch to History', async ({ page }) => {
+  test('mobile shows Chart tab by default and can switch to History', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'Only runs on mobile viewport');
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
@@ -28,12 +29,15 @@ test.describe('Mobile Trading Flow', () => {
     await expect(page.locator('text=Trade History').first()).toBeVisible();
   });
 
-  test('mobile bottom sheet opens when position is opened', async ({ page }) => {
+  test('mobile bottom sheet opens when position is opened', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'Only runs on mobile viewport');
     await page.goto('/trading');
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
-    // Open position via UI
+    // Open bottom sheet and then position
+    await page.click('text=Open Position');
+    await page.waitForTimeout(500);
     await page.click('text=LONG');
     await page.waitForTimeout(200);
     await page.locator('button:has-text("10x")').click();

@@ -781,7 +781,7 @@ export const useTradingStore = create<TradingStore>()(
 
         const { side, tpPrice, slPrice, liquidationPrice, trailingStopPercent, trailingStopPrice } = state.position;
 
-        // Update trailing stop if price moved favorably
+        // Update trailing stop if price moved favorably (before any checks)
         if (trailingStopPercent && trailingStopPrice !== null) {
           const newStopPrice = calcTrailingStopPrice(side, currentPrice, trailingStopPercent);
           if (
@@ -790,16 +790,9 @@ export const useTradingStore = create<TradingStore>()(
           ) {
             set({ position: { ...state.position, trailingStopPrice: newStopPrice } });
           }
-          if (
-            (side === "long" && currentPrice <= trailingStopPrice) ||
-            (side === "short" && currentPrice >= trailingStopPrice)
-          ) {
-            state.closePosition("trailing_stop");
-            return { closed: true, reason: "trailing_stop" };
-          }
         }
 
-        // Check liquidation
+        // Check liquidation (highest precedence)
         if (side === "long" && currentPrice <= liquidationPrice) {
           state.closePosition("liquidation");
           return { closed: true, reason: "liquidation" };
@@ -807,6 +800,17 @@ export const useTradingStore = create<TradingStore>()(
         if (side === "short" && currentPrice >= liquidationPrice) {
           state.closePosition("liquidation");
           return { closed: true, reason: "liquidation" };
+        }
+
+        // Check trailing stop
+        if (trailingStopPercent && trailingStopPrice !== null) {
+          if (
+            (side === "long" && currentPrice <= trailingStopPrice) ||
+            (side === "short" && currentPrice >= trailingStopPrice)
+          ) {
+            state.closePosition("trailing_stop");
+            return { closed: true, reason: "trailing_stop" };
+          }
         }
 
         // Check SL

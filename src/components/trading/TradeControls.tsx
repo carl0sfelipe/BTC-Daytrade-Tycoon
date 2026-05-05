@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Settings2, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
+import { useToast } from "@/hooks/use-toast";
 import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
 
 export default function TradeControls() {
@@ -39,6 +40,17 @@ export default function TradeControls() {
   const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
   const reduceOnly = useTradingStore((s) => s.reduceOnly);
   const setTrailingStop = useTradingStore((s) => s.setTrailingStop);
+  const lastActionError = useTradingStore((s) => s.lastActionError);
+  const clearLastActionError = useTradingStore((s) => s.clearLastActionError);
+  const { toast } = useToast();
+
+  // Show action errors as toast notifications
+  useEffect(() => {
+    if (lastActionError) {
+      toast({ title: "⚠️ Action Failed", description: lastActionError, variant: "destructive" });
+      clearLastActionError();
+    }
+  }, [lastActionError, toast, clearLastActionError]);
 
   // Track whether we have already synced controls to the current position.
   // Only sync when a position first appears (null -> not-null), not on every update.

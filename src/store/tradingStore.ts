@@ -83,6 +83,7 @@ interface TradingStore {
   hasSeenOnboarding: boolean;
   skipHighLeverageWarning: boolean;
   reduceOnly: boolean;
+  lastActionError: string | null;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -116,6 +117,7 @@ interface TradingStore {
   setOnboardingSeen: () => void;
   setSkipHighLeverageWarning: (skip: boolean) => void;
   setReduceOnly: (value: boolean) => void;
+  clearLastActionError: () => void;
 }
 
 function formatStoreState(state: TradingStore) {
@@ -175,6 +177,7 @@ export const useTradingStore = create<TradingStore>()(
       hasSeenOnboarding: false,
       skipHighLeverageWarning: false,
       reduceOnly: true,
+      lastActionError: null,
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -190,6 +193,7 @@ export const useTradingStore = create<TradingStore>()(
       setOnboardingSeen: () => set({ hasSeenOnboarding: true }),
       setSkipHighLeverageWarning: (skip) => set({ skipHighLeverageWarning: skip }),
       setReduceOnly: (value) => set({ reduceOnly: value }),
+      clearLastActionError: () => set({ lastActionError: null }),
       addClosedTrade: (trade) =>
         set((state) => ({
           closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
@@ -317,12 +321,22 @@ export const useTradingStore = create<TradingStore>()(
       openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
         const state = get();
         const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
-        if (!entryPrice || entryPrice <= 0) return;
-        if (!positionSize || positionSize <= 0) return;
-        if (!leverage || leverage <= 0) return;
+        if (!entryPrice || entryPrice <= 0) {
+          set({ lastActionError: "Invalid entry price" });
+          return;
+        }
+        if (!positionSize || positionSize <= 0) {
+          set({ lastActionError: "Position size must be greater than 0" });
+          return;
+        }
+        if (!leverage || leverage <= 0) {
+          set({ lastActionError: "Leverage must be greater than 0" });
+          return;
+        }
 
         // Guard against silently overwriting a same-side position
         if (state.position && state.position.side === side) {
+          set({ lastActionError: `Close your existing ${side} position first` });
           return;
         }
 
@@ -337,8 +351,12 @@ export const useTradingStore = create<TradingStore>()(
           const returnedMargin = existing.size / existing.leverage;
           const excessSize = positionSize - existing.size;
           const excessMargin = excessSize / leverage;
-          if (state.wallet + returnedMargin + closePnl < excessMargin) return;
+          if (state.wallet + returnedMargin + closePnl < excessMargin) {
+            set({ lastActionError: "Insufficient funds for hedge flip" });
+            return;
+          }
         } else if (state.wallet < margin) {
+          set({ lastActionError: "Insufficient wallet balance" });
           return;
         }
 

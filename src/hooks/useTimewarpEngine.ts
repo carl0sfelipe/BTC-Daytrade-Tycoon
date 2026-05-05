@@ -241,57 +241,67 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   }, [resetStore]);
 
   const tick = useCallback(() => {
-    const startDate = startDateRef.current;
-    const currentCandles = candlesRef.current;
-    if (!currentCandles.length || !startDate) return;
+    try {
+      const startDate = startDateRef.current;
+      const currentCandles = candlesRef.current;
+      if (!currentCandles.length || !startDate) return;
 
-    const realElapsedMs = Date.now() - simulationStartRealTimeRef.current;
-    const simulatedElapsedMs = realElapsedMs * SPEED_MULTIPLIER;
-    const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
-    const simulatedTimeSec = Math.floor(simulatedTimeMs / 1000);
+      const realElapsedMs = Date.now() - simulationStartRealTimeRef.current;
+      const simulatedElapsedMs = realElapsedMs * SPEED_MULTIPLIER;
+      const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
+      const simulatedTimeSec = Math.floor(simulatedTimeMs / 1000);
 
-    const lastCandle = currentCandles[currentCandles.length - 1];
+      const lastCandle = currentCandles[currentCandles.length - 1];
 
-    // Check if we need to fetch more data (< 5 hours remaining)
-    const minutesRemaining = (lastCandle.time - simulatedTimeSec) / 60;
-    if (minutesRemaining < FETCH_AHEAD_MINUTES / SPEED_MULTIPLIER && !isFetchingMoreRef.current) {
-      appendMoreCandles();
-    }
+      // Check if we need to fetch more data (< 5 hours remaining)
+      const minutesRemaining = (lastCandle.time - simulatedTimeSec) / 60;
+      if (minutesRemaining < FETCH_AHEAD_MINUTES / SPEED_MULTIPLIER && !isFetchingMoreRef.current) {
+        appendMoreCandles();
+      }
 
-    // Updates elapsed time
-    const totalSeconds = Math.floor(realElapsedMs / 1000);
-    setElapsedTime(formatElapsedTime(totalSeconds));
-    setCurrentTimeSec(simulatedTimeSec);
+      // Updates elapsed time
+      const totalSeconds = Math.floor(realElapsedMs / 1000);
+      setElapsedTime(formatElapsedTime(totalSeconds));
+      setCurrentTimeSec(simulatedTimeSec);
 
-    // Accumulated historical time covered (seconds of historical data simulated)
-    const historicalSeconds = simulatedTimeSec - Math.floor(startDate.getTime() / 1000);
-    setSimulatedHistoricalTime(formatDuration(Math.max(0, historicalSeconds / 60)));
+      // Accumulated historical time covered (seconds of historical data simulated)
+      const historicalSeconds = simulatedTimeSec - Math.floor(startDate.getTime() / 1000);
+      setSimulatedHistoricalTime(formatDuration(Math.max(0, historicalSeconds / 60)));
 
-    const price = interpolatePrice(currentCandles, simulatedTimeSec);
-    const trend = calculateTrend(currentCandles, price);
-    const volatility = calculateVolatility(currentCandles);
-    setCurrentPrice(price);
+      const price = interpolatePrice(currentCandles, simulatedTimeSec);
+      const trend = calculateTrend(currentCandles, price);
+      const volatility = calculateVolatility(currentCandles);
+      setCurrentPrice(price);
 
-    useTradingStore.setState({
-      price,
-      currentPrice: price,
-      marketTrend: trend,
-      volatility,
-    });
+      useTradingStore.setState({
+        price,
+        currentPrice: price,
+        marketTrend: trend,
+        volatility,
+      });
 
-    storeAddPriceHistory(price);
+      storeAddPriceHistory(price);
 
-    // Checks pending limit orders
-    storeCheckPendingOrders(price);
+      // Checks pending limit orders
+      storeCheckPendingOrders(price);
 
-    // Checks liquidation / SL / TP (skip if already liquidated)
-    if (hasLiquidatedRef.current) return;
-    const checkResult = storeCheckPosition(price);
-    if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
-      hasLiquidatedRef.current = true;
-      const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
-      const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
-      useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
+      // Checks liquidation / SL / TP (skip if already liquidated)
+      if (hasLiquidatedRef.current) return;
+      const checkResult = storeCheckPosition(price);
+      if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
+        hasLiquidatedRef.current = true;
+        const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
+        const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
+        useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
+      }
+    } catch (err) {
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setError(err instanceof Error ? err.message : "Simulation error");
     }
   }, [storeAddPriceHistory, storeCheckPosition, appendMoreCandles]);
 

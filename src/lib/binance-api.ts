@@ -26,7 +26,14 @@ export async function fetchCurrentPrice(symbol = "BTCUSDT"): Promise<number> {
     throw new Error(`Binance API error: ${response.status}`);
   }
   const data = await response.json();
-  return parseFloat(data.price);
+  if (typeof data?.price !== "string") {
+    throw new Error(`Invalid price data from Binance: ${JSON.stringify(data)}`);
+  }
+  const price = parseFloat(data.price);
+  if (Number.isNaN(price) || price <= 0) {
+    throw new Error(`Invalid price value from Binance: ${data.price}`);
+  }
+  return price;
 }
 
 export async function fetchCandles(

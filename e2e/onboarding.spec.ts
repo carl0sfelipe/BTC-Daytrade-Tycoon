@@ -42,6 +42,25 @@ test.describe('Onboarding Flow', () => {
     await saveLogs('skip');
   });
 
+  test('onboarding does not reappear after skip on page reload', async ({ page }) => {
+    await page.goto('/trading');
+    await page.waitForTimeout(2000);
+
+    // Skip onboarding
+    await page.click('button:has-text("Skip")');
+    await page.waitForTimeout(800);
+    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
+
+    // Reload the page
+    await page.reload();
+    await page.waitForTimeout(2000);
+
+    // Onboarding should NOT reappear — simulation loads directly
+    await expect(page.locator('text=Simulation Time').first()).toBeVisible({ timeout: 30000 });
+    const onboarding = page.locator('[role="dialog"]').filter({ hasText: /Welcome|Tutorial|TimeWarp|Blind Date/i });
+    await expect(onboarding).toHaveCount(0);
+  });
+
   test('onboarding can be navigated through all steps', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();

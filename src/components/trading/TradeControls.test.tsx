@@ -646,5 +646,92 @@ describe("TradeControls", () => {
       // = $500 + $200 + $0 - $100 = $600
       expect(screen.getByText("$600.00")).toBeInTheDocument();
     });
+
+    it("mutant: button changes from FLIP to REDUCE when slider drops below position size", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          liquidationPrice: 55000,
+          tpPrice: null,
+          slPrice: null,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+
+      // Above position size → FLIP
+      fireEvent.change(slider, { target: { value: "3000" } });
+      expect(screen.getByText("FLIP TO LONG")).toBeInTheDocument();
+
+      // Below position size → REDUCE
+      fireEvent.change(slider, { target: { value: "1000" } });
+      expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
+      expect(screen.queryByText("FLIP TO LONG")).not.toBeInTheDocument();
+    });
+
+    it("mutant: open button DISABLED when wallet < required margin", () => {
+      useTradingStore.setState({
+        wallet: 50,
+        position: null,
+        currentPrice: 50000,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      // Default slider is 1000 @ leverage 10 → margin 100 > wallet 50
+      const openBtn = screen.getByText("Open Long");
+      expect(openBtn).toBeDisabled();
+
+      fireEvent.click(openBtn);
+      expect(useTradingStore.getState().position).toBeNull();
+    });
+
+    it("mutant: side select preserves user choice across multiple position updates", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          liquidationPrice: 55000,
+          tpPrice: null,
+          slPrice: null,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      // Simulate THREE position updates (new position objects)
+      const currentPos = useTradingStore.getState().position!;
+      for (let i = 0; i < 3; i++) {
+        useTradingStore.setState({
+          position: { ...currentPos, entryTime: `2026-05-04T12:00:0${i}Z` },
+        });
+      }
+
+      const longBtn = screen.getAllByText("LONG").find(
+        (el) => el.tagName.toLowerCase() === "button"
+      )!;
+      expect(longBtn.className).toContain("bg-crypto-long");
+    });
   });
 });

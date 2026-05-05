@@ -402,3 +402,331 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
     expect(useTradingStore.getState().reduceOnly).toBe(true);
   });
 });
+
+describe("TradingStore — checkPosition", () => {
+  it("liquidation long triggers when price hits liquidationPrice", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 45000,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(45000);
+
+    expect(result).toEqual({ closed: true, reason: "liquidation" });
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().closedTrades[0].reason).toBe("liquidation");
+    expect(useTradingStore.getState().isLiquidated).toBe(false); // no real date set
+  });
+
+  it("liquidation long with simulationRealDate sets isLiquidated true", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 45000,
+      simulationRealDate: "2020-03-12 → 2020-03-15",
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    useTradingStore.getState().checkPosition(45000);
+
+    expect(useTradingStore.getState().isLiquidated).toBe(true);
+  });
+
+  it("liquidation short triggers when price rises to liquidationPrice", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 55000,
+      position: {
+        side: "short",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 55000,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(55000);
+
+    expect(result).toEqual({ closed: true, reason: "liquidation" });
+    expect(useTradingStore.getState().position).toBeNull();
+  });
+
+  it("SL hit long closes with reason 'sl'", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 48000,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: 48000,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(48000);
+
+    expect(result).toEqual({ closed: true, reason: "sl" });
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().closedTrades[0].pnl).toBeLessThan(0);
+  });
+
+  it("SL hit short closes with reason 'sl'", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 52000,
+      position: {
+        side: "short",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 55000,
+        tpPrice: null,
+        slPrice: 52000,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(52000);
+
+    expect(result).toEqual({ closed: true, reason: "sl" });
+    expect(useTradingStore.getState().position).toBeNull();
+  });
+
+  it("TP hit long closes with reason 'tp'", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 55000,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: 55000,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(55000);
+
+    expect(result).toEqual({ closed: true, reason: "tp" });
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().closedTrades[0].pnl).toBeGreaterThan(0);
+  });
+
+  it("TP hit short closes with reason 'tp'", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 45000,
+      position: {
+        side: "short",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 55000,
+        tpPrice: 45000,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(45000);
+
+    expect(result).toEqual({ closed: true, reason: "tp" });
+    expect(useTradingStore.getState().position).toBeNull();
+  });
+
+  it("no trigger between liq/sl/tp returns {closed:false}", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 50500,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: 55000,
+        slPrice: 48000,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(50500);
+
+    expect(result).toEqual({ closed: false });
+    expect(useTradingStore.getState().position).not.toBeNull();
+  });
+
+  it("liquidation precedence over SL when both would trigger", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 44900,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: 46000,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    const result = useTradingStore.getState().checkPosition(44900);
+
+    expect(result.reason).toBe("liquidation");
+  });
+});
+
+describe("TradingStore — updateLeverage", () => {
+  it("recalculates liquidationPrice on leverage increase", () => {
+    useTradingStore.setState({
+      wallet: 9900,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    useTradingStore.getState().updateLeverage(20);
+
+    const pos = useTradingStore.getState().position;
+    expect(pos!.leverage).toBe(20);
+    expect(pos!.liquidationPrice).toBe(47500); // 50000 * (1 - 1/20)
+  });
+
+  it("refunds margin diff on leverage increase", () => {
+    useTradingStore.setState({
+      wallet: 9900,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 10,
+        liquidationPrice: 45000,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    useTradingStore.getState().updateLeverage(20);
+
+    // old margin = 100, new margin = 50, diff = -50 → wallet gets +50
+    expect(useTradingStore.getState().wallet).toBe(9950);
+  });
+
+  it("early-returns when wallet < marginDiff on leverage decrease", () => {
+    useTradingStore.setState({
+      wallet: 10,
+      position: {
+        side: "long",
+        entry: 50000,
+        size: 1000,
+        leverage: 20,
+        liquidationPrice: 47500,
+        tpPrice: null,
+        slPrice: null,
+        entryTime: "now",
+        realizedPnL: 0,
+      },
+    });
+
+    useTradingStore.getState().updateLeverage(5);
+
+    // new margin = 200, diff = +150, wallet = 10 < 150 → should not change
+    expect(useTradingStore.getState().position!.leverage).toBe(20);
+    expect(useTradingStore.getState().wallet).toBe(10);
+  });
+
+  it("no-op when no position", () => {
+    useTradingStore.setState({ wallet: 10000, position: null });
+
+    useTradingStore.getState().updateLeverage(50);
+
+    expect(useTradingStore.getState().wallet).toBe(10000);
+    expect(useTradingStore.getState().position).toBeNull();
+  });
+});
+
+describe("TradingStore — setLiquidated / clearLiquidated / openPosition early-returns", () => {
+  it("setLiquidated stores flag and date", () => {
+    useTradingStore.getState().setLiquidated("2020-03-12 → 2020-03-15");
+
+    const state = useTradingStore.getState();
+    expect(state.isLiquidated).toBe(true);
+    expect(state.simulationRealDate).toBe("2020-03-12 → 2020-03-15");
+  });
+
+  it("clearLiquidated resets both", () => {
+    useTradingStore.getState().setLiquidated("2020-03-12 → 2020-03-15");
+    useTradingStore.getState().clearLiquidated();
+
+    const state = useTradingStore.getState();
+    expect(state.isLiquidated).toBe(false);
+    expect(state.simulationRealDate).toBeNull();
+  });
+
+  it("openPosition early-returns when entryPrice <= 0", () => {
+    useTradingStore.setState({ currentPrice: 0, wallet: 10000, position: null });
+
+    useTradingStore.getState().openPosition("long", 10, 1000, "", "", null);
+
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().wallet).toBe(10000);
+  });
+
+  it("openPosition early-returns when wallet < margin (no flip path)", () => {
+    useTradingStore.setState({ currentPrice: 50000, wallet: 50, position: null });
+
+    useTradingStore.getState().openPosition("long", 10, 1000, "", "", null);
+
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().wallet).toBe(50);
+  });
+});

@@ -420,11 +420,11 @@ export default function TradeControls() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                         <div className="flex items-center gap-1">
                           <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                           <div className="relative flex-1">
-                            <input type="text" placeholder="mercado" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
+                            <input type="text" placeholder="market" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
                               className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                             {tpOrderPrice && <button type="button" onClick={() => setTpOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                           </div>
@@ -449,11 +449,11 @@ export default function TradeControls() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                         <div className="flex items-center gap-1">
                           <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                           <div className="relative flex-1">
-                            <input type="text" placeholder="mercado" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
+                            <input type="text" placeholder="market" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
                               className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                             {slOrderPrice && <button type="button" onClick={() => setSlOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                           </div>
@@ -610,11 +610,11 @@ export default function TradeControls() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                         <div className="flex items-center gap-1">
                           <button type="button" onClick={() => setTpOrderPrice(((parseFloat(tpOrderPrice) || parseFloat(tpPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                           <div className="relative flex-1">
-                            <input type="text" placeholder="mercado" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
+                            <input type="text" placeholder="market" value={tpOrderPrice} onChange={(e) => setTpOrderPrice(e.target.value)}
                               className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                             {tpOrderPrice && <button type="button" onClick={() => setTpOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                           </div>
@@ -639,11 +639,11 @@ export default function TradeControls() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                         <div className="flex items-center gap-1">
                           <button type="button" onClick={() => setSlOrderPrice(((parseFloat(slOrderPrice) || parseFloat(slPrice) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                           <div className="relative flex-1">
-                            <input type="text" placeholder="mercado" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
+                            <input type="text" placeholder="market" value={slOrderPrice} onChange={(e) => setSlOrderPrice(e.target.value)}
                               className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                             {slOrderPrice && <button type="button" onClick={() => setSlOrderPrice("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                           </div>

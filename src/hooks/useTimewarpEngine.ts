@@ -28,7 +28,7 @@ function randomDate(): Date {
 }
 
 function formatRealDate(d: Date): string {
-  return d.toLocaleString("pt-BR", {
+  return d.toLocaleString("en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

@@ -187,7 +187,7 @@ export default function LandingPage() {
             <FeatureCard icon={BarChart3} title="Real Binance Data" desc="Real 1-minute candles between 2017 and 2020" />
             <FeatureCard icon={Activity} title="Dynamic Volatility" desc="Automatic alerts when the market becomes unstable" />
             <FeatureCard icon={Users} title="Global Rankings" desc="Compete with other traders for percentage returns" />
-            <FeatureCard icon={Star} title="Conquistas" desc="Unlock badges for performance and consistency" />
+            <FeatureCard icon={Star} title="Achievements" desc="Unlock badges for performance and consistency" />
             <FeatureCard icon={Clock} title="60x Speed" desc="Simulate a full trading day in 24 real minutes" />
             <FeatureCard icon={Zap} title="Zero Risk" desc="Learn with fake money. Make mistakes freely." />
           </div>

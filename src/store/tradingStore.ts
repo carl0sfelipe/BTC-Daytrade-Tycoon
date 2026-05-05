@@ -216,7 +216,7 @@ export const useTradingStore = create<TradingStore>()(
         set((state) => {
           console.log(`[addPendingOrder] ${order.orderType} ${order.side.toUpperCase()} $${order.size} x${order.leverage} limit@${order.limitPrice} tp=${order.tpPrice||"-"} sl=${order.slPrice||"-"}`, formatStoreState(state));
           const id = generateId();
-          const now = new Date().toLocaleString("pt-BR", {
+          const now = new Date().toLocaleString("en-US", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -256,7 +256,7 @@ export const useTradingStore = create<TradingStore>()(
         set((state) => ({
           pendingOrders: state.pendingOrders.filter((o) => o.id !== id),
           ordersHistory: state.ordersHistory.map((o) =>
-            o.id === id ? { ...o, status: "canceled" as const, updatedAt: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) } : o
+            o.id === id ? { ...o, status: "canceled" as const, updatedAt: new Date().toLocaleString("en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) } : o
           ),
         }));
       },
@@ -267,7 +267,7 @@ export const useTradingStore = create<TradingStore>()(
           const toCancel = state.pendingOrders.filter(
             (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
           );
-          const now = new Date().toLocaleString("pt-BR", {
+          const now = new Date().toLocaleString("en-US", {
             day: "2-digit", month: "2-digit", year: "numeric",
             hour: "2-digit", minute: "2-digit", second: "2-digit",
           });
@@ -323,7 +323,7 @@ export const useTradingStore = create<TradingStore>()(
           for (const o of executed) {
             console.log(`[checkPendingOrders] EXECUTED ${o.orderType} ${o.side.toUpperCase()} $${o.size} x${o.leverage} @${o.limitPrice} price=${currentPrice.toFixed(2)}`, formatStoreState(state));
           }
-          const now = new Date().toLocaleString("pt-BR", {
+          const now = new Date().toLocaleString("en-US", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -441,26 +441,26 @@ export const useTradingStore = create<TradingStore>()(
         // Validate TP/SL won't trigger immediately at entry price
         if (tpPrice && tpPrice > 0) {
           if (side === "long" && entryPrice >= tpPrice) {
-            set({ lastActionError: `TP inválido: para LONG o Take Profit deve ser ACIMA do entry ($${entryPrice.toFixed(2)}). Coloque um valor > $${entryPrice.toFixed(2)}.` });
+            set({ lastActionError: `Invalid TP: for LONG the Take Profit must be ABOVE entry ($${entryPrice.toFixed(2)}). Enter a value > $${entryPrice.toFixed(2)}.` });
             return;
           }
           if (side === "short" && entryPrice <= tpPrice) {
-            set({ lastActionError: `TP inválido: para SHORT o Take Profit deve ser ABAIXO do entry ($${entryPrice.toFixed(2)}). Coloque um valor < $${entryPrice.toFixed(2)}.` });
+            set({ lastActionError: `Invalid TP: for SHORT the Take Profit must be BELOW entry ($${entryPrice.toFixed(2)}). Enter a value < $${entryPrice.toFixed(2)}.` });
             return;
           }
         }
         if (slPrice && slPrice > 0) {
           if (side === "long" && entryPrice <= slPrice) {
-            set({ lastActionError: `SL inválido: para LONG o Stop Loss deve ser ABAIXO do entry ($${entryPrice.toFixed(2)}). Coloque um valor < $${entryPrice.toFixed(2)}.` });
+            set({ lastActionError: `Invalid SL: for LONG the Stop Loss must be BELOW entry ($${entryPrice.toFixed(2)}). Enter a value < $${entryPrice.toFixed(2)}.` });
             return;
           }
           if (side === "short" && entryPrice >= slPrice) {
-            set({ lastActionError: `SL inválido: para SHORT o Stop Loss deve ser ACIMA do entry ($${entryPrice.toFixed(2)}). Coloque um valor > $${entryPrice.toFixed(2)}.` });
+            set({ lastActionError: `Invalid SL: for SHORT the Stop Loss must be ABOVE entry ($${entryPrice.toFixed(2)}). Enter a value > $${entryPrice.toFixed(2)}.` });
             return;
           }
         }
 
-        const now = new Date().toLocaleString("pt-BR", {
+        const now = new Date().toLocaleString("en-US", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
@@ -695,7 +695,7 @@ export const useTradingStore = create<TradingStore>()(
         const { side, entry, size, leverage } = state.position;
         const marginPerUnit = 1 / leverage;
 
-        const now = new Date().toLocaleString("pt-BR", {
+        const now = new Date().toLocaleString("en-US", {
           day: "2-digit", month: "2-digit", year: "numeric",
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         });
@@ -754,7 +754,7 @@ export const useTradingStore = create<TradingStore>()(
           (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
         );
         if (toCancel.length > 0) {
-          const now = new Date().toLocaleString("pt-BR", {
+          const now = new Date().toLocaleString("en-US", {
             day: "2-digit", month: "2-digit", year: "numeric",
             hour: "2-digit", minute: "2-digit", second: "2-digit",
           });
@@ -784,7 +784,7 @@ export const useTradingStore = create<TradingStore>()(
         const margin = size / leverage;
         const newWallet = state.wallet + margin + pnl;
 
-        const now = new Date().toLocaleString("pt-BR", {
+        const now = new Date().toLocaleString("en-US", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
@@ -860,7 +860,7 @@ export const useTradingStore = create<TradingStore>()(
         const marginDiff = newMargin - oldMargin;
         const historySide = orderSide ?? side;
 
-        const now = new Date().toLocaleString("pt-BR", {
+        const now = new Date().toLocaleString("en-US", {
           day: "2-digit", month: "2-digit", year: "numeric",
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         });
@@ -979,21 +979,21 @@ export const useTradingStore = create<TradingStore>()(
 
         if (tpPrice && tpPrice > 0) {
           if (side === "long" && ref >= tpPrice) {
-            set({ lastActionError: `TP inválido: para LONG o Take Profit deve ser ACIMA do preço atual ($${ref.toFixed(2)}). Coloque um valor > $${ref.toFixed(2)}.` });
+            set({ lastActionError: `Invalid TP: for LONG the Take Profit must be ABOVE the current price ($${ref.toFixed(2)}). Enter a value > $${ref.toFixed(2)}.` });
             return;
           }
           if (side === "short" && ref <= tpPrice) {
-            set({ lastActionError: `TP inválido: para SHORT o Take Profit deve ser ABAIXO do preço atual ($${ref.toFixed(2)}). Coloque um valor < $${ref.toFixed(2)}.` });
+            set({ lastActionError: `Invalid TP: for SHORT the Take Profit must be BELOW the current price ($${ref.toFixed(2)}). Enter a value < $${ref.toFixed(2)}.` });
             return;
           }
         }
         if (slPrice && slPrice > 0) {
           if (side === "long" && ref <= slPrice) {
-            set({ lastActionError: `SL inválido: para LONG o Stop Loss deve ser ABAIXO do preço atual ($${ref.toFixed(2)}). Coloque um valor < $${ref.toFixed(2)}.` });
+            set({ lastActionError: `Invalid SL: for LONG the Stop Loss must be BELOW the current price ($${ref.toFixed(2)}). Enter a value < $${ref.toFixed(2)}.` });
             return;
           }
           if (side === "short" && ref >= slPrice) {
-            set({ lastActionError: `SL inválido: para SHORT o Stop Loss deve ser ACIMA do preço atual ($${ref.toFixed(2)}). Coloque um valor > $${ref.toFixed(2)}.` });
+            set({ lastActionError: `Invalid SL: for SHORT the Stop Loss must be ABOVE the current price ($${ref.toFixed(2)}). Enter a value > $${ref.toFixed(2)}.` });
             return;
           }
         }
@@ -1007,7 +1007,7 @@ export const useTradingStore = create<TradingStore>()(
           (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
         );
 
-        const now = new Date().toLocaleString("pt-BR", {
+        const now = new Date().toLocaleString("en-US", {
           day: "2-digit", month: "2-digit", year: "numeric",
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         });

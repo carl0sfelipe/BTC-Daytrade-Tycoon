@@ -19,7 +19,7 @@ export default function PositionPanel() {
 
   useEffect(() => {
     if (lastActionError) {
-      toast({ title: "⚠️ Ordem inválida", description: lastActionError, variant: "destructive" });
+      toast({ title: "⚠️ Invalid Order", description: lastActionError, variant: "destructive" });
       clearLastActionError();
     }
   }, [lastActionError, toast, clearLastActionError]);
@@ -264,7 +264,7 @@ export default function PositionPanel() {
           {showTp && (
             <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-long-dim/10 border border-crypto-long/20">
               <div className="space-y-1">
-                <span className="text-[9px] text-crypto-long uppercase tracking-wider">Trigger Price {isLong ? "▲ acima" : "▼ abaixo"}</span>
+                <span className="text-[9px] text-crypto-long uppercase tracking-wider">Trigger Price {isLong ? "▲ above" : "▼ below"}</span>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={() => setTpInput(((parseFloat(tpInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                   <div className="relative flex-1">
@@ -277,11 +277,11 @@ export default function PositionPanel() {
                 </div>
               </div>
               <div className="space-y-1">
-                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={() => setTpOrderInput(((parseFloat(tpOrderInput) || parseFloat(tpInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                   <div className="relative flex-1">
-                    <input type="text" placeholder="mercado" value={tpOrderInput} onChange={(e) => setTpOrderInput(e.target.value)}
+                    <input type="text" placeholder="market" value={tpOrderInput} onChange={(e) => setTpOrderInput(e.target.value)}
                       className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                     {tpOrderInput && <button type="button" onClick={() => setTpOrderInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                   </div>
@@ -299,7 +299,7 @@ export default function PositionPanel() {
           {showSl && (
             <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-short-dim/10 border border-crypto-short/20">
               <div className="space-y-1">
-                <span className="text-[9px] text-crypto-short uppercase tracking-wider">Trigger Price {isLong ? "▼ abaixo" : "▲ acima"}</span>
+                <span className="text-[9px] text-crypto-short uppercase tracking-wider">Trigger Price {isLong ? "▼ below" : "▲ above"}</span>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={() => setSlInput(((parseFloat(slInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                   <div className="relative flex-1">
@@ -312,11 +312,11 @@ export default function PositionPanel() {
                 </div>
               </div>
               <div className="space-y-1">
-                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(vazio = mercado)</span></span>
+                <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price <span className="normal-case">(empty = market)</span></span>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={() => setSlOrderInput(((parseFloat(slOrderInput) || parseFloat(slInput) || currentPrice) - tpSlStep).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all"><ChevronDown className="w-3 h-3" /></button>
                   <div className="relative flex-1">
-                    <input type="text" placeholder="mercado" value={slOrderInput} onChange={(e) => setSlOrderInput(e.target.value)}
+                    <input type="text" placeholder="market" value={slOrderInput} onChange={(e) => setSlOrderInput(e.target.value)}
                       className="w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent" />
                     {slOrderInput && <button type="button" onClick={() => setSlOrderInput("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short"><X className="w-3 h-3" /></button>}
                   </div>

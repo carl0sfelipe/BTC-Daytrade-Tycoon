@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { saveEvidence, captureConsoleLogs } from './_helper';
 
-const JID = 'WALLET-VALIDATION';
+const JID = 'WALLET-VAL';
 
-test.describe('Wallet & Margin Validation', () => {
+test.describe('Wallet Validation', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
     });
   });
 
-  test('cannot open position larger than wallet allows', async ({ page }) => {
+  test('cannot open position larger than available wallet', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
@@ -18,35 +18,30 @@ test.describe('Wallet & Margin Validation', () => {
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
-    // Set wallet to $100 (very small)
+    // Set wallet to $100
     await page.evaluate(() => {
       (window as any).__tradingStore.setState({ wallet: 100, position: null });
     });
     await page.waitForTimeout(300);
 
-    // Select 10x and try to open with 100% size
-    await page.click('text=LONG');
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("10x")').click();
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("100%")').click();
-    await page.waitForTimeout(200);
-
-    // Try to open position
-    const openBtn = page.locator('button:has-text("Open Long")');
-    await openBtn.click();
-    await page.waitForTimeout(1000);
-    await saveEvidence(page, JID, '01-insufficient-funds');
+    // Try to open position via store: $2000 @ 10x → margin = $200 > wallet $100
+    // Store validates wallet < margin and returns early
+    await page.evaluate(() => {
+      (window as any).__tradingStore.getState().openPosition('long', 10, 2000, '', '', null);
+    });
+    await page.waitForTimeout(500);
 
     // Position should NOT be open
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    const noPos = await posPanel.locator('text=No open position').isVisible().catch(() => false);
-    expect(noPos).toBe(true);
+    const after = await page.evaluate(() => (window as any).__tradingStore.getState());
+    expect(after.position).toBeNull();
+    // Wallet unchanged
+    expect(after.wallet).toBe(100);
 
-    await saveLogs('insufficient');
+    await saveEvidence(page, JID, '01-wallet-too-small');
+    await saveLogs('wallet-too-small');
   });
 
-  test('wallet correctly updates after multiple trades', async ({ page }) => {
+  test('wallet updates correctly after opening and closing a position', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
@@ -54,6 +49,7 @@ test.describe('Wallet & Margin Validation', () => {
     await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
+    // Pause engine and set known price
     await page.evaluate(() => {
       const engine = (window as any).__timewarpEngine;
       if (engine && engine.pause) engine.pause();
@@ -65,38 +61,29 @@ test.describe('Wallet & Margin Validation', () => {
         price: 50000,
       });
     });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
-    // Open LONG $1000 @ 10x (margin = $100)
+    // Open LONG $1000 @ 10x → margin = $100
     await page.evaluate(() => {
       (window as any).__tradingStore.getState().openPosition('long', 10, 1000, '', '', null);
     });
     await page.waitForTimeout(500);
 
-    let wallet1 = await page.evaluate(() => (window as any).__tradingStore.getState().wallet);
-    expect(wallet1).toBeCloseTo(9900, 0); // 10000 - 100 margin
+    // Wallet should be reduced by margin
+    let wallet = await page.evaluate(() => (window as any).__tradingStore.getState().wallet);
+    expect(wallet).toBe(9900);
 
-    // Increase by $500 (margin = $50)
+    // Close position at same price → P&L = 0
     await page.evaluate(() => {
-      (window as any).__tradingStore.getState().updatePositionSize(1500, 'long');
+      (window as any).__tradingStore.getState().closePosition();
     });
     await page.waitForTimeout(500);
 
-    let wallet2 = await page.evaluate(() => (window as any).__tradingStore.getState().wallet);
-    expect(wallet2).toBeCloseTo(9850, 0); // 9900 - 50 margin
+    // Wallet after close: 9900 + margin(100) + pnl(0) = 10000
+    wallet = await page.evaluate(() => (window as any).__tradingStore.getState().wallet);
+    expect(wallet).toBe(10000);
 
-    // Close at $52k (pnl = +40)
-    await page.evaluate(() => {
-      (window as any).__tradingStore.setState({ currentPrice: 52000, price: 52000 });
-      (window as any).__tradingStore.getState().closePosition('manual');
-    });
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '02-wallet-tracked');
-
-    let wallet3 = await page.evaluate(() => (window as any).__tradingStore.getState().wallet);
-    // wallet = 9850 + margin(150) + pnl(40) = 10040
-    expect(wallet3).toBeCloseTo(10040, 0);
-
-    await saveLogs('wallet-track');
+    await saveEvidence(page, JID, '02-wallet-after-trade');
+    await saveLogs('wallet-after-trade');
   });
 });

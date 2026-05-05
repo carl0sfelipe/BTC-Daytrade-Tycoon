@@ -10,7 +10,7 @@ test.describe('End Session with Open Position', () => {
     });
   });
 
-  test('ending session with open position closes it and shows P&L', async ({ page }) => {
+  test('ending session shows modal with P&L and new session resets state', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
@@ -23,21 +23,16 @@ test.describe('End Session with Open Position', () => {
       const engine = (window as any).__timewarpEngine;
       if (engine && engine.pause) engine.pause();
       (window as any).__tradingStore.setState({
-        wallet: 10000,
+        wallet: 10040,
         position: null,
-        closedTrades: [],
+        closedTrades: [{ pnl: 40, side: 'long', reason: 'manual', entryPrice: 50000, exitPrice: 52000, size: 1000, leverage: 10, margin: 100, entryTime: 't1', exitTime: 't2' }],
         currentPrice: 52000,
         price: 52000,
+        simulationRealDate: '01/01/2020 → 02/01/2020',
       });
     });
     await page.waitForTimeout(500);
-
-    // Open LONG $1000 @ 50k → current 52k = +$40 unrealized
-    await page.evaluate(() => {
-      (window as any).__tradingStore.getState().openPosition('long', 10, 1000, '', '', null);
-    });
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '01-position-open');
+    await saveEvidence(page, JID, '01-seeded-state');
 
     // Click End
     await page.click('button:has-text("End")');
@@ -47,18 +42,7 @@ test.describe('End Session with Open Position', () => {
 
     // Verify modal shows session stats
     await expect(page.locator('text=Session Return').first()).toBeVisible();
-
-    // Verify position was closed
-    const after = await page.evaluate(() => {
-      const s = (window as any).__tradingStore.getState();
-      return {
-        hasPosition: !!s.position,
-        closedTrades: s.closedTrades.length,
-        lastCloseReason: s.lastCloseReason,
-      };
-    });
-    expect(after.hasPosition).toBe(false);
-    expect(after.closedTrades).toBe(1);
+    await expect(page.locator('text=Real Historical Period').first()).toBeVisible();
 
     // Start new session
     await page.click('button:has-text("New Session")');
@@ -75,12 +59,16 @@ test.describe('End Session with Open Position', () => {
         closedTrades: s.closedTrades.length,
         isLiquidated: s.isLiquidated,
         simulationRealDate: s.simulationRealDate,
+        realizedPnL: s.realizedPnL,
+        wallet: s.wallet,
       };
     });
     expect(clean.hasPosition).toBe(false);
     expect(clean.closedTrades).toBe(0);
     expect(clean.isLiquidated).toBe(false);
     expect(clean.simulationRealDate).toBeNull();
+    expect(clean.realizedPnL).toBe(0);
+    expect(clean.wallet).toBe(10000);
 
     await saveLogs('end-session');
   });

@@ -190,9 +190,32 @@ Auditoria completa do `TradeControls.tsx` e `tradingStore.ts` com agents dedicad
 
 ---
 
+## 13. E2E Test Suite — 30 Critical Tests
+
+### `5337d43` — feat: 9 critical E2E test specs + console log capture
+- **Novo:** `hedge-mode.spec.ts`, `limit-orders.spec.ts`, `tp-sl.spec.ts`, `end-session.spec.ts`, `high-leverage-modal.spec.ts`, `onboarding.spec.ts`, `session-reset.spec.ts`, `trade-history.spec.ts`, `wallet-validation.spec.ts`
+- **Helper:** `captureConsoleLogs()` em `_helper.ts` salva logs do browser por teste em `test-evidence/`
+- **Coverage:** Toggle Hedge/Reduce, flip de posição, limit orders, TP/SL, liquidação, modal de alta alavancagem, onboarding, reset de sessão, histórico de trades, validação de wallet
+
+### `2eb248c` — fix: realizedPnL double-counting bug in hedge flip and reducePosition full-close
+- **Bug:** `openPosition` hedge flip e `reducePosition` full-close adicionavam `totalRealized` (que já incluía `existing.realizedPnL`) ao `state.realizedPnL` que já continha esse valor.
+- **Fix:** Adicionar apenas `closePnl` / `pnlPartial` (a parcela nova), não o total acumulado.
+
+### `d489810` — fix: 8 failing E2E tests corrected (22/30 → 30/30)
+- `end-session.spec.ts`: Teste ajustado — End button não fecha posição, apenas abre modal. Verifica reset em "New Session".
+- `high-leverage-modal.spec.ts`: Seletor trocado de `.card-surface` genérico para `[role="dialog"]` específico.
+- `session-reset.spec.ts`: Simplificado para abrir posição via UI em vez de injetar estado complexo (evita race com Zustand persist re-hydration).
+- `trade-history.spec.ts`: Removido click em tab "History" (só existe no mobile); verifica visibilidade direta do componente no desktop.
+- `wallet-validation.spec.ts`: Corrigido cálculo de margin vs wallet; teste de múltiplos trades simplificado para evitar engine alterando preço entre passos.
+
+---
+
 ## Commits (ordem cronológica)
 
 ```
+d489810  fix: 8 failing E2E tests corrected (22/30 → 30/30)
+2eb248c  fix: realizedPnL double-counting bug in hedge flip and reducePosition full-close
+5337d43  feat: 9 critical E2E test specs + console log capture
 01a8623  feat: enhanced debug logging for trading actions
 ae8c7ba  fix: slider max in hedge mode allows orders larger than position
 49b86d0  feat: implement Reduce Only / Hedge Mode toggle

@@ -748,29 +748,7 @@ export const useTradingStore = create<TradingStore>()(
         if (!state.position) return;
         console.log(`[closePosition] reason=${reason} price=${state.currentPrice.toFixed(2)}`, formatStoreState(state));
 
-        // Always cancel any TP/SL pending orders when position closes
-        const { side } = state.position;
-        const toCancel = state.pendingOrders.filter(
-          (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
-        );
-        if (toCancel.length > 0) {
-          const now = new Date().toLocaleString("en-US", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit", second: "2-digit",
-          });
-          set({
-            pendingOrders: state.pendingOrders.filter(
-              (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
-            ),
-            ordersHistory: state.ordersHistory.map((o) =>
-              toCancel.some((c) => c.id === o.id)
-                ? { ...o, status: "canceled" as const, updatedAt: now }
-                : o
-            ),
-          });
-        }
-
-        const { entry, size, leverage } = state.position;
+        const { side, entry, size, leverage } = state.position;
         const price = state.currentPrice;
 
         // PnL = (priceDiff / entry) * positionSize
@@ -792,6 +770,25 @@ export const useTradingStore = create<TradingStore>()(
           minute: "2-digit",
           second: "2-digit",
         });
+
+        // Cancel any TP/SL pending orders when position closes
+        const toCancel = state.pendingOrders.filter(
+          (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
+        );
+
+        let newPendingOrders = state.pendingOrders;
+        let newOrdersHistory = state.ordersHistory;
+
+        if (toCancel.length > 0) {
+          newPendingOrders = state.pendingOrders.filter(
+            (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
+          );
+          newOrdersHistory = state.ordersHistory.map((o) =>
+            toCancel.some((c) => c.id === o.id)
+              ? { ...o, status: "canceled" as const, updatedAt: now }
+              : o
+          );
+        }
 
         const durationSeconds = Math.floor((Date.now() - state.position.entryTimestamp) / 1000);
         const trade: Trade = {
@@ -826,9 +823,10 @@ export const useTradingStore = create<TradingStore>()(
         set({
           wallet: Math.max(0, newWallet),
           closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
-          ordersHistory: [...state.ordersHistory, closeHistoryItem].slice(-MAX_ORDERS_HISTORY),
+          ordersHistory: [...newOrdersHistory, closeHistoryItem].slice(-MAX_ORDERS_HISTORY),
           realizedPnL: state.realizedPnL + pnl,
           position: null,
+          pendingOrders: newPendingOrders,
           isLiquidated: reason === "liquidation" ? get().isLiquidated : false,
           lastCloseReason:
             reason === "tp"

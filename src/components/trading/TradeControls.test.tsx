@@ -837,3 +837,75 @@ describe("TradeControls — TP/SL input flows", () => {
     expect(order.slPrice).toBe(48000);
   });
 });
+
+describe("TradeControls — trailing stop input", () => {
+  beforeEach(() => {
+    useTradingStore.setState({
+      wallet: 9900, currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+      reduceOnly: true, skipHighLeverageWarning: true,
+    });
+  });
+
+  it("Set button is disabled when value > 20 (bug B2 regression)", () => {
+    render(<TradeControls />);
+    const tsInput = screen.getByPlaceholderText("0.0");
+    fireEvent.change(tsInput, { target: { value: "25" } });
+    expect(screen.getByText("Set")).toBeDisabled();
+  });
+
+  it("Set button enabled with valid value and updates store", () => {
+    render(<TradeControls />);
+    const tsInput = screen.getByPlaceholderText("0.0");
+    fireEvent.change(tsInput, { target: { value: "5" } });
+    expect(screen.getByText("Set")).not.toBeDisabled();
+    fireEvent.click(screen.getByText("Set"));
+    expect(useTradingStore.getState().position!.trailingStopPercent).toBe(5);
+  });
+
+  it("Remove button clears trailing stop and input", () => {
+    useTradingStore.setState({
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: 5, trailingStopPrice: 47500,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+    });
+    render(<TradeControls />);
+    fireEvent.click(screen.getByText("Remove"));
+    expect(useTradingStore.getState().position!.trailingStopPercent).toBeNull();
+    expect(screen.getByText("Set")).toBeInTheDocument();
+  });
+
+  it("limit order in hedge mode disabled when insufficient excess funds (bug B1 regression)", () => {
+    useTradingStore.setState({
+      wallet: 5,
+      position: {
+        side: "short", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 55000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+      currentPrice: 60000, // losing short → closePnl negative
+      reduceOnly: false, skipHighLeverageWarning: true,
+    });
+    render(<TradeControls />);
+
+    fireEvent.click(screen.getByText("LONG"));
+    fireEvent.click(screen.getByText("Limit"));
+    const limitInput = screen.getByPlaceholderText("60000.00");
+    fireEvent.change(limitInput, { target: { value: "58000" } });
+
+    // slider at max → excessMargin > available
+    const slider = screen.getByRole("slider");
+    fireEvent.change(slider, { target: { value: slider.getAttribute("max") } });
+
+    expect(screen.getByTestId("trade-controls-action-btn")).toBeDisabled();
+  });
+});

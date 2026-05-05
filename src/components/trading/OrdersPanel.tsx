@@ -122,14 +122,14 @@ export default function OrdersPanel() {
                   <div className="flex flex-col min-w-0">
                     {/* Title row */}
                     {isTpSl ? (
-                      /* TP/SL: type is the headline, side is secondary */
+                      /* TP/SL: type is the headline, reducing side is secondary */
                       <span className="text-xs font-bold">
                         <span className={isTp ? "text-crypto-long" : "text-crypto-short"}>
                           {isTp ? "Take Profit" : "Stop Loss"}
                         </span>
                         {" "}
                         <span className="text-crypto-text-muted font-normal text-[9px] uppercase">
-                          {order.side}
+                          {order.side === "long" ? "short" : "long"}
                         </span>
                         {" "}
                         <span className="text-crypto-accent">{order.leverage}x</span>

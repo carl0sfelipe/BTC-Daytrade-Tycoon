@@ -998,19 +998,24 @@ export const useTradingStore = create<TradingStore>()(
           }
         }
 
-        // Cancel existing TP/SL pending orders for this position
-        const toCancel = state.pendingOrders.filter(
-          (o) => o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss")
-        );
-
-        let newPendingOrders = state.pendingOrders.filter(
-          (o) => !(o.side === side && (o.orderType === "take_profit" || o.orderType === "stop_loss"))
-        );
-
         const now = new Date().toLocaleString("en-US", {
           day: "2-digit", month: "2-digit", year: "numeric",
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         });
+
+        // Only cancel the specific order type being updated.
+        // If tpPriceStr is empty, keep existing TP. If slPriceStr is empty, keep existing SL.
+        const cancelTypes: Array<"take_profit" | "stop_loss"> = [];
+        if (tpPriceStr) cancelTypes.push("take_profit");
+        if (slPriceStr) cancelTypes.push("stop_loss");
+
+        const toCancel = state.pendingOrders.filter(
+          (o) => o.side === side && cancelTypes.includes(o.orderType as "take_profit" | "stop_loss")
+        );
+
+        let newPendingOrders = state.pendingOrders.filter(
+          (o) => !(o.side === side && cancelTypes.includes(o.orderType as "take_profit" | "stop_loss"))
+        );
 
         const newOrdersHistory = state.ordersHistory.map((o) =>
           toCancel.some((c) => c.id === o.id)
@@ -1036,7 +1041,7 @@ export const useTradingStore = create<TradingStore>()(
           newOrdersHistory.push({
             id: tpOrder.id,
             side,
-            type: "market",
+            type: "tp",
             status: "pending",
             leverage,
             size,
@@ -1066,7 +1071,7 @@ export const useTradingStore = create<TradingStore>()(
           newOrdersHistory.push({
             id: slOrder.id,
             side,
-            type: "market",
+            type: "sl",
             status: "pending",
             leverage,
             size,
@@ -1082,8 +1087,8 @@ export const useTradingStore = create<TradingStore>()(
         set({
           position: {
             ...state.position,
-            tpPrice: tpPrice && tpPrice > 0 ? tpPrice : null,
-            slPrice: slPrice && slPrice > 0 ? slPrice : null,
+            tpPrice: tpPrice && tpPrice > 0 ? tpPrice : state.position.tpPrice,
+            slPrice: slPrice && slPrice > 0 ? slPrice : state.position.slPrice,
           },
           pendingOrders: newPendingOrders,
           ordersHistory: newOrdersHistory.slice(-MAX_ORDERS_HISTORY),

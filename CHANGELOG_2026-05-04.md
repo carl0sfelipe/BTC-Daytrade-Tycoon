@@ -1,239 +1,384 @@
-# Changelog — 04 de Maio de 2026
+# Changelog — 2026-05-04
 
-## Resumo da Sessão
-
-Sessão focada em **bugfixes críticos**, **melhorias de UX no trading**, **remoção de viés de retrospectiva**, e **novas features de modo de trading**.
+> **52 commits** — Major trading engine overhaul, limit orders, hedge mode, realized PnL tracking, comprehensive test suite, and UI polish.
 
 ---
 
-## 1. EndSimulationModal — Correções Críticas
+## Table of Contents
 
-### `72aa836` — fix: freeze end date and block return after simulation end
-- **Problema:** O end date no modal continuava crescendo porque `currentTimeSec` avançava enquanto a simulação rodava.
-- **Solução:** Pausar o engine e capturar `realDateRange` no momento exato em que o modal é aberto.
-- **Regra blind date:** Ambos os botões do modal ("Back" e "New Session") agora forçam uma nova sessão. Após ver a data real histórica, o jogador **não pode voltar** para a simulação.
-
----
-
-## 2. MarketStatus — Remoção de Viés de Retrospectiva
-
-### `b63d88e` — fix: remove market trend indicator (UP/DOWN/NEUTRAL) from MarketStatus
-- **Motivo:** O badge "UP/DOWN/NEUTRAL" dava viés de retrospectiva — o jogador não deveria saber se o mercado está em tendência de alta ou baixa durante a simulação às cegas.
-- **Ação:** Indicador de tendência removido completamente do `MarketStatus`.
-
-### `bbeec8f` — feat: add tooltip to High Volatility badge explaining what it means
-- Adicionado `title` explicativo no badge "High Volatility":  
-  *"Price has been swinging more than usual in the last 24 candles. Risk of sudden moves is higher."*
+1. [Trading Engine](#trading-engine)
+2. [Order Types & Execution](#order-types--execution)
+3. [Realized PnL & Position Management](#realized-pnl--position-management)
+4. [Hedge Mode & Reduce Only](#hedge-mode--reduce-only)
+5. [UI / UX](#ui--ux)
+6. [Mobile](#mobile)
+7. [Tests](#tests)
+8. [Documentation](#documentation)
+9. [DevEx & Tooling](#devex--tooling)
 
 ---
 
-## 3. TradeControls — Limit Orders & Market Orders
+## Trading Engine
 
-### `d97aef1` → `88b2380` — fix: limit orders now work correctly with open position
-- **Bug crítico:** Quando havia posição aberta, o componente **nunca mostrava o botão "Place Limit"**. Em vez disso, mostrava "INCREASE/DECREASE/CLOSE" (market orders).
-- **Solução:** A condição dos botões de ação foi alterada de:
-  ```tsx
-  {position ? ( /* INCREASE/DECREASE/CLOSE */ ) : ( /* Place Limit */ )}
-  ```
-  para:
-  ```tsx
-  {position && orderType !== "limit" ? ( /* INCREASE/DECREASE/CLOSE */ ) : ( /* Place Limit */ )}
-  ```
-- Também adicionados logs de debug em toda a cadeia de limit orders.
+### Limit Orders — Full Implementation
 
-### `4269f44` — fix: allow switching Market/Limit order type when position is open
-- **Problema:** Os botões "Market" e "Limit" ficavam travados (`disabled`) quando havia posição aberta.
-- **Solução:** Botões liberados. Agora o jogador pode alternar livremente entre Market e Limit mesmo com posição aberta.
+- **`feat: working limit orders + TP/SL in simple mode`**
+  - `tradingStore.ts`: Added `PendingOrder` interface with `tpPrice`, `slPrice`, `orderType` (`open` | `take_profit` | `stop_loss`).
+  - `checkPendingOrders()`: Executes limit orders when price crosses limit; executes TP/SL orders when price hits target.
+  - `addPendingOrder()`: Validates and queues limit/TP/SL orders with `crypto.randomUUID()`.
+  - `useTimewarpEngine.ts`: Calls `storeCheckPendingOrders(price)` on every tick **before** `storeCheckPosition(price)`.
+  - `TradeControls.tsx`: Full limit order UI with price input, stepper buttons, TP/SL fields.
+  - Tests added in `tradingStore.test.ts` and `useTimewarpEngine.test.ts`.
 
-### `10ecfa9` — feat: allow flipping side in market mode with open position
-- **Problema:** Com posição LONG aberta em modo Market, os botões LONG/SHORT ficavam desabilitados.
-- **Solução:** Botões sempre habilitados. Clicar no lado **oposto** à posição atual fecha a posição (`closePosition`) e troca o side, permitindo flip rápido long↔short.
+- **`feat: limit orders can increase or reduce existing positions`**
+  - Limit orders on the **same side** as open position → `addToPosition()` at limit price.
+  - Limit orders on the **opposite side** → `reducePosition()` or full close.
 
-### `5a4bad8` — fix: skip high-leverage warning modal in Advanced mode
-- Modal de confirmação de alavancagem alta (≥50x) não aparece mais no modo Advanced. Apenas no Simple.
+- **`feat: limit orders can add to existing positions + Notional Value field`**
+  - Added "Notional Value" readout next to size input for clarity.
 
-### `c5cb34b` — ui: rename DECREASE POSITION → REDUCE POSITION
-- Terminologia padronizada.
+- **`fix: limit orders now work when position is open`**
+  - Fixed logic that blocked limit orders while a position was active.
+  - Added debug logging for order execution.
 
----
+- **`fix: limit orders now work correctly with open position`**
+  - Corrected side-check logic in `TradeControls` slider and button handlers.
 
-## 4. OrdersPanel & Order History
+- **`fix: show limit price input even when position is open`**
+  - Removed conditional hiding of limit price input.
 
-### `ce3a09b` — fix: add market increase/decrease orders to Orders history
-- `updatePositionSize` (aumento/diminuição via slider) agora cria `OrderHistoryItem` e adiciona ao `ordersHistory`.
-- Antes apenas a ordem de abertura inicial aparecia no histórico.
+- **`fix: allow switching Market/Limit order type when position is open`**
+  - Order type tabs (Market / Limit) now always accessible.
 
-### `195d140` — ui: move OrdersPanel above TradeHistory in desktop layout
-- `OrdersPanel` movido da coluna lateral para a coluna principal, ficando **acima** do `TradeHistory`.
+- **`feat: auto-fill limit price on click with current price`**
+  - Clicking the limit price input auto-fills with `currentPrice`.
 
----
+- **`feat: stepper buttons for quick limit price adjustment`**
+  - `+` / `-` buttons with configurable step (10, 50, 100, 500, custom).
 
-## 5. Realized P&L — Nova Feature
+- **`feat: collapsible step settings with custom value option`**
+  - Step dropdown hidden by default; expandable for power users.
 
-### `d8bf246` → `5af9ef6` → `70e25fe` — Realized P&L tracking
-- **Feature:** Quando o jogador fecha parcialmente uma posição (via slider REDUCE ou limit order do lado oposto), o P&L realizado daquela parte é acumulado.
-- **Separação limpa:**
-  - `position.realizedPnL` → P&L realizado **apenas da posição atualmente aberta** (mostrado no PositionPanel).
-  - `store.realizedPnL` → P&L realizado **acumulado da sessão inteira** (mostrado no PnLDisplay).
-- O `closedTrades` continua contendo **apenas trades fechados completamente** (TradeHistory inalterado).
+- **`chore: default limit price step to 0`**
+  - Default step changed from 100 to 0 (freeform input).
 
-### `0828a86` — feat: show Realized P&L in PositionPanel when non-zero
-- Badge "Realized P&L" adicionado abaixo do "Unrealized P&L" no PositionPanel, aparecendo apenas quando há valor.
+- **`feat: clear button (X) on limit price input`**
+  - One-click clear for limit price.
 
-### `fb1f801` — fix: reset realizedPnL on new session
-- **Bug encontrado:** O `resetStore` do engine (`useTimewarpEngine.ts`) não incluía `realizedPnL: 0`, fazendo o P&L realizado da sessão anterior vazar para a nova.
+- **`fix: better positioning for limit price clear (X) button`**
+  - Fixed z-index and padding overlap.
 
----
+### Take Profit / Stop Loss
 
-## 6. Trade History P&L Fix
+- **`feat: working limit orders + TP/SL in simple mode`**
+  - TP/SL inputs visible in both Market and Limit modes.
+  - TP/SL values propagate through `openPosition()`, `addPendingOrder()`, and `checkPendingOrders()`.
+  - `PositionPanel.tsx`: Displays active TP/SL boxes with `.toFixed(2)` formatting.
 
-### `0a148fb` — fix: closePosition trade.pnl now includes prior realizedPnL from partial closes
-- **Bug:** O Trade History mostrava apenas o P&L da porção **restante** da posição, ignorando o P&L realizado em reduções parciais anteriores.
-- **Solução:** `closePosition` agora soma `position.realizedPnL` ao `trade.pnl` final.
-- **Exemplo:** Posição LONG $1000 → REDUCE $500 com +$20 → REDUCE $300 com +$10 → CLOSE $200 com +$5. Antes o trade mostrava `$5`. Agora mostra `$35` ($20 + $10 + $5).
+- **`fix: add market increase/decrease orders to Orders history`**
+  - TP/SL fields now tracked in `OrderHistoryItem`.
 
----
+- **`fix: comprehensive bug fixes from deep audit + 6 new tests`**
+  - Fixed stale TP/SL inputs in `TradeControls` — inputs now clear after successful position open.
+  - Fixed `toFixed(2)` formatting across price displays.
 
-## 7. Chart Gap Fix
+### Pending Orders & History
 
-### `cbcfbbc` — fix: reset chart timeScale on new session to prevent huge gap
-- **Bug:** Ao iniciar uma nova sessão, o gráfico mostrava um gap enorme entre a última vela da sessão anterior e a primeira vela da nova sessão.
-- **Solução:** `TradingChart.tsx` chama `chartRef.current.timeScale().fitContent()` após limpar os dados (`seriesRef.current.setData([])`) em nova sessão.
+- **`feat: new OrdersPanel component with full order history`**
+  - New component showing all orders: pending, filled, canceled.
+  - Columns: Side, Type, Size, Price, Leverage, Status, Time.
+  - `cancelPendingOrder()` updates status to `canceled` in history.
 
----
+- **`fix: remove pending orders from PositionPanel and MobileTradingView`**
+  - Moved pending order display exclusively to `OrdersPanel`.
 
-## 8. Reduce Only / Hedge Mode Toggle
+- **`ui: move OrdersPanel above TradeHistory in desktop layout`**
+  - Reordered panels in `page.tsx` for better visual hierarchy.
 
-### `49b86d0` → `ae8c7ba` — feat: implement Reduce Only / Hedge Mode toggle
-- **Nova feature:** Toggle no TradeControls (visível quando há posição aberta) permite alternar entre:
-  - **Reduce Only (padrão):** Ordens do lado oposto apenas reduzem/fecham a posição existente. Nunca abrem posição no lado oposto.
-  - **Hedge Mode:** Ordens do lado oposto **maiores** que a posição atual fecham a existente e abrem uma nova no lado oposto com o excesso (flip).
-- **Slider max em Hedge Mode:** Usa `wallet * leverage` em vez de `position.size`, permitindo ordens maiores que a posição atual.
-- **Limit orders em Hedge Mode:** Quando executados, flipam a posição se `!reduceOnly && order.size > existing.size`.
-- **Reset:** `reduceOnly` volta para `true` em nova sessão.
-- **Testes:** 5 testes de store + 1 teste de TradeControls.
+- **`fix: order history side tracking on reduce operations`**
+  - Reduce/close orders now correctly log the **reducing** side in history.
 
----
+### Liquidation & State
 
-## 9. Deep Audit — Bugs Encontrados & Corrigidos
+- **`fix: responsive layout, mobile End button, and liquidation state cleanup`**
+  - `isLiquidated` flag now properly reset on new session start.
 
-Auditoria completa do `TradeControls.tsx` e `tradingStore.ts` com agents dedicados. Foram encontrados **14+ bugs**; os críticos foram corrigidos.
+- **`fix: freeze end date and block return after simulation end`**
+  - After simulation ends, date is frozen; user cannot return to trading without starting a new session.
 
-### TradeControls — Correções
+- **`fix: show end date in EndSimulationModal instead of em-dash`**
+  - Displays actual end date string.
 
-| # | Bug | Causa | Fix |
-|---|-----|-------|-----|
-| 1 | **REDUCE no máximo = no-op silencioso** | `handleUpdate` chamava `updatePositionSize(0)`, que retornava early sem fazer nada | Agora `handleUpdate` detecta `targetSize <= 0` e chama `closePosition("manual")` |
-| 2 | **Slider resetava pra $1000 ignorando posição pequena** | `useEffect` fazia `setPositionSize(1000)` incondicionalmente | Agora capa em `min(1000, position.size)` |
-| 3 | **Side buttons não resetavam slider em limit mode** | O reset só acontecia quando `orderType === "market"` | Removida a condição — reseta sempre que há posição |
-| 4 | **Limit price vazio + high leverage = market order** | `pendingTrade.limitPrice = ""` era falsy, caindo no branch `openPosition` | Agora valida `parseFloat(limitPrice) > 0` antes de decidir entre limit e market |
-| 5 | **TP/SL escondido em advanced + limit + posição** | A condição era `{!position && (...)}` em advanced mode | Alinhado com simple mode: `{(!position || orderType === "limit") && (...)}` |
-| 6 | **Botão CLOSE sumia em limit mode** | A condição era `{position && orderType !== "limit"}` | Simplificado para `{position}` — CLOSE sempre visível |
+- **`fix: reset chart timeScale on new session to prevent huge gap`**
+  - Fixes chart showing massive empty gap between old and new session data.
 
-### tradingStore — Correções
-
-| # | Bug | Causa | Fix |
-|---|-----|-------|-----|
-| 7 | **`liquidationPrice` não recalculado no increase** | `updatePositionSize` aumento atualizava `entry` e `size`, mas esquecia `liquidationPrice` | Agora recalcula via `calcLiquidationPrice(newEntry, leverage, side)` |
-| 8 | **`reducePosition` full close não criava Trade** | O branch `reducedSize >= size` só atualizava wallet e setava `position: null` | Agora cria `Trade`, adiciona a `closedTrades`, e soma `position.realizedPnL + pnl` ao global `realizedPnL` |
-
-### Novos Testes
-
-6 testes adicionados cobrindo os cenomas acima:
-- REDUCE com slider no máximo fecha a posição
-- REDUCE com slider max (=position.size) fecha a posição
-- useEffect capa positionSize quando posição < $1000
-- CLOSE POSITION visível em limit mode com posição aberta
-- TP/SL visível em advanced mode + limit + posição aberta
-- INCREASE recalcula liquidationPrice após adicionar à posição
+- **`fix: clear stale isLiquidated state and add persist migration`**
+  - Added Zustand `migrate` (v1) that wipes transient state (`position`, `pendingOrders`, `isLiquidated`, `simulationRealDate`) from `localStorage` on load.
+  - `isLiquidated` reset to `false` when opening a new position or closing manually/TP/SL.
 
 ---
 
-## 10. Debug Logging
+## Order Types & Execution
 
-### `c7e7a54` → `d1fe6d2` — Console logs para ações do usuário
-- Removidos logs poluidos do loop de tick (`checkPendingOrders` a cada 100ms).
-- Adicionados logs em **todas as ações do usuário:**
-  - `TradeControls`: handleOpen, handleUpdate, closePosition, high-leverage confirm
-  - `SimulationClock`: Pause, Resume, End, Reset
-  - `OrdersPanel`: cancelPendingOrder
-  - `tradingStore`: addPendingOrder, openPosition, addToPosition, reducePosition, closePosition, cancelPendingOrder
+### Order History Tracking
 
-### `01a8623` — feat: enhanced debug logging for trading actions
-- **Melhoria:** Logs enriquecidos com contexto completo de estado em todas as ações.
-- `formatStoreState()` helper no `tradingStore` para formatação consistente.
-- Cada log agora inclui: preço atual, wallet, posição (side, entry, size, leverage, liqPrice, unrealizedPnL, realizedPnL), P&L da sessão, pending orders count, e modo Reduce Only.
-- `TradeControls` logs incluem wallet, detalhes da posição, unrealized P&L, e currentPrice.
-- `checkPendingOrders` agora faz early return quando não há ordens pendentes (pequena otimização de performance).
-- **Nenhuma mudança funcional** — 65 unit tests + trading E2E passing.
+- **`feat: new OrdersPanel component with full order history`**
+  - `OrderHistoryItem` interface with `id`, `side`, `type`, `status`, `leverage`, `size`, `price`, `tpPrice`, `slPrice`, `createdAt`, `executionPrice`, `updatedAt`.
+  - Statuses: `pending`, `filled`, `canceled`.
+  - Types: `market`, `limit`, `tp`, `sl`.
+
+- **`fix: order-centric slider + symmetric Best/Worst Trade display`**
+  - Slider now operates on **order size** rather than position size.
+  - PnLDisplay shows symmetric "Best Trade" / "Worst Trade" stats.
 
 ---
 
-## 11. Order History Side Tracking
+## Realized PnL & Position Management
 
-### `b598d63` — fix: order history side tracking on reduce operations
-- **Bug:** Ao reduzir uma posição LONG clicando em SHORT (ou vice-versa), o `ordersHistory` registrava o lado da **posição** em vez do lado da **operação**, fazendo parecer que haviam 2 LONGs no histórico.
-- **Solução:** `updatePositionSize` agora aceita um parâmetro opcional `orderSide`. O `TradeControls` passa o `side` selecionado pelo usuário, e o histórico usa esse valor.
-- **Fallback:** Quando `orderSide` não é fornecido, usa `position.side` (compatibilidade retroativa).
-- **Testes:** 5 novos testes unitários cobrindo increase, reduce com lado oposto, reduce short→long, fallback padrão, e workflow completo.
+### Realized PnL Tracking
+
+- **`feat: realized PnL for partial closes + show in PnLDisplay`**
+  - `realizedPnL` field added to `Position` interface.
+  - Partial closes accumulate realized PnL without closing the position.
+  - Displayed in `PnLDisplay` component.
+
+- **`feat: add realizedPnL tracking without polluting closedTrades`**
+  - `closedTrades` only records **fully closed** positions.
+  - `realizedPnL` tracks partial profit/loss in real-time.
+
+- **`feat: show Realized P&L in PositionPanel when non-zero`**
+  - Small readout under Unrealized P&L when `realizedPnL !== 0`.
+
+- **`fix: realizedPnL is now per-position, not session-wide`**
+  - Previously `realizedPnL` was a global store value; now tied to the active `Position` object.
+
+- **`fix: reset realizedPnL on new session`**
+  - `useTimewarpEngine.ts` `reset()` clears `realizedPnL`.
+
+- **`fix: closePosition trade.pnl now includes prior realizedPnL from partial closes`**
+  - Final trade PnL = unrealized PnL on remaining size + all prior realized PnL.
+
+- **`fix: double-counting realizedPnL on hedge flip and reduce full-close + add comprehensive hedge tests`**
+  - Fixed bug where `realizedPnL` was added twice during hedge flips.
+  - Added 10+ unit tests covering hedge mode partial reduces, full closes, and flips.
+
+### Slider & Position Sizing
+
+- **`fix: order-centric slider + symmetric Best/Worst Trade display`**
+  - Slider now represents **order size**, not total position size.
+  - Min = 0, Max = wallet balance (or position size for reduce).
+
+- **`fix: side button click resets slider toward intended direction`**
+  - Clicking LONG resets slider to 0→max; SHORT resets to 0→max for opposite side.
+
+- **`fix: action button label follows side toggle, not slider sizeDiff`**
+  - Button always says "Open Long" / "Open Short" / "Increase Position" / "Reduce Position" based on side, not slider delta.
+
+- **`ui: rename DECREASE POSITION → REDUCE POSITION`**
+  - Industry-standard terminology.
 
 ---
 
-## 12. Documentação
+## Hedge Mode & Reduce Only
 
-### `bde89e0` — docs: update README, ARCHITECTURE, and CHANGELOG
-- README.md e ARCHITECTURE.md sincronizados com o código real:
-  - Dependências mortas removidas
-  - Contagem de testes atualizada (65+)
-  - Diagramas de layout corrigidos
-  - Seção de Reduce Only / Hedge Mode adicionada
+### Reduce Only / Hedge Mode Toggle
 
----
+- **`feat: implement Reduce Only / Hedge Mode toggle`**
+  - New `reduceOnly` boolean in `TradingStore` (default: `true`).
+  - `TradeControls.tsx`: Toggle button in advanced mode.
+  - **Reduce Only**: Opposite-side orders can only reduce/close existing position.
+  - **Hedge Mode**: Opposite-side orders larger than position size trigger a **flip** (close existing + open new with excess).
 
-## 13. E2E Test Suite — 30 Critical Tests
+- **`fix: remove auto-close from side buttons + add Reduce Only / Hedge Mode to ROADMAP`**
+  - Side buttons (LONG/SHORT) no longer auto-close position; they respect `reduceOnly` mode.
 
-### `5337d43` — feat: 9 critical E2E test specs + console log capture
-- **Novo:** `hedge-mode.spec.ts`, `limit-orders.spec.ts`, `tp-sl.spec.ts`, `end-session.spec.ts`, `high-leverage-modal.spec.ts`, `onboarding.spec.ts`, `session-reset.spec.ts`, `trade-history.spec.ts`, `wallet-validation.spec.ts`
-- **Helper:** `captureConsoleLogs()` em `_helper.ts` salva logs do browser por teste em `test-evidence/`
-- **Coverage:** Toggle Hedge/Reduce, flip de posição, limit orders, TP/SL, liquidação, modal de alta alavancagem, onboarding, reset de sessão, histórico de trades, validação de wallet
+- **`fix: slider max in hedge mode allows orders larger than position`**
+  - In hedge mode, slider max extends to full wallet balance for flips.
 
-### `2eb248c` — fix: realizedPnL double-counting bug in hedge flip and reducePosition full-close
-- **Bug:** `openPosition` hedge flip e `reducePosition` full-close adicionavam `totalRealized` (que já incluía `existing.realizedPnL`) ao `state.realizedPnL` que já continha esse valor.
-- **Fix:** Adicionar apenas `closePnl` / `pnlPartial` (a parcela nova), não o total acumulado.
+- **`feat: allow flipping side in market mode with open position`**
+  - Market orders on opposite side now supported in hedge mode.
 
-### `d489810` — fix: 8 failing E2E tests corrected (22/30 → 30/30)
-- `end-session.spec.ts`: Teste ajustado — End button não fecha posição, apenas abre modal. Verifica reset em "New Session".
-- `high-leverage-modal.spec.ts`: Seletor trocado de `.card-surface` genérico para `[role="dialog"]` específico.
-- `session-reset.spec.ts`: Simplificado para abrir posição via UI em vez de injetar estado complexo (evita race com Zustand persist re-hydration).
-- `trade-history.spec.ts`: Removido click em tab "History" (só existe no mobile); verifica visibilidade direta do componente no desktop.
-- `wallet-validation.spec.ts`: Corrigido cálculo de margin vs wallet; teste de múltiplos trades simplificado para evitar engine alterando preço entre passos.
+- **`fix: comprehensive bug fixes from deep audit + 6 new tests`**
+  - Fixed hedge affordability check: existing margin + PnL is returned before requiring new margin.
+  - Fixed `lastActionError` propagation in `TradeControls`.
 
 ---
 
-## Commits (ordem cronológica)
+## UI / UX
 
-```
-d489810  fix: 8 failing E2E tests corrected (22/30 → 30/30)
-2eb248c  fix: realizedPnL double-counting bug in hedge flip and reducePosition full-close
-5337d43  feat: 9 critical E2E test specs + console log capture
-01a8623  feat: enhanced debug logging for trading actions
-ae8c7ba  fix: slider max in hedge mode allows orders larger than position
-49b86d0  feat: implement Reduce Only / Hedge Mode toggle
-88b2380  fix: limit orders now work correctly with open position
-cbcfbbc  fix: reset chart timeScale on new session to prevent huge gap
-0a148fb  fix: closePosition trade.pnl now includes prior realizedPnL from partial closes
-2ae01de  docs: remove CHANGELOG from repo (keep locally only)
-bde89e0  docs: update README, ARCHITECTURE, and CHANGELOG
-b598d63  fix: order history side tracking on reduce operations
-6e76478  fix: comprehensive bug fixes from deep audit + 6 new tests
-078e6ac  fix: order-centric slider + symmetric Best/Worst Trade display
-d0d0317  fix: action button label follows side toggle, not slider sizeDiff
-fd461b5  fix: side button click resets slider toward intended direction
-66556e2  fix: hydration mismatch on LandingPage fake chart
-1d7bafb  fix: remove auto-close from side buttons + add Reduce Only / Hedge Mode to ROADMAP
-fb1f801  fix: reset realizedPnL on new session
-c5cb34b  ui: rename DECREASE POSITION → REDUCE POSITION
-10ecfa9  feat: allow flipping side in market mode with open position
-70e25fe  fix: realizedPnL is now per-position, not session-wide
-0828a86  feat: show Realized P&L in PositionPanel when non-zero
-```
+### TradeControls Overhaul
+
+- **`feat: working limit orders + TP/SL in simple mode`**
+  - Complete rewrite of order entry UI.
+  - Market vs Limit tabs.
+  - Size slider with wallet balance readout.
+  - Leverage selector (1x–125x).
+  - TP/SL inputs with validation.
+
+- **`fix: show Limit Price input in simple mode + add TradeControls tests`**
+  - Limit price visible in simple mode too.
+  - 15+ new unit tests for `TradeControls`.
+
+- **`fix: skip high-leverage warning modal in Advanced mode`**
+  - `skipHighLeverageWarning` flag persists in `localStorage`.
+
+- **`fix: auto-open mobile controls on position open + fix TypeScript errors`**
+  - Mobile bottom sheet auto-opens when a position is opened externally (e.g. limit order fill).
+
+### Panels & Displays
+
+- **`feat: new OrdersPanel component with full order history`**
+  - Self-contained component with status badges and cancel buttons.
+
+- **`fix: remove pending orders from PositionPanel and MobileTradingView`**
+  - Cleaner separation of concerns.
+
+- **`feat: show Realized P&L in PositionPanel when non-zero`**
+  - Conditional display of realized PnL.
+
+- **`fix: remove market trend indicator (UP/DOWN/NEUTRAL) from MarketStatus`**
+  - Removed confusing trend indicator; kept volatility badge.
+
+- **`feat: add tooltip to High Volatility badge explaining what it means`**
+  - Hover tooltip: "Price swings are wider than usual — adjust your risk."
+
+### Layout & Responsive
+
+- **`fix: responsive layout, mobile End button, and liquidation state cleanup`**
+  - `Header.tsx`: Mobile-optimized End button placement.
+  - `MarketStatus.tsx`: Responsive badge sizing.
+  - `page.tsx`: Grid adjustments for mobile/desktop.
+
+- **`fix: remove Historical Start from SimulationClock`**
+  - Simplified clock UI; removed unused "Historical Start" label.
+
+- **`fix: better positioning for limit price clear (X) button`**
+  - Visual polish.
+
+---
+
+## Mobile
+
+- **`fix: responsive layout, mobile End button, and liquidation state cleanup`**
+  - End button visible in mobile header.
+  - `MobileTradingView.tsx`: Responsive grid and spacing fixes.
+
+- **`fix: remove Historical Start from SimulationClock and fix End button on mobile`**
+  - `SimulationClock.tsx` simplified for mobile viewport.
+
+- **`fix: auto-open mobile controls on position open + fix TypeScript errors`**
+  - Mobile bottom sheet (`MobileTradingView`) auto-opens on position open.
+
+---
+
+## Tests
+
+### Unit Tests
+
+- **`test: add unit tests for all recent fixes`**
+  - `Header.test.tsx` (3 tests)
+  - `MarketStatus.test.tsx` (3 tests)
+  - `MobileTradingView.test.tsx` (1 test)
+  - `PnLDisplay.test.tsx` (4 tests)
+  - `SimulationClock.test.tsx` (4 tests)
+  - `useTimewarpEngine.test.ts` — additional coverage for limit order execution
+
+- **`fix: show Limit Price input in simple mode + add TradeControls tests`**
+  - `TradeControls.test.tsx` expanded with TP/SL flow tests, limit order tests.
+
+- **`fix: order-centric slider + symmetric Best/Worst Trade display`**
+  - Updated `TradeControls.test.tsx` and `PnLDisplay.test.tsx` for new behavior.
+
+- **`fix: comprehensive bug fixes from deep audit + 6 new tests`**
+  - 6 new tests in `TradeControls.test.ts` for edge cases (empty TP/SL, high leverage, etc.).
+
+- **`fix: double-counting realizedPnL on hedge flip and reduce full-close + add comprehensive hedge tests`**
+  - 10+ new tests in `tradingStore.test.ts` for hedge mode.
+
+### E2E Tests
+
+- **`test: add 9 new critical E2E tests + console log capture + fix existing tests`**
+  - `e2e/_helper.ts`: Console log capture helper for debugging CI failures.
+  - `e2e/hedge-mode.spec.ts`: NEW — Full hedge mode flow (reduce, flip, partial).
+  - `e2e/limit-orders.spec.ts`: NEW — Limit order creation, execution, cancellation.
+  - `e2e/tp-sl.spec.ts`: NEW — TP/SL creation, hit, cancellation.
+  - `e2e/date-reveal.spec.ts`: Fixed TypeScript types.
+  - `e2e/trading.spec.ts`: Updated for new UI.
+
+- **`chore: fix TypeScript type in date-reveal E2E`**
+  - Fixed `Date` vs `string` type mismatch in date-reveal test.
+
+**Current Test Counts:**
+- **Vitest (Unit)**: 176 passed, 4 skipped = **180 total**
+- **Playwright (E2E)**: 36 passed, 4 skipped
+
+---
+
+## Documentation
+
+- **`docs: update ARCHITECTURE.md, PRD and README with latest features`**
+  - Updated system architecture diagrams and component descriptions.
+  - Added limit order, hedge mode, and realized PnL sections.
+
+- **`docs: update ROADMAP with shipped features`**
+  - Checked off completed items (Limit Orders, Hedge Mode, Realized PnL, Orders Panel).
+
+- **`docs: update README, ARCHITECTURE, and CHANGELOG`**
+  - Added May 2026 feature summary.
+
+- **`docs: remove CHANGELOG from repo (keep locally only)`**
+  - Removed `CHANGELOG_2026-05-04.md` from git; kept locally.
+  - *Note: Re-created in subsequent commits.*
+
+- **`docs: add changelog for 2026-05-04`**
+  - Initial version of this file.
+
+- **`docs: sync README, ARCHITECTURE, and ROADMAP with May 2026 changelog`**
+  - Final sync pass.
+
+---
+
+## DevEx & Tooling
+
+- **`feat: enhanced debug logging for trading actions`**
+  - `tradingStore.ts`: `[openPosition]`, `[closePosition]`, `[addPendingOrder]`, `[checkPendingOrders]`, `[cancelPendingOrder]` logs with full state snapshot.
+  - `TradeControls.tsx`: Logs for user interactions.
+
+- **`fix: remove noisy tick logs, add user action logging across all components`**
+  - Removed `console.log` from every tick loop.
+  - Kept action-level logging (open, close, cancel, execute).
+
+- **`fix: remove remaining tick loop logs from checkPendingOrders`**
+  - Final cleanup of tick-level logs.
+
+- **`fix: hydration mismatch on LandingPage fake chart`**
+  - Fixed Next.js hydration error caused by random data in `LandingPage` chart.
+
+---
+
+## Files Modified (Summary)
+
+| Area | Files |
+|------|-------|
+| **Trading Store** | `src/store/tradingStore.ts`, `src/store/tradingStore.test.ts` |
+| **Components** | `src/components/trading/TradeControls.tsx`, `PositionPanel.tsx`, `OrdersPanel.tsx`, `PnLDisplay.tsx`, `MobileTradingView.tsx`, `SimulationClock.tsx`, `TradingChart.tsx`, `ConfirmHighLeverageModal.tsx`, `OnboardingModal.tsx`, `EndSimulationModal.tsx` |
+| **Layout** | `src/components/layout/Header.tsx`, `MarketStatus.tsx` |
+| **Pages** | `src/app/trading/page.tsx`, `src/components/pages/LandingPage.tsx` |
+| **Hooks** | `src/hooks/useTimewarpEngine.ts`, `useTimewarpEngine.test.ts`, `useTradeNotifications.ts`, `useTradeNotifications.test.ts` |
+| **E2E** | `e2e/_helper.ts`, `e2e/hedge-mode.spec.ts`, `e2e/limit-orders.spec.ts`, `e2e/tp-sl.spec.ts`, `e2e/date-reveal.spec.ts`, `e2e/trading.spec.ts`, `e2e/manual-trading.spec.ts`, `e2e/production-bar.spec.ts` |
+| **Docs** | `README.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `CHANGELOG_2026-05-04.md` |
+| **Config** | `vitest.config.ts`, `playwright.config.ts`, `src/test/setup.ts` |
+
+---
+
+## Stats
+
+- **Commits**: 52
+- **Files changed**: 35+
+- **Tests added**: ~40 unit tests, ~9 E2E tests
+- **Lines added**: ~3,500+
+- **Lines removed**: ~800+
+
+---
+
+*Generated from git history on 2026-05-04.*

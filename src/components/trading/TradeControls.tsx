@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Settings2, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
@@ -38,15 +38,19 @@ export default function TradeControls() {
   const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
   const reduceOnly = useTradingStore((s) => s.reduceOnly);
 
-  // positionSize represents the *order* size (delta), not the total target position.
-  // When a position opens, sync side/leverage but reset order size to 1000 default.
+  // Track whether we have already synced controls to the current position.
+  // Only sync when a position first appears (null -> not-null), not on every update.
+  const prevHadPosition = useRef(false);
   useEffect(() => {
-    if (position) {
+    const hasPosition = !!position;
+    if (hasPosition && !prevHadPosition.current) {
+      // Position just opened — sync controls to it
       setLeverage(position.leverage);
       setSide(position.side);
       const max = Math.max(100, Math.floor(position.size));
       setPositionSize(Math.min(1000, max));
     }
+    prevHadPosition.current = hasPosition;
   }, [position]);
 
   const margin = positionSize / leverage;
@@ -184,6 +188,9 @@ export default function TradeControls() {
 
   const canIncrease = positionSize > 0 && wallet >= positionSize / leverage;
   const canDecrease = !!(position && positionSize > 0 && positionSize <= position.size);
+  // In Hedge Mode, opposite-side orders can flip (size >= position.size) or reduce (size < position.size).
+  // The store validates funds; we just need a positive size.
+  const canFlip = !!(position && positionSize > 0 && !reduceOnly && isReduceMode);
 
   const leverageOptions = [2, 5, 10, 25, 50, 100];
   const sizeOptions = [10, 25, 50, 100];
@@ -211,10 +218,15 @@ export default function TradeControls() {
               onClick={() => {
                 setSide("long");
                 if (position && orderType === "market") {
-                  // Reset to default order size; sliderMax recomputes via isReduceMode
-                  const newMax = position.side === "long"
-                    ? Math.max(100, Math.floor(wallet * leverage))
-                    : Math.max(100, Math.floor(position.size));
+                  const goingOpposite = position.side !== "long";
+                  const newMax = goingOpposite && !reduceOnly
+                    ? // Hedge mode: allow closing existing + opening new
+                      Math.max(100, Math.floor(position.size + wallet * leverage))
+                    : goingOpposite
+                      ? // Reduce Only: max = position size
+                        Math.max(100, Math.floor(position.size))
+                      : // Same side: max = wallet * leverage
+                        Math.max(100, Math.floor(wallet * leverage));
                   setPositionSize(Math.min(1000, newMax));
                 }
               }}
@@ -236,9 +248,15 @@ export default function TradeControls() {
               onClick={() => {
                 setSide("short");
                 if (position && orderType === "market") {
-                  const newMax = position.side === "short"
-                    ? Math.max(100, Math.floor(wallet * leverage))
-                    : Math.max(100, Math.floor(position.size));
+                  const goingOpposite = position.side !== "short";
+                  const newMax = goingOpposite && !reduceOnly
+                    ? // Hedge mode: allow closing existing + opening new
+                      Math.max(100, Math.floor(position.size + wallet * leverage))
+                    : goingOpposite
+                      ? // Reduce Only: max = position size
+                        Math.max(100, Math.floor(position.size))
+                      : // Same side: max = wallet * leverage
+                        Math.max(100, Math.floor(wallet * leverage));
                   setPositionSize(Math.min(1000, newMax));
                 }
               }}
@@ -636,7 +654,7 @@ export default function TradeControls() {
                 >
                   INCREASE POSITION
                 </button>
-              ) : (
+              ) : reduceOnly ? (
                 <button
                   onClick={handleUpdate}
                   disabled={!canDecrease}
@@ -647,6 +665,22 @@ export default function TradeControls() {
                   }`}
                 >
                   REDUCE POSITION
+                </button>
+              ) : (
+                <button
+                  onClick={handleUpdate}
+                  disabled={!canFlip}
+                  className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
+                    canFlip
+                      ? isLong
+                        ? "bg-crypto-long text-black hover:shadow-glow-long"
+                        : "bg-crypto-short text-white hover:shadow-glow-short"
+                      : "bg-crypto-surface-elevated text-crypto-text-muted cursor-not-allowed"
+                  }`}
+                >
+                  {positionSize >= position.size
+                    ? `FLIP TO ${side.toUpperCase()}`
+                    : "REDUCE POSITION"}
                 </button>
               )}
               <button

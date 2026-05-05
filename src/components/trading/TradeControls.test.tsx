@@ -275,8 +275,8 @@ describe("TradeControls", () => {
       fireEvent.click(screen.getByText("SHORT"));
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
-      // In hedge mode, max should be wallet * leverage = 10000 * 10 = 100000
-      expect(slider.max).toBe("100000");
+      // In hedge mode opposite side: position.size (1000) + wallet * leverage (100000) = 101000
+      expect(slider.max).toBe("101000");
     });
 
     it("INCREASE slider max scales with wallet and leverage", () => {

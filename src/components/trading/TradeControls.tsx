@@ -57,7 +57,10 @@ export default function TradeControls() {
     ? Math.max(100, Math.floor(wallet * leverage))
     : isReduceMode && reduceOnly
       ? Math.max(100, Math.floor(position.size))
-      : Math.max(100, Math.floor(wallet * leverage));
+      : isReduceMode && !reduceOnly
+        ? // Hedge mode: allow closing existing + opening new with full wallet
+          Math.max(100, Math.floor(position.size + wallet * leverage))
+        : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
     const posPnL = position

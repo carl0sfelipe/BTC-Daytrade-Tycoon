@@ -103,4 +103,36 @@ describe("PositionPanel", () => {
 
     expect(screen.queryByText("Realized P&L")).not.toBeInTheDocument();
   });
+
+  it("shows trailing stop indicator with correct percent and price", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: 5, trailingStopPrice: 47500,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.getByText("Trailing Stop")).toBeInTheDocument();
+    expect(screen.getByText("5%")).toBeInTheDocument();
+    expect(screen.getByText(/47,500/)).toBeInTheDocument();
+  });
+
+  it("hides trailing stop row when trailingStopPercent is null", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.queryByText("Trailing Stop")).not.toBeInTheDocument();
+  });
 });

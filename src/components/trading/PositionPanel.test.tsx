@@ -134,6 +134,7 @@ describe("PositionPanel", () => {
     render(<PositionPanel />);
 
     expect(screen.queryByText("Trailing Stop")).not.toBeInTheDocument();
+  });
 
   it("shows Take Profit tag when tpPrice is set, not SL", () => {
     useTradingStore.setState({

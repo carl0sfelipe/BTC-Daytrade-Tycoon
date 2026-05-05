@@ -383,7 +383,7 @@ export const useTradingStore = create<TradingStore>()(
               position: flippedPosition,
               activePositions: [...state.activePositions, flippedPosition],
               closedTrades: [...state.closedTrades, trade],
-              realizedPnL: state.realizedPnL + totalRealized,
+              realizedPnL: state.realizedPnL + closePnl,
               ordersHistory: [...state.ordersHistory, historyItem],
               lastCloseReason: null,
             });
@@ -430,7 +430,7 @@ export const useTradingStore = create<TradingStore>()(
                 wallet: state.wallet + margin + pnlPartial,
                 position: null,
                 closedTrades: [...state.closedTrades, trade],
-                realizedPnL: state.realizedPnL + totalRealized,
+                realizedPnL: state.realizedPnL + pnlPartial,
                 activePositions: state.activePositions.filter(p => p.entry !== existing.entry || p.side !== existing.side),
                 ordersHistory: [...state.ordersHistory, historyItem],
                 lastCloseReason: null,

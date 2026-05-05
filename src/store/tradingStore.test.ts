@@ -325,8 +325,45 @@ describe("TradingStore — Reduce Only / Hedge Mode", () => {
     expect(state.position).not.toBeNull();
     expect(state.position!.side).toBe("short");
     expect(state.position!.size).toBe(1500); // excess = 2500 - 1000
+    expect(state.position!.entry).toBe(50000); // new position entry = current price
+    expect(state.position!.realizedPnL).toBe(0); // fresh flipped position starts at 0
     expect(state.closedTrades).toHaveLength(1);
     expect(state.closedTrades[0].side).toBe("long");
+    // wallet = 10000 + returnedMargin(100) + closePnl(0) - excessMargin(150) = 9950
+    expect(state.wallet).toBeCloseTo(9950, 0);
+  });
+
+  it("reduceOnly=false: flip with price change and prior realizedPnL", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 52000,
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 25 },
+      reduceOnly: false,
+      realizedPnL: 25,
+      closedTrades: [],
+    });
+
+    useTradingStore.getState().openPosition("short", 10, 2500, "", "", null);
+
+    const state = useTradingStore.getState();
+    // LONG $1000 @ 50k → flip at 52k: priceDiff = +2000, closePnl = (2000/50000)*1000 = 40
+    // totalRealized = 25 + 40 = 65
+    // returnedMargin = 1000/10 = 100
+    // excessSize = 2500 - 1000 = 1500, excessMargin = 150
+    // wallet = 10000 + 100 + 40 - 150 = 9990
+    expect(state.wallet).toBeCloseTo(9990, 0);
+
+    expect(state.position).not.toBeNull();
+    expect(state.position!.side).toBe("short");
+    expect(state.position!.size).toBe(1500);
+    expect(state.position!.entry).toBe(52000);
+
+    expect(state.closedTrades).toHaveLength(1);
+    expect(state.closedTrades[0].side).toBe("long");
+    expect(state.closedTrades[0].pnl).toBeCloseTo(65, 0); // includes prior realizedPnL
+    expect(state.closedTrades[0].exitPrice).toBe(52000);
+
+    expect(state.realizedPnL).toBeCloseTo(65, 0); // session-wide realizedPnL accumulated
   });
 
   it("reduceOnly=false: opposite market order smaller than position reduces (no flip)", () => {

@@ -260,7 +260,7 @@ This project is licensed under the **Apache License 2.0** — see the [LICENSE](
 ---
 
 <p align="center">
-  Built with 💚, Qwen 3.6 35b 4q, caffeine and Opus 4.7
+  Built with 💚, Qwen 3.6 35b 4q, caffeine, Opus 4.7 and Deepseek v4 pro
   </p>
   <p align="center">
   Trade safe. 🚀

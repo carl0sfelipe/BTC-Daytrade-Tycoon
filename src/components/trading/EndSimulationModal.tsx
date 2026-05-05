@@ -1,14 +1,39 @@
 "use client";
 
-import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer } from "lucide-react";
+import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer, Activity } from "lucide-react";
 
 interface EndSimulationModalProps {
   realDateRange: string;
   elapsedTime: string;
   simulatedHistoricalTime: string;
-  stats: { pnl: number; trades: number; winRate: number; returnPercent: number };
+  stats: {
+    pnl: number;
+    trades: number;
+    winRate: number;
+    returnPercent: number;
+    bestTrade: number;
+    worstTrade: number;
+    avgDurationSeconds: number;
+    profitFactor: number;
+    longTrades: number;
+    shortTrades: number;
+    maxConsecutiveWins: number;
+    maxConsecutiveLosses: number;
+  };
   onClose: () => void;
   onNewSession: () => void;
+}
+
+function formatDuration(totalSeconds: number): string {
+  if (totalSeconds <= 0) return "—";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+  return parts.join(" ");
 }
 
 export default function EndSimulationModal({
@@ -29,7 +54,7 @@ export default function EndSimulationModal({
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
-      <div className="relative w-full max-w-lg mx-4 animate-slide-in">
+      <div className="relative w-full max-w-lg mx-4 animate-slide-in max-h-[90vh] overflow-y-auto">
         <div className="card-surface border border-crypto-border overflow-hidden">
           {/* Header - neutral */}
           <div className="px-6 py-5 border-b border-crypto-border flex items-center justify-between">
@@ -108,9 +133,50 @@ export default function EndSimulationModal({
               </span>
             </div>
 
+            {/* Performance Metrics */}
+            {stats.trades > 0 && (
+              <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-crypto-accent" />
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Performance Metrics</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Best Trade</span>
+                    <span className="text-sm font-bold font-mono text-crypto-long">+${stats.bestTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Worst Trade</span>
+                    <span className="text-sm font-bold font-mono text-crypto-short">${stats.worstTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Avg Duration</span>
+                    <span className="text-sm font-bold font-mono text-crypto-text">{formatDuration(stats.avgDurationSeconds)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Profit Factor</span>
+                    <span className="text-sm font-bold font-mono text-crypto-text">{stats.profitFactor === Infinity ? "∞" : stats.profitFactor.toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Long / Short</span>
+                    <span className="text-sm font-bold font-mono text-crypto-text">{stats.longTrades} / {stats.shortTrades}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Max Streak</span>
+                    <span className="text-sm font-bold font-mono text-crypto-text">
+                      <span className="text-crypto-long">{stats.maxConsecutiveWins}W</span>
+                      {" / "}
+                      <span className="text-crypto-short">{stats.maxConsecutiveLosses}L</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
+                type="button"
                 onClick={onClose}
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
@@ -118,6 +184,7 @@ export default function EndSimulationModal({
                 Back
               </button>
               <button
+                type="button"
                 onClick={onNewSession}
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-accent text-white hover:bg-crypto-accent/90 transition-all text-sm font-bold shadow-glow-accent"
               >

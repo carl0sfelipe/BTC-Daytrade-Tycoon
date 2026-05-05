@@ -59,6 +59,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
               <span className="text-sm font-bold text-crypto-text">Welcome to TimeWarp</span>
             </div>
             <button
+              type="button"
               onClick={onStart}
               className="text-xs font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
             >
@@ -94,6 +95,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
           {/* Footer nav */}
           <div className="px-6 py-4 border-t border-crypto-border flex items-center justify-between">
             <button
+              type="button"
               onClick={() => setStep(Math.max(0, step - 1))}
               disabled={step === 0}
               className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-crypto-text-secondary hover:text-crypto-text hover:bg-crypto-surface-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -104,6 +106,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
 
             {step < steps.length - 1 ? (
               <button
+                type="button"
                 onClick={() => setStep(step + 1)}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-crypto-accent text-white text-sm font-semibold hover:bg-crypto-accent/90 transition-all"
               >
@@ -112,6 +115,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={onStart}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-crypto-long text-black text-sm font-bold hover:bg-crypto-long/90 transition-all shadow-glow-long"
               >

@@ -80,6 +80,7 @@ export default function LiquidationModal({ realDate, elapsedTime, simulatedHisto
             {/* Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
+                type="button"
                 onClick={onNewSession}
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
@@ -87,6 +88,7 @@ export default function LiquidationModal({ realDate, elapsedTime, simulatedHisto
                 Back
               </button>
               <button
+                type="button"
                 onClick={onNewSession}
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-short text-white hover:bg-crypto-short/90 transition-all text-sm font-bold shadow-glow-short"
               >

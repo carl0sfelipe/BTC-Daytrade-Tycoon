@@ -115,7 +115,7 @@ export default function TradingChart({
     const visible = candles.slice(0, currentIdx + 1).map((c, i) => {
       const isLast = i === currentIdx;
       return {
-        time: c.time as unknown as Time,
+        time: c.time as Time,
         open: c.open,
         high: isLast ? Math.max(c.open, currentPrice) : c.high,
         low: isLast ? Math.min(c.open, currentPrice) : c.low,
@@ -168,7 +168,7 @@ export default function TradingChart({
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-crypto-text-secondary">BTC/USDT — 1M Simulation</span>
         </div>
-        <button className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text">
+        <button type="button" className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text">
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronUp, ChevronDown, Minimize2, Maximize2, BarChart3, Trophy, Award } from "lucide-react";
+import { ChevronUp, ChevronDown, BarChart3, Trophy, Award } from "lucide-react";
 import Link from "next/link";
 import { useTradingStore } from "@/store/tradingStore";
 import type { ReturnTypeUseTimewarpEngine } from "@/hooks/useTimewarpEngine";
@@ -66,6 +66,7 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
         {/* Chart / History tabs */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setActiveTab("chart")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "chart"
@@ -76,6 +77,7 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
             Chart
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("history")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === "history"
@@ -112,6 +114,7 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
       {/* Bottom sheet for TradeControls */}
       <div className="mx-3 mb-3 mt-2">
         <button
+          type="button"
           onClick={() => setShowControls(!showControls)}
           className="w-full py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border flex items-center justify-center gap-2"
         >

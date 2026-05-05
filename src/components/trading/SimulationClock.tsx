@@ -50,6 +50,7 @@ export default function SimulationClock({
 
         {isPlaying ? (
           <button
+            type="button"
             onClick={onPause}
             aria-label="Pause"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
@@ -59,6 +60,7 @@ export default function SimulationClock({
           </button>
         ) : (
           <button
+            type="button"
             onClick={onResume}
             aria-label="Resume"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
@@ -69,6 +71,7 @@ export default function SimulationClock({
         )}
 
         <button
+          type="button"
           onClick={onEnd}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-warning-dim border border-crypto-warning/30 text-crypto-warning hover:bg-crypto-warning/20 transition-all"
         >
@@ -77,6 +80,7 @@ export default function SimulationClock({
         </button>
 
         <button
+          type="button"
           onClick={onReset}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
         >

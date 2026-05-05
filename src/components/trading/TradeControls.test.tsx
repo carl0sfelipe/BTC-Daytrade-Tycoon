@@ -624,6 +624,51 @@ describe("TradeControls", () => {
       expect(pos!.size).toBe(1000); // excess = 3000 - 2000
     });
 
+    // ─── Mutation Test 3b ─────────────────────────────────────────────
+    // Counterpart to Test 3: FLIP button must be DISABLED when
+    // wallet + returnedMargin + PnL < excessMargin (Bug 3 — canFlip ignored funds).
+    it("mutant: canFlip DISABLES flip button when available funds < excess margin", () => {
+      // Position SHORT $1000 @ 10x @ entry $50000, wallet $5
+      // currentPrice $60000 (SHORT deeply underwater — beyond liquidation)
+      // closePnl = (50000 - 60000)/50000 * 1000 = -200
+      // returnedMargin = $100
+      // available = $5 + $100 - $200 = -$95
+      //
+      // sliderMax = position.size + wallet * leverage = 1000 + 50 = 1050
+      // slider at max (1050) → excessSize = 50 → excessMargin = 5
+      // -$95 < $5 → canFlip MUST be false → button MUST be disabled
+      useTradingStore.setState({
+        wallet: 5,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 1000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          trailingStopPercent: null,
+          trailingStopPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 60000,   // SHORT losing hard: closePnl = -200
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      // sliderMax = 1000 + 5*10 = 1050; set to max so positionSize > position.size
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: slider.max } });
+
+      // Must show FLIP TO LONG label (not REDUCE), but disabled
+      const actionBtn = screen.getByText("FLIP TO LONG").closest("button");
+      expect(actionBtn).toBeDisabled();
+    });
+
     // ─── Mutation Test 4 ──────────────────────────────────────────────
     // Verifies that the Summary shows the correct margin for hedge flips
     // (only excess margin, not the full order size).

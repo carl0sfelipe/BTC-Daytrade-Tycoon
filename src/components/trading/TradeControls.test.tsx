@@ -441,5 +441,131 @@ describe("TradeControls", () => {
       // But liquidation price should still be recalculated
       expect(pos!.liquidationPrice).not.toBeNull();
     });
+
+    // ─── Mutation Test 1 ──────────────────────────────────────────────
+    // If the useEffect re-introduces the bug of always syncing side to
+    // position.side on every position update, this test fails.
+    it("mutant: side stays on user-selected opposite side after position updates", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      // User clicks LONG (opposite side) to flip
+      fireEvent.click(screen.getByText("LONG"));
+
+      // LONG button should be active (selected) — find the actual <button>
+      const longBtn = screen.getAllByText("LONG").find(
+        (el) => el.tagName.toLowerCase() === "button"
+      )!;
+      expect(longBtn.className).toContain("bg-crypto-long");
+
+      // Simulate a position update (e.g. price tick creates new position object)
+      const currentPos = useTradingStore.getState().position!;
+      useTradingStore.setState({
+        position: { ...currentPos, entryTime: "2026-05-04T12:00:01Z" },
+      });
+
+      // After re-render, LONG must STILL be selected — not reset back to SHORT
+      const longBtnAfter = screen.getAllByText("LONG").find(
+        (el) => el.tagName.toLowerCase() === "button"
+      )!;
+      expect(longBtnAfter.className).toContain("bg-crypto-long");
+
+      // And the action button should reflect the chosen side (any opposite-side label)
+      const actionLabel = screen.getByText(/FLIP TO LONG|REDUCE POSITION/);
+      expect(actionLabel).toBeInTheDocument();
+    });
+
+    // ─── Mutation Test 2 ──────────────────────────────────────────────
+    // If the action button reverts to always showing "REDUCE POSITION"
+    // when side != position.side (ignoring Hedge Mode), this test fails.
+    it("mutant: hedge mode shows FLIP label and enables button for sizes > position", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      // Click LONG to flip from SHORT
+      fireEvent.click(screen.getByText("LONG"));
+
+      // Set slider to a value LARGER than current position (flip with excess)
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "5000" } });
+
+      // Button must say "FLIP TO LONG", never "REDUCE POSITION"
+      const actionBtn = screen.getByText("FLIP TO LONG");
+      expect(actionBtn).toBeInTheDocument();
+      expect(screen.queryByText("REDUCE POSITION")).not.toBeInTheDocument();
+
+      // Button must be enabled — canFlip only requires size > 0 in hedge mode
+      expect(actionBtn).not.toBeDisabled();
+
+      // Execute the flip
+      fireEvent.click(actionBtn);
+
+      // Store should now have a LONG position
+      const pos = useTradingStore.getState().position;
+      expect(pos).not.toBeNull();
+      expect(pos!.side).toBe("long");
+    });
+
+    it("mutant: hedge mode reduce (size < position) still shows REDUCE, not FLIP", () => {
+      useTradingStore.setState({
+        wallet: 10000,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 5000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      // Size smaller than position → just a reduce, not a flip
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "2000" } });
+
+      expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
+      expect(screen.queryByText("FLIP TO LONG")).not.toBeInTheDocument();
+    });
   });
 });

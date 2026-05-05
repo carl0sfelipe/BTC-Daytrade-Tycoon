@@ -61,7 +61,7 @@ interface TradingStore {
   closedTrades: Trade[];
   realizedPnL: number;
   position: Position | null;
-  activePositions: Position[];
+
   pendingOrders: PendingOrder[];
   ordersHistory: OrderHistoryItem[];
   isLoading: boolean;
@@ -152,7 +152,7 @@ export const useTradingStore = create<TradingStore>()(
       closedTrades: [],
       realizedPnL: 0,
       position: null,
-      activePositions: [],
+
       pendingOrders: [],
       ordersHistory: [],
       isLoading: false,
@@ -394,7 +394,6 @@ export const useTradingStore = create<TradingStore>()(
             set({
               wallet: state.wallet + returnedMargin + closePnl - excessMargin,
               position: flippedPosition,
-              activePositions: [...state.activePositions, flippedPosition],
               closedTrades: [...state.closedTrades, trade],
               realizedPnL: state.realizedPnL + closePnl,
               ordersHistory: [...state.ordersHistory, historyItem],
@@ -445,7 +444,6 @@ export const useTradingStore = create<TradingStore>()(
                 position: null,
                 closedTrades: [...state.closedTrades, trade],
                 realizedPnL: state.realizedPnL + closePnl,
-                activePositions: state.activePositions.filter(p => p.entry !== existing.entry || p.side !== existing.side),
                 ordersHistory: [...state.ordersHistory, historyItem],
                 lastCloseReason: null,
               });
@@ -493,7 +491,6 @@ export const useTradingStore = create<TradingStore>()(
           };
           set({
             position: newPosition,
-            activePositions: [...state.activePositions, newPosition],
             wallet: state.wallet - margin,
             lastCloseReason: null,
             ordersHistory: [...state.ordersHistory, historyItem],
@@ -501,7 +498,6 @@ export const useTradingStore = create<TradingStore>()(
         } else {
           set({
             position: newPosition,
-            activePositions: [...state.activePositions, newPosition],
             wallet: state.wallet - margin,
             lastCloseReason: null,
           });
@@ -573,9 +569,6 @@ export const useTradingStore = create<TradingStore>()(
           set({
             wallet: state.wallet + margin + pnl,
             position: null,
-            activePositions: state.activePositions.filter(
-              (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
-            ),
             closedTrades: [...state.closedTrades, trade],
             realizedPnL: state.realizedPnL + pnl,
           });
@@ -642,9 +635,6 @@ export const useTradingStore = create<TradingStore>()(
           closedTrades: [...state.closedTrades, trade],
           realizedPnL: state.realizedPnL + pnl,
           position: null,
-          activePositions: state.activePositions.filter(
-            (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
-          ),
           lastCloseReason:
             reason === "tp"
               ? "Take Profit hit!"

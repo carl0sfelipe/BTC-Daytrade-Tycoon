@@ -10,7 +10,6 @@ export const initialStoreState = {
   closedTrades: [],
   realizedPnL: 0,
   position: null,
-  activePositions: [],
   pendingOrders: [],
   ordersHistory: [],
   isLoading: false,

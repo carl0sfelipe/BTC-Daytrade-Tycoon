@@ -121,7 +121,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       realizedPnL: 0,
       reduceOnly: true,
       position: null,
-      activePositions: [],
+
       isLoading: false,
       isLiquidated: false,
       simulationRealDate: null,

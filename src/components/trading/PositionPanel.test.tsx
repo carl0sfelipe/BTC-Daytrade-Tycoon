@@ -72,4 +72,35 @@ describe("PositionPanel", () => {
 
     spy.mockRestore();
   });
+
+  it("shows Realized P&L row when realizedPnL is non-zero", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 150,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.getByText("Realized P&L")).toBeInTheDocument();
+    expect(screen.getByText("+$150.00")).toBeInTheDocument();
+  });
+
+  it("hides Realized P&L row when realizedPnL is 0", () => {
+    useTradingStore.setState({
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+
+    expect(screen.queryByText("Realized P&L")).not.toBeInTheDocument();
+  });
 });

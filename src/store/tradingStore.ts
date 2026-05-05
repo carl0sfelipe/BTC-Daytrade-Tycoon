@@ -424,8 +424,9 @@ export const useTradingStore = create<TradingStore>()(
             };
 
             if (newSize <= 0) {
-              // Full close
-              const totalRealized = existing.realizedPnL + pnlPartial;
+              // Full close — calculate PnL on entire existing position
+              const closePnl = (priceDiff / existing.entry) * existing.size;
+              const totalRealized = existing.realizedPnL + closePnl;
               const margin = existing.size / existing.leverage;
               const trade: Trade = {
                 pnl: totalRealized,
@@ -440,10 +441,10 @@ export const useTradingStore = create<TradingStore>()(
                 exitTime: now,
               };
               set({
-                wallet: state.wallet + margin + pnlPartial,
+                wallet: state.wallet + margin + closePnl,
                 position: null,
                 closedTrades: [...state.closedTrades, trade],
-                realizedPnL: state.realizedPnL + pnlPartial,
+                realizedPnL: state.realizedPnL + closePnl,
                 activePositions: state.activePositions.filter(p => p.entry !== existing.entry || p.side !== existing.side),
                 ordersHistory: [...state.ordersHistory, historyItem],
                 lastCloseReason: null,

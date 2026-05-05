@@ -25,7 +25,7 @@ interface EndSimulationModalProps {
 }
 
 function formatDuration(totalSeconds: number): string {
-  if (totalSeconds <= 0) return "—";
+  if (!totalSeconds || totalSeconds <= 0 || Number.isNaN(totalSeconds)) return "—";
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;

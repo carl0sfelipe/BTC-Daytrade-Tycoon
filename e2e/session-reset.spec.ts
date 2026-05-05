@@ -110,7 +110,7 @@ test.describe('Session Reset Integrity', () => {
         isLiquidated: true,
         simulationRealDate: '01/01/2020 → 02/01/2020',
         position: null,
-        closedTrades: [{ pnl: -1000, side: 'long', reason: 'liquidation', entryPrice: 50000, exitPrice: 45000, size: 1000, leverage: 10, margin: 100, entryTime: 't1', exitTime: 't2' }],
+        closedTrades: [{ pnl: -1000, side: 'long', reason: 'liquidation', entryPrice: 50000, exitPrice: 45000, size: 1000, leverage: 10, margin: 100, entryTime: 't1', exitTime: 't2', durationSeconds: 60 }],
       });
     });
     await page.waitForTimeout(500);

@@ -6,16 +6,15 @@ const JID = 'ONBOARDING';
 test.describe('Onboarding Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage so onboarding shows
-    await page.addInitScript(() => {
-      localStorage.removeItem('trading-storage');
-    });
+    await page.goto('/trading');
+    await page.evaluate(() => localStorage.removeItem('trading-storage'));
+    await page.reload();
   });
 
   test('onboarding modal appears for first-time user and can be skipped', async ({ page }) => {
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
     await page.waitForTimeout(2000);
     await saveEvidence(page, JID, '01-onboarding-appears');
 
@@ -43,7 +42,6 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('onboarding does not reappear after skip on page reload', async ({ page }) => {
-    await page.goto('/trading');
     await page.waitForTimeout(2000);
 
     // Skip onboarding

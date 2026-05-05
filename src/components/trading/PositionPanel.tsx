@@ -29,18 +29,22 @@ export default function PositionPanel() {
 
   const { side, entry, size, leverage, tpPrice, slPrice, liquidationPrice } = position;
 
-  const priceDiff = side === "long" ? currentPrice - entry : entry - currentPrice;
-  const pnl = (priceDiff / entry) * size;
-  const pnlPercent = (priceDiff / entry) * leverage * 100;
-  const margin = size / leverage;
+  const safeEntry = entry || 1;
+  const safeLeverage = leverage || 1;
+  const safeCurrentPrice = currentPrice || 1;
+
+  const priceDiff = side === "long" ? safeCurrentPrice - safeEntry : safeEntry - safeCurrentPrice;
+  const pnl = (priceDiff / safeEntry) * size;
+  const pnlPercent = (priceDiff / safeEntry) * safeLeverage * 100;
+  const margin = size / safeLeverage;
 
   const distanceToLiq = Math.max(
     0,
-    Math.min(100, Math.abs((currentPrice - liquidationPrice) / currentPrice) * 100)
+    Math.min(100, Math.abs((safeCurrentPrice - liquidationPrice) / safeCurrentPrice) * 100)
   );
 
   // Normalize bar so it starts empty (0%) at open and fills toward liquidation (100% = critical)
-  const maxDistance = 100 / leverage;
+  const maxDistance = 100 / safeLeverage;
   const barPercent = Math.max(0, Math.min(100, 100 - (distanceToLiq / maxDistance) * 100));
 
   const isLong = side === "long";

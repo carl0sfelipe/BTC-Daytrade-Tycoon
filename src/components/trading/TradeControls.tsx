@@ -53,7 +53,8 @@ export default function TradeControls() {
     prevHadPosition.current = hasPosition;
   }, [position]);
 
-  const margin = positionSize / leverage;
+  const safeLeverage = leverage || 1;
+  const margin = positionSize / safeLeverage;
   const canOpen = wallet >= margin;
 
   const isReduceMode = !!(position && side !== position.side);
@@ -67,8 +68,9 @@ export default function TradeControls() {
         : Math.max(100, Math.floor(wallet * leverage));
 
   const handleOpen = () => {
+    const safeEntry = position?.entry || 1;
     const posPnL = position
-      ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) / position.entry) * position.size
+      ? ((position.side === "long" ? currentPrice - safeEntry : safeEntry - currentPrice) / safeEntry) * position.size
       : 0;
     if (!canOpen) {
       return;
@@ -133,8 +135,9 @@ export default function TradeControls() {
   };
 
   const handleUpdate = () => {
+    const safeEntry = position?.entry || 1;
     const posPnL = position
-      ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) / position.entry) * position.size
+      ? ((position.side === "long" ? currentPrice - safeEntry : safeEntry - currentPrice) / safeEntry) * position.size
       : 0;
     if (!position) return;
 
@@ -161,7 +164,7 @@ export default function TradeControls() {
     }
   };
 
-  const canIncrease = positionSize > 0 && wallet >= positionSize / leverage;
+  const canIncrease = positionSize > 0 && wallet >= positionSize / safeLeverage;
   const canDecrease = !!(position && positionSize > 0 && positionSize <= position.size);
   // In Hedge Mode, opposite-side orders can flip (size > position.size) or reduce (size <= position.size).
   // For flips, we need enough funds for the excess after returning existing margin + PnL.
@@ -617,7 +620,7 @@ export default function TradeControls() {
                   // In Hedge Mode flip, only the excess needs new margin
                   if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
                     const excessSize = positionSize - position.size;
-                    return (excessSize / leverage).toLocaleString("en-US", { minimumFractionDigits: 2 });
+                    return (excessSize / safeLeverage).toLocaleString("en-US", { minimumFractionDigits: 2 });
                   }
                   return margin.toLocaleString("en-US", { minimumFractionDigits: 2 });
                 })()}
@@ -628,11 +631,13 @@ export default function TradeControls() {
               <span className="font-mono font-semibold text-crypto-text">
                 ${(() => {
                   if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
-                    const priceDiff = position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice;
-                    const closePnl = (priceDiff / position.entry) * position.size;
-                    const returnedMargin = position.size / position.leverage;
+                    const safePosEntry = position.entry || 1;
+                    const safePosLeverage = position.leverage || 1;
+                    const priceDiff = position.side === "long" ? currentPrice - safePosEntry : safePosEntry - currentPrice;
+                    const closePnl = (priceDiff / safePosEntry) * position.size;
+                    const returnedMargin = position.size / safePosLeverage;
                     const excessSize = positionSize - position.size;
-                    const excessMargin = excessSize / leverage;
+                    const excessMargin = excessSize / safeLeverage;
                     return (wallet + returnedMargin + closePnl - excessMargin).toLocaleString("en-US", { minimumFractionDigits: 2 });
                   }
                   return (wallet - margin).toLocaleString("en-US", { minimumFractionDigits: 2 });

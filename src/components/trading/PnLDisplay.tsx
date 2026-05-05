@@ -13,14 +13,15 @@ export default function PnLDisplay() {
   const realizedPnL = useTradingStore((s) => s.realizedPnL);
 
   // Unrealized PnL from open position
+  const safeEntry = position?.entry || 1;
+  const safeLeverage = position?.leverage || 1;
   const unrealizedPnL =
     position
-      ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) /
-         position.entry) *
+      ? ((position.side === "long" ? currentPrice - safeEntry : safeEntry - currentPrice) / safeEntry) *
         position.size
       : 0;
 
-  const margin = position ? position.size / position.leverage : 0;
+  const margin = position ? position.size / safeLeverage : 0;
   const totalEquity = wallet + margin + unrealizedPnL;
 
   const totalTrades = closedTrades.length;

@@ -61,10 +61,12 @@ export default function TradeHistory() {
         <div className="divide-y divide-crypto-border/50">
           {trades.map((trade, idx) => {
             const isProfit = trade.pnl >= 0;
-            const pnlPercent = (trade.pnl / trade.margin) * 100;
-            const priceChange = trade.side === "long"
-              ? ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100
-              : ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100;
+            const pnlPercent = trade.margin ? (trade.pnl / trade.margin) * 100 : 0;
+            const priceChange = trade.entryPrice
+              ? (trade.side === "long"
+                ? ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * 100
+                : ((trade.entryPrice - trade.exitPrice) / trade.entryPrice) * 100)
+              : 0;
 
             return (
               <div key={idx} className="px-4 py-3 hover:bg-crypto-surface-elevated/30 transition-colors">

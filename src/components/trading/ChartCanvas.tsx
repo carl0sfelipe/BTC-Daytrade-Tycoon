@@ -48,20 +48,21 @@ export default function ChartCanvas() {
       ctx.stroke();
     }
 
-    // Calcular escalas
-    const minPrice = Math.min(...priceHistory.slice(-50));
-    const maxPrice = Math.max(...priceHistory.slice(-50));
-    const priceRange = maxPrice - minPrice;
+    const visibleHistory = priceHistory.slice(-50);
+    if (visibleHistory.length === 0) return;
 
-    if (priceHistory.length === 0) return;
+    // Calcular escalas
+    const minPrice = Math.min(...visibleHistory);
+    const maxPrice = Math.max(...visibleHistory);
+    const priceRange = maxPrice - minPrice || 1; // guard against division by zero
 
     // Draw price line
     ctx.strokeStyle = "#22c55e";
     ctx.lineWidth = 2;
     ctx.beginPath();
 
-    priceHistory.forEach((pt, index) => {
-      const x = (index / 50) * dimensions.width;
+    visibleHistory.forEach((pt, index) => {
+      const x = (index / (visibleHistory.length - 1 || 1)) * dimensions.width;
       const y = dimensions.height - ((pt - minPrice) / priceRange) * dimensions.height;
       
       if (index === 0) {

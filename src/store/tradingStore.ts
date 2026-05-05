@@ -312,7 +312,20 @@ export const useTradingStore = create<TradingStore>()(
         if (!entryPrice || entryPrice <= 0) return;
 
         const margin = positionSize / leverage;
-        if (state.wallet < margin) return;
+
+        // Validate funds — in Hedge Mode flip, only the excess needs new margin
+        // because the existing position's margin + PnL is returned first
+        if (state.position && state.position.side !== side && !state.reduceOnly && positionSize > state.position.size) {
+          const existing = state.position;
+          const priceDiff = existing.side === "long" ? entryPrice - existing.entry : existing.entry - entryPrice;
+          const closePnl = (priceDiff / existing.entry) * existing.size;
+          const returnedMargin = existing.size / existing.leverage;
+          const excessSize = positionSize - existing.size;
+          const excessMargin = excessSize / leverage;
+          if (state.wallet + returnedMargin + closePnl < excessMargin) return;
+        } else if (state.wallet < margin) {
+          return;
+        }
 
         const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
         const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;

@@ -188,9 +188,19 @@ export default function TradeControls() {
 
   const canIncrease = positionSize > 0 && wallet >= positionSize / leverage;
   const canDecrease = !!(position && positionSize > 0 && positionSize <= position.size);
-  // In Hedge Mode, opposite-side orders can flip (size >= position.size) or reduce (size < position.size).
-  // The store validates funds; we just need a positive size.
-  const canFlip = !!(position && positionSize > 0 && !reduceOnly && isReduceMode);
+  // In Hedge Mode, opposite-side orders can flip (size > position.size) or reduce (size <= position.size).
+  // For flips, we need enough funds for the excess after returning existing margin + PnL.
+  const canFlip = (() => {
+    if (!position || positionSize <= 0 || reduceOnly || !isReduceMode) return false;
+    if (positionSize <= position.size) return true; // Just a reduce
+    // Flip with excess: calculate if wallet + returned margin + PnL covers excess margin
+    const priceDiff = position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice;
+    const closePnl = (priceDiff / position.entry) * position.size;
+    const returnedMargin = position.size / position.leverage;
+    const excessSize = positionSize - position.size;
+    const excessMargin = excessSize / leverage;
+    return wallet + returnedMargin + closePnl >= excessMargin;
+  })();
 
   const leverageOptions = [2, 5, 10, 25, 50, 100];
   const sizeOptions = [10, 25, 50, 100];
@@ -627,12 +637,31 @@ export default function TradeControls() {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-crypto-text-muted">Required Margin:</span>
-              <span className="font-mono font-semibold text-crypto-text">${margin.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              <span className="font-mono font-semibold text-crypto-text">
+                ${(() => {
+                  // In Hedge Mode flip, only the excess needs new margin
+                  if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
+                    const excessSize = positionSize - position.size;
+                    return (excessSize / leverage).toLocaleString("en-US", { minimumFractionDigits: 2 });
+                  }
+                  return margin.toLocaleString("en-US", { minimumFractionDigits: 2 });
+                })()}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-crypto-text-muted">Available after:</span>
               <span className="font-mono font-semibold text-crypto-text">
-                ${(wallet - margin).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                ${(() => {
+                  if (isReduceMode && !reduceOnly && position && positionSize > position.size) {
+                    const priceDiff = position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice;
+                    const closePnl = (priceDiff / position.entry) * position.size;
+                    const returnedMargin = position.size / position.leverage;
+                    const excessSize = positionSize - position.size;
+                    const excessMargin = excessSize / leverage;
+                    return (wallet + returnedMargin + closePnl - excessMargin).toLocaleString("en-US", { minimumFractionDigits: 2 });
+                  }
+                  return (wallet - margin).toLocaleString("en-US", { minimumFractionDigits: 2 });
+                })()}
               </span>
             </div>
           </div>

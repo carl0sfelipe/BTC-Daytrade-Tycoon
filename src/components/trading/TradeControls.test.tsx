@@ -567,5 +567,84 @@ describe("TradeControls", () => {
       expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
       expect(screen.queryByText("FLIP TO LONG")).not.toBeInTheDocument();
     });
+
+    // ─── Mutation Test 3 ──────────────────────────────────────────────
+    // If store reverts to generic wallet < margin check before hedge flip,
+    // this test fails because the flip would be blocked even with enough funds.
+    it("mutant: store allows hedge flip when returned margin + PnL covers excess", () => {
+      // Position SHORT $2000 @ 10x, entry $50000, current $49000 (in profit $40)
+      // Wallet $500, margin used = $200
+      // Flip to LONG $3000 @ 10x → excess $1000, excess margin = $100
+      // Available: wallet $500 + returned margin $200 + PnL $40 = $740 >= $100 → ENOUGH
+      useTradingStore.setState({
+        wallet: 500,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 49000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "3000" } });
+
+      const actionBtn = screen.getByText("FLIP TO LONG");
+      expect(actionBtn).not.toBeDisabled();
+
+      fireEvent.click(actionBtn);
+
+      // Position should have flipped to LONG with excess $1000
+      const pos = useTradingStore.getState().position;
+      expect(pos).not.toBeNull();
+      expect(pos!.side).toBe("long");
+      expect(pos!.size).toBe(1000); // excess = 3000 - 2000
+    });
+
+    // ─── Mutation Test 4 ──────────────────────────────────────────────
+    // Verifies that the Summary shows the correct margin for hedge flips
+    // (only excess margin, not the full order size).
+    it("mutant: summary shows excess margin only in hedge mode flip", () => {
+      useTradingStore.setState({
+        wallet: 500,
+        position: {
+          side: "short",
+          entry: 50000,
+          size: 2000,
+          leverage: 10,
+          tpPrice: null,
+          slPrice: null,
+          liquidationPrice: 55000,
+          entryTime: "2026-05-04T12:00:00Z",
+          realizedPnL: 0,
+        },
+        currentPrice: 50000,
+        reduceOnly: false,
+        skipHighLeverageWarning: true,
+      });
+      render(<TradeControls />);
+
+      fireEvent.click(screen.getByText("LONG"));
+
+      const slider = screen.getByRole("slider") as HTMLInputElement;
+      fireEvent.change(slider, { target: { value: "3000" } });
+
+      // Required Margin should show $100 (excess $1000 / leverage 10), NOT $300
+      expect(screen.getByText("$100.00")).toBeInTheDocument();
+      // Available after should show wallet + returnedMargin - excessMargin
+      // = $500 + $200 + $0 - $100 = $600
+      expect(screen.getByText("$600.00")).toBeInTheDocument();
+    });
   });
 });

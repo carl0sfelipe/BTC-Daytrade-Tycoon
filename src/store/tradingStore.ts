@@ -576,7 +576,7 @@ export const useTradingStore = create<TradingStore>()(
               (p) => p.entry !== state.position!.entry || p.side !== state.position!.side
             ),
             closedTrades: [...state.closedTrades, trade],
-            realizedPnL: state.realizedPnL + totalRealized,
+            realizedPnL: state.realizedPnL + pnl,
           });
         } else {
           // Partial close

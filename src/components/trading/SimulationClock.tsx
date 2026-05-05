@@ -50,7 +50,7 @@ export default function SimulationClock({
 
         {isPlaying ? (
           <button
-            onClick={() => { console.log("[SimulationClock] Pause clicked"); onPause(); }}
+            onClick={() => { onPause(); }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Pause className="w-4 h-4" />
@@ -58,7 +58,7 @@ export default function SimulationClock({
           </button>
         ) : (
           <button
-            onClick={() => { console.log("[SimulationClock] Resume clicked"); onResume(); }}
+            onClick={() => { onResume(); }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Play className="w-4 h-4" />
@@ -67,7 +67,7 @@ export default function SimulationClock({
         )}
 
         <button
-          onClick={() => { console.log("[SimulationClock] End clicked"); onEnd(); }}
+          onClick={() => { onEnd(); }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-warning-dim border border-crypto-warning/30 text-crypto-warning hover:bg-crypto-warning/20 transition-all"
         >
           <Square className="w-4 h-4" />
@@ -75,7 +75,7 @@ export default function SimulationClock({
         </button>
 
         <button
-          onClick={() => { console.log("[SimulationClock] Reset clicked"); onReset(); }}
+          onClick={() => { onReset(); }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
         >
           <RefreshCw className="w-4 h-4" />

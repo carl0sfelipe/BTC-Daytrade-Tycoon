@@ -70,18 +70,15 @@ export default function TradeControls() {
     const posPnL = position
       ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) / position.entry) * position.size
       : 0;
-    console.log("[TradeControls] handleOpen called", {
       orderType, side, leverage, positionSize, limitPrice,
       wallet: wallet.toFixed(2),
       position: position ? { side: position.side, size: position.size, entry: position.entry.toFixed(2), unrealizedPnL: posPnL.toFixed(2) } : null,
       currentPrice: currentPrice.toFixed(2),
     });
     if (!canOpen) {
-      console.log("[TradeControls] handleOpen blocked: canOpen=false", { wallet: wallet.toFixed(2), requiredMargin: (positionSize / leverage).toFixed(2) });
       return;
     }
     if (leverage >= 50 && !skipHighLeverageWarning && mode === "simple") {
-      console.log("[TradeControls] showing high leverage modal");
       setPendingTrade({
         side,
         leverage,
@@ -94,9 +91,7 @@ export default function TradeControls() {
     }
     if (orderType === "limit") {
       const li = parseFloat(limitPrice);
-      console.log("[TradeControls] limit order", { limitPriceParsed: li, isValid: !!(li && li > 0), currentPrice: currentPrice.toFixed(2) });
       if (!li || li <= 0) return;
-      console.log("[TradeControls] calling addPendingOrder", { side, leverage, size: positionSize, limitPrice: li, currentPrice: currentPrice.toFixed(2) });
       addPendingOrder({
         side,
         leverage,
@@ -108,17 +103,14 @@ export default function TradeControls() {
       setLimitPrice("");
       setPositionSize(position ? 1000 : positionSize);
     } else {
-      console.log("[TradeControls] calling openPosition (market)", { side, leverage, size: positionSize, currentPrice: currentPrice.toFixed(2) });
       openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
     }
   };
 
   const handleConfirmHighLeverage = () => {
-    console.log("[TradeControls] handleConfirmHighLeverage", { pendingTrade, wallet: wallet.toFixed(2), position: position ? { side: position.side, size: position.size } : null });
     if (!pendingTrade) return;
     const li = pendingTrade.limitPrice ? parseFloat(pendingTrade.limitPrice) : null;
     if (li && li > 0) {
-      console.log("[TradeControls] confirming limit order from modal", pendingTrade);
       addPendingOrder({
         side: pendingTrade.side,
         leverage: pendingTrade.leverage,
@@ -130,7 +122,6 @@ export default function TradeControls() {
       setLimitPrice("");
       setPositionSize(position ? 1000 : positionSize);
     } else if (!pendingTrade.limitPrice) {
-      console.log("[TradeControls] confirming market order from modal", pendingTrade);
       openPosition(
         pendingTrade.side,
         pendingTrade.leverage,
@@ -140,7 +131,6 @@ export default function TradeControls() {
         pendingTrade.limitPrice
       );
     } else {
-      console.log("[TradeControls] invalid limitPrice, aborting");
       setPendingTrade(null);
       return;
     }
@@ -151,7 +141,6 @@ export default function TradeControls() {
     const posPnL = position
       ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) / position.entry) * position.size
       : 0;
-    console.log("[TradeControls] handleUpdate", {
       positionSize,
       hasPosition: !!position,
       isReduceMode,
@@ -164,7 +153,6 @@ export default function TradeControls() {
 
     // Hedge mode: opposite-side orders can flip the position if size exceeds current
     if (isReduceMode && !reduceOnly) {
-      console.log("[TradeControls] hedge mode reduce — calling openPosition", { side, leverage, size: positionSize, currentPrice: currentPrice.toFixed(2) });
       openPosition(side, leverage, positionSize, tpPrice, slPrice, null);
       return;
     }
@@ -714,7 +702,6 @@ export default function TradeControls() {
               )}
               <button
                 onClick={() => {
-                  console.log("[TradeControls] closePosition clicked", { wallet: wallet.toFixed(2), position: position ? { side: position.side, size: position.size, entry: position.entry.toFixed(2) } : null, currentPrice: currentPrice.toFixed(2) });
                   closePosition("manual");
                 }}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
@@ -739,7 +726,6 @@ export default function TradeControls() {
               </button>
               <button
                 onClick={() => {
-                  console.log("[TradeControls] closePosition clicked", { wallet: wallet.toFixed(2), position: position ? { side: position.side, size: position.size, entry: position.entry.toFixed(2) } : null, currentPrice: currentPrice.toFixed(2) });
                   closePosition("manual");
                 }}
                 className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"

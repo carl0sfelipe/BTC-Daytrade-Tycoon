@@ -266,7 +266,7 @@ describe("TradeControls", () => {
     it("hedge mode: slider max allows orders larger than position.size", () => {
       useTradingStore.setState({
         wallet: 10000,
-        position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+        position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
         currentPrice: 50000,
         reduceOnly: false,
       });

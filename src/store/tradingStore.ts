@@ -105,7 +105,7 @@ interface TradingStore {
   setReduceOnly: (value: boolean) => void;
 }
 
-function formatStoreState(state: ReturnType<typeof get>) {
+function formatStoreState(state: TradingStore) {
   const { currentPrice, wallet, position, realizedPnL, pendingOrders, reduceOnly } = state;
   const unrealizedPnL = position
     ? ((position.side === "long" ? currentPrice - position.entry : position.entry - currentPrice) / position.entry) * position.size

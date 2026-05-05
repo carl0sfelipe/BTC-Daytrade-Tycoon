@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronUp, ChevronDown, Minimize2, Maximize2, BarChart3, Trophy, Award } from "lucide-react";
 import Link from "next/link";
 import { useTradingStore } from "@/store/tradingStore";
@@ -19,10 +19,17 @@ interface MobileTradingViewProps {
 }
 
 export default function MobileTradingView({ engine, onEnd }: MobileTradingViewProps) {
+  const position = useTradingStore((s) => s.position);
   const [showControls, setShowControls] = useState(false);
   const [activeTab, setActiveTab] = useState<"chart" | "history">("chart");
 
-  const position = useTradingStore((s) => s.position);
+  // Auto-open controls when a position is opened (so Reduce Only / Hedge Mode toggle is visible)
+  useEffect(() => {
+    if (position) {
+      setShowControls(true);
+    }
+  }, [position]);
+
   const wallet = useTradingStore((s) => s.wallet);
   const closedTrades = useTradingStore((s) => s.closedTrades);
 

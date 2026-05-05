@@ -130,7 +130,7 @@ describe("TradingStore — Limit Orders", () => {
   it("addToPosition increases existing position and updates average entry", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
     });
 
     useTradingStore.getState().addToPosition(1000, 55000, "", "");
@@ -144,7 +144,7 @@ describe("TradingStore — Limit Orders", () => {
   it("reducePosition partially closes position", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 
@@ -159,7 +159,7 @@ describe("TradingStore — Limit Orders", () => {
   it("reducePosition closes entire position when reducedSize >= current", () => {
     useTradingStore.setState({
       wallet: 10000,
-      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now" },
+      position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000, tpPrice: null, slPrice: null, entryTime: "now", realizedPnL: 0 },
       currentPrice: 52000,
     });
 

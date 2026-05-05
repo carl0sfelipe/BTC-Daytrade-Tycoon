@@ -639,6 +639,7 @@ export const useTradingStore = create<TradingStore>()(
             position: newPosition,
             wallet: state.wallet - margin,
             lastCloseReason: null,
+            isLiquidated: false,
             ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
           });
         } else {
@@ -646,6 +647,7 @@ export const useTradingStore = create<TradingStore>()(
             position: newPosition,
             wallet: state.wallet - margin,
             lastCloseReason: null,
+            isLiquidated: false,
           });
         }
         if ((tpPrice && tpPrice > 0) || (slPrice && slPrice > 0)) {
@@ -827,6 +829,7 @@ export const useTradingStore = create<TradingStore>()(
           ordersHistory: [...state.ordersHistory, closeHistoryItem].slice(-MAX_ORDERS_HISTORY),
           realizedPnL: state.realizedPnL + pnl,
           position: null,
+          isLiquidated: reason === "liquidation" ? get().isLiquidated : false,
           lastCloseReason:
             reason === "tp"
               ? "Take Profit hit!"
@@ -1161,6 +1164,24 @@ export const useTradingStore = create<TradingStore>()(
     }),
     {
       name: "trading-storage",
+      version: 1,
+      migrate: (persistedState: unknown) => {
+        if (typeof persistedState !== "object" || persistedState === null) {
+          return {} as TradingStore;
+        }
+        const s = persistedState as Partial<TradingStore>;
+        // Clear stale transient state that should never persist across sessions
+        return {
+          ...s,
+          position: null,
+          pendingOrders: [],
+          isLiquidated: false,
+          lastCloseReason: null,
+          simulationRealDate: null,
+          isLoading: false,
+          lastActionError: null,
+        } as TradingStore;
+      },
       partialize: (state) => ({
         wallet: state.wallet,
         hasSeenOnboarding: state.hasSeenOnboarding,

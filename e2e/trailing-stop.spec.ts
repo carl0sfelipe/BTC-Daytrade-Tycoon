@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { saveEvidence, captureConsoleLogs } from './_helper';
-import { openLongMarketViaUI, closePositionViaUI } from './_helpers/ui-actions';
+import { openLongMarketViaUI } from './_helpers/ui-actions';
 
 const JID = 'TRAILING-STOP';
 

@@ -65,7 +65,7 @@ test.describe('Historical date reveal', () => {
 
     // Inject a 100x long position and immediately trigger liquidation
     await page.evaluate(() => {
-      const store = (window as unknown as { __tradingStore: { getState: () => { currentPrice: number }; setState: (s: object) => void } }).__tradingStore;
+      const store = (window as any).__tradingStore;
       const cp = store.getState().currentPrice;
       const liqPrice = cp * 0.99;
       store.setState({

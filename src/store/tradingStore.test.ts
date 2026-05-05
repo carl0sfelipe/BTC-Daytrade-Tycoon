@@ -910,3 +910,68 @@ describe("TradingStore — addToPosition TP/SL", () => {
     expect(pos!.slPrice).toBe(48000);
   });
 });
+describe("TradingStore — checkPendingOrders edge cases", () => {
+  beforeEach(() => {
+    useTradingStore.setState({
+      wallet: 10000, currentPrice: 50000, position: null,
+      pendingOrders: [], ordersHistory: [], closedTrades: [], realizedPnL: 0,
+    });
+  });
+
+  it("executes two simultaneous long limit orders on same price tick", () => {
+    useTradingStore.getState().addPendingOrder({ side: "long", leverage: 10, size: 500, tpPrice: null, slPrice: null, limitPrice: 48000 });
+    useTradingStore.getState().addPendingOrder({ side: "long", leverage: 10, size: 500, tpPrice: null, slPrice: null, limitPrice: 48000 });
+
+    useTradingStore.getState().checkPendingOrders(48000);
+
+    const state = useTradingStore.getState();
+    expect(state.pendingOrders).toHaveLength(0);
+    // Both executed: first opens position, second adds to it
+    expect(state.position).not.toBeNull();
+    expect(state.position!.size).toBe(1000);
+    expect(state.ordersHistory.filter(o => o.status === "filled")).toHaveLength(2);
+  });
+
+  it("reduce-only mode: opposite-side limit reduces, does NOT flip", () => {
+    useTradingStore.setState({
+      wallet: 9900,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+      reduceOnly: true,
+    });
+    useTradingStore.getState().addPendingOrder({ side: "short", leverage: 10, size: 2000, tpPrice: null, slPrice: null, limitPrice: 52000 });
+
+    useTradingStore.getState().checkPendingOrders(52000);
+
+    const state = useTradingStore.getState();
+    // Should reduce, not flip — position still LONG (or null if fully reduced), never SHORT
+    expect(state.position?.side ?? "null").not.toBe("short");
+  });
+
+  it("hedge mode: opposite-side limit larger than position flips to new side", () => {
+    useTradingStore.setState({
+      wallet: 9900,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+      currentPrice: 50000,
+      reduceOnly: false,
+    });
+    useTradingStore.getState().addPendingOrder({ side: "short", leverage: 10, size: 2000, tpPrice: null, slPrice: null, limitPrice: 52000 });
+
+    useTradingStore.getState().checkPendingOrders(52000);
+
+    const state = useTradingStore.getState();
+    expect(state.position!.side).toBe("short");
+    expect(state.position!.size).toBe(1000); // excess = 2000 - 1000
+    expect(state.closedTrades).toHaveLength(1);
+    expect(state.closedTrades[0].reason).toBe("manual");
+  });
+});

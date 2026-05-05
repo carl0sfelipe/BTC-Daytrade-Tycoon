@@ -881,3 +881,32 @@ describe("Trailing Stop", () => {
     expect(result.reason).toBe("liquidation");
   });
 });
+
+describe("TradingStore — addToPosition TP/SL", () => {
+  beforeEach(() => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: 55000, slPrice: 48000,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+    });
+  });
+
+  it("addToPosition overrides TP/SL when non-empty strings provided", () => {
+    useTradingStore.getState().addToPosition(500, 52000, "60000", "47000");
+    const pos = useTradingStore.getState().position;
+    expect(pos!.tpPrice).toBe(60000);
+    expect(pos!.slPrice).toBe(47000);
+  });
+
+  it("addToPosition preserves existing TP/SL when empty strings provided", () => {
+    useTradingStore.getState().addToPosition(500, 52000, "", "");
+    const pos = useTradingStore.getState().position;
+    expect(pos!.tpPrice).toBe(55000);
+    expect(pos!.slPrice).toBe(48000);
+  });
+});

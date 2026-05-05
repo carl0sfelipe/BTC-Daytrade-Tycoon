@@ -185,4 +185,55 @@ describe("PositionPanel", () => {
     expect(screen.getByText("Take Profit")).toBeInTheDocument();
     expect(screen.getByText("Stop Loss")).toBeInTheDocument();
   });
+
+  it("applies animate-pulse-glow when barPercent < 15 (isCritical)", () => {
+    // LONG @10x, entry=50000, liqPrice=45000, currentPrice=49500
+    // distanceToLiq = |49500-45000|/49500*100 ≈ 9.09%
+    // maxDistance = 100/10 = 10; barPercent = 100 - 90.9 ≈ 9.1 < 15 → isCritical
+    useTradingStore.setState({
+      currentPrice: 49500,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    const { container } = render(<PositionPanel />);
+    expect(container.firstChild).toHaveClass("animate-pulse-glow");
+  });
+
+  it("applies text-crypto-warning for isDanger (15 <= barPercent < 40)", () => {
+    // currentPrice=48500 → distanceToLiq ≈ 7.22% → barPercent ≈ 27.8 → isDanger
+    useTradingStore.setState({
+      currentPrice: 48500,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+    const pct = screen.getByTestId("distance-bar").closest(".space-y-2")!
+      .querySelector("span.font-bold");
+    expect(pct?.className).toContain("text-crypto-warning");
+  });
+
+  it("applies text-crypto-long when position is safe (barPercent >= 40)", () => {
+    // currentPrice=47500 → distanceToLiq≈5.26% → barPercent≈47.4% → safe (≥40)
+    useTradingStore.setState({
+      currentPrice: 47500,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", realizedPnL: 0,
+      },
+    });
+    render(<PositionPanel />);
+    const pct = screen.getByTestId("distance-bar").closest(".space-y-2")!
+      .querySelector("span.font-bold");
+    expect(pct?.className).toContain("text-crypto-long");
+  });
 });

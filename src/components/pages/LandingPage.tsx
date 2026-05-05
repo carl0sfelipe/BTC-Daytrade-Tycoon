@@ -21,12 +21,14 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => router.push("/auth/login")}
             className="px-4 py-2 rounded-lg text-sm font-medium text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
             Login
           </button>
           <button
+            type="button"
             onClick={() => router.push("/auth/signup")}
             className="px-4 py-2 rounded-lg bg-crypto-accent text-white text-sm font-semibold hover:bg-crypto-accent/90 transition-all shadow-glow-accent"
           >
@@ -57,6 +59,7 @@ export default function LandingPage() {
 
           <div className="flex items-center justify-center gap-4">
             <button
+              type="button"
               onClick={() => router.push("/auth/signup")}
               className="flex items-center gap-2 px-8 py-4 rounded-xl bg-crypto-accent text-white font-bold hover:bg-crypto-accent/90 transition-all shadow-glow-accent text-lg"
             >
@@ -64,6 +67,7 @@ export default function LandingPage() {
               <ArrowRight className="w-5 h-5" />
             </button>
             <button
+              type="button"
               onClick={() => router.push("/trading")}
               className="px-8 py-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border text-crypto-text font-semibold hover:border-crypto-text-muted transition-all text-lg"
             >
@@ -196,6 +200,7 @@ export default function LandingPage() {
           <h2 className="text-4xl font-bold mb-4">Ready to become a trader?</h2>
           <p className="text-crypto-text-secondary mb-8">Create your free account in seconds. No credit card required.</p>
           <button
+            type="button"
             onClick={() => router.push("/auth/signup")}
             className="flex items-center gap-2 px-8 py-4 rounded-xl bg-crypto-long text-black font-bold hover:bg-crypto-long/90 transition-all shadow-glow-long text-lg mx-auto"
           >

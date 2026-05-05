@@ -54,6 +54,7 @@ export default function RankingPage() {
         <div className="flex items-center justify-center gap-2">
           {filters.map((f, i) => (
             <button
+              type="button"
               key={f}
               className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
                 i === 0

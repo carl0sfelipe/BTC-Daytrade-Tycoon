@@ -70,6 +70,7 @@ export default function TradingPage() {
           <h2 className="text-xl font-bold text-crypto-short">Simulation Error</h2>
           <p className="text-crypto-text-secondary">{engine.error}</p>
           <button
+            type="button"
             onClick={engine.reset}
             className="bg-crypto-long text-black hover:bg-crypto-long/90 px-4 py-2 rounded-lg font-bold transition-colors"
           >
@@ -86,13 +87,44 @@ export default function TradingPage() {
     engine.reset();
   };
 
+  const winningTrades = closedTrades.filter((t) => t.pnl > 0);
+  const losingTrades = closedTrades.filter((t) => t.pnl < 0);
+  const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
+  const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
+
+  let maxConsecutiveWins = 0;
+  let maxConsecutiveLosses = 0;
+  let currentWins = 0;
+  let currentLosses = 0;
+  for (const t of closedTrades) {
+    if (t.pnl > 0) {
+      currentWins++;
+      currentLosses = 0;
+      maxConsecutiveWins = Math.max(maxConsecutiveWins, currentWins);
+    } else if (t.pnl < 0) {
+      currentLosses++;
+      currentWins = 0;
+      maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentLosses);
+    }
+  }
+
   const endStats = {
     pnl: wallet - INITIAL_WALLET,
     trades: closedTrades.length,
     winRate: closedTrades.length
-      ? (closedTrades.filter((t) => t.pnl > 0).length / closedTrades.length) * 100
+      ? (winningTrades.length / closedTrades.length) * 100
       : 0,
     returnPercent: ((wallet - INITIAL_WALLET) / INITIAL_WALLET) * 100,
+    bestTrade: winningTrades.length ? Math.max(...winningTrades.map((t) => t.pnl)) : 0,
+    worstTrade: losingTrades.length ? Math.min(...losingTrades.map((t) => t.pnl)) : 0,
+    avgDurationSeconds: closedTrades.length
+      ? Math.floor(closedTrades.reduce((sum, t) => sum + t.durationSeconds, 0) / closedTrades.length)
+      : 0,
+    profitFactor: totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0,
+    longTrades: closedTrades.filter((t) => t.side === "long").length,
+    shortTrades: closedTrades.filter((t) => t.side === "short").length,
+    maxConsecutiveWins,
+    maxConsecutiveLosses,
   };
 
   // Format elapsed time as "5h 30m 15s" from "05:30:15"

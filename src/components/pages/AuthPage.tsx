@@ -34,6 +34,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
       {/* Top bar */}
       <div className="px-6 py-4">
         <button
+          type="button"
           onClick={() => router.push("/")}
           className="flex items-center gap-2 text-sm text-crypto-text-secondary hover:text-crypto-text transition-colors"
         >
@@ -58,6 +59,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           {/* Toggle */}
           <div className="flex items-center p-1 rounded-xl bg-crypto-surface-elevated border border-crypto-border mb-6">
             <button
+              type="button"
               onClick={() => {
                 setAuthMode("login");
                 router.push("/auth/login");
@@ -69,6 +71,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
               Login
             </button>
             <button
+              type="button"
               onClick={() => {
                 setAuthMode("signup");
                 router.push("/auth/signup");
@@ -171,6 +174,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
           {/* Demo */}
           <button
+            type="button"
             onClick={() => router.push("/trading")}
             className="w-full py-3 rounded-xl bg-crypto-surface-elevated border border-crypto-border text-sm font-semibold text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
@@ -182,14 +186,14 @@ export default function AuthPage({ mode }: AuthPageProps) {
             {authMode === "login" ? (
               <>
                 Don't have an account?{" "}
-                <button onClick={() => router.push("/auth/signup")} className="text-crypto-accent hover:underline">
+                <button type="button" onClick={() => router.push("/auth/signup")} className="text-crypto-accent hover:underline">
                   Create now
                 </button>
               </>
             ) : (
               <>
                 Already have an account?{" "}
-                <button onClick={() => router.push("/auth/login")} className="text-crypto-accent hover:underline">
+                <button type="button" onClick={() => router.push("/auth/login")} className="text-crypto-accent hover:underline">
                   Login
                 </button>
               </>

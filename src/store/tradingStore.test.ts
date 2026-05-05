@@ -975,3 +975,52 @@ describe("TradingStore — checkPendingOrders edge cases", () => {
     expect(state.closedTrades[0].reason).toBe("manual");
   });
 });
+
+describe("TradingStore — reducePosition floating-point accumulation", () => {
+  it("two partial reduces summing to exact size close the position cleanly", () => {
+    useTradingStore.setState({
+      wallet: 10000,
+      currentPrice: 50000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: null, trailingStopPrice: null,
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+    });
+
+    // Two reduces of 500 each = exactly 1000 (the full size)
+    useTradingStore.getState().reducePosition(500, 50000);
+    expect(useTradingStore.getState().position).not.toBeNull();
+    expect(useTradingStore.getState().position!.size).toBe(500);
+
+    useTradingStore.getState().reducePosition(500, 50000);
+    // Position must be fully closed — not leave a 0-size ghost
+    expect(useTradingStore.getState().position).toBeNull();
+    expect(useTradingStore.getState().closedTrades).toHaveLength(1);
+  });
+});
+
+describe("TradingStore — addToPosition with active trailing stop", () => {
+  it("preserves trailingStopPercent and trailingStopPrice after adding to position", () => {
+    useTradingStore.setState({
+      wallet: 9900,
+      currentPrice: 52000,
+      position: {
+        side: "long", entry: 50000, size: 1000, leverage: 10,
+        liquidationPrice: 45000, tpPrice: null, slPrice: null,
+        trailingStopPercent: 5, trailingStopPrice: 49400, // 52000 * 0.95
+        entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
+      },
+    });
+
+    useTradingStore.getState().addToPosition(500, 52000, "", "");
+
+    const pos = useTradingStore.getState().position!;
+    // addToPosition does NOT recalculate trailingStopPrice — it preserves the existing value
+    expect(pos.trailingStopPercent).toBe(5);
+    expect(pos.trailingStopPrice).toBe(49400);
+    // But size and entry ARE updated
+    expect(pos.size).toBeCloseTo(1500, 0);
+  });
+});

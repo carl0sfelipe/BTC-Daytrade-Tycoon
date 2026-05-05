@@ -14,6 +14,10 @@ export interface Trade {
   exitTime: string;
 }
 
+const MAX_CLOSED_TRADES = 500;
+const MAX_ORDERS_HISTORY = 500;
+const MAX_PRICE_HISTORY = 200;
+
 export interface PendingOrder {
   id: string;
   side: "long" | "short";
@@ -188,7 +192,7 @@ export const useTradingStore = create<TradingStore>()(
       setReduceOnly: (value) => set({ reduceOnly: value }),
       addClosedTrade: (trade) =>
         set((state) => ({
-          closedTrades: [...state.closedTrades, trade],
+          closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
         })),
       setPosition: (position) => set({ position }),
       addPendingOrder: (order) =>
@@ -220,7 +224,7 @@ export const useTradingStore = create<TradingStore>()(
               ...state.pendingOrders,
               { ...order, id, createdAt: now },
             ],
-            ordersHistory: [...state.ordersHistory, historyItem],
+            ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
           };
         }),
       cancelPendingOrder: (id) => {
@@ -407,9 +411,9 @@ export const useTradingStore = create<TradingStore>()(
             set({
               wallet: state.wallet + returnedMargin + closePnl - excessMargin,
               position: flippedPosition,
-              closedTrades: [...state.closedTrades, trade],
+              closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
               realizedPnL: state.realizedPnL + closePnl,
-              ordersHistory: [...state.ordersHistory, historyItem],
+              ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
               lastCloseReason: null,
             });
             return;
@@ -455,16 +459,16 @@ export const useTradingStore = create<TradingStore>()(
               set({
                 wallet: state.wallet + margin + closePnl,
                 position: null,
-                closedTrades: [...state.closedTrades, trade],
+                closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
                 realizedPnL: state.realizedPnL + closePnl,
-                ordersHistory: [...state.ordersHistory, historyItem],
+                ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
                 lastCloseReason: null,
               });
             } else {
               set({
                 wallet: state.wallet + marginReturned + pnlPartial,
                 position: { ...existing, size: newSize, realizedPnL: existing.realizedPnL + pnlPartial },
-                ordersHistory: [...state.ordersHistory, historyItem],
+                ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
                 realizedPnL: state.realizedPnL + pnlPartial,
               });
             }
@@ -508,7 +512,7 @@ export const useTradingStore = create<TradingStore>()(
             position: newPosition,
             wallet: state.wallet - margin,
             lastCloseReason: null,
-            ordersHistory: [...state.ordersHistory, historyItem],
+            ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
           });
         } else {
           set({
@@ -582,7 +586,7 @@ export const useTradingStore = create<TradingStore>()(
           set({
             wallet: state.wallet + margin + pnl,
             position: null,
-            closedTrades: [...state.closedTrades, trade],
+            closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
             realizedPnL: state.realizedPnL + pnl,
           });
         } else {
@@ -644,7 +648,7 @@ export const useTradingStore = create<TradingStore>()(
 
         set({
           wallet: Math.max(0, newWallet),
-          closedTrades: [...state.closedTrades, trade],
+          closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),
           realizedPnL: state.realizedPnL + pnl,
           position: null,
           lastCloseReason:
@@ -703,7 +707,7 @@ export const useTradingStore = create<TradingStore>()(
           set({
             wallet: state.wallet - marginDiff,
             position: { ...state.position, entry: newEntry, size: newSize, liquidationPrice: newLiqPrice },
-            ordersHistory: [...state.ordersHistory, historyItem],
+            ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
           });
         } else if (newSize < size) {
           // Decreasing position
@@ -727,7 +731,7 @@ export const useTradingStore = create<TradingStore>()(
           set({
             wallet: state.wallet + marginReturned + pnlPartial,
             position: { ...state.position, size: newSize, realizedPnL: state.position.realizedPnL + pnlPartial },
-            ordersHistory: [...state.ordersHistory, historyItem],
+            ordersHistory: [...state.ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
             realizedPnL: state.realizedPnL + pnlPartial,
           });
         }
@@ -842,6 +846,15 @@ export const useTradingStore = create<TradingStore>()(
     }),
     {
       name: "trading-storage",
+      partialize: (state) => ({
+        wallet: state.wallet,
+        hasSeenOnboarding: state.hasSeenOnboarding,
+        skipHighLeverageWarning: state.skipHighLeverageWarning,
+        reduceOnly: state.reduceOnly,
+        closedTrades: state.closedTrades,
+        realizedPnL: state.realizedPnL,
+        ordersHistory: state.ordersHistory,
+      }),
     }
   )
 );

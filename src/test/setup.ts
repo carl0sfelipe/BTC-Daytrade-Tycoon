@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom";
+import { afterEach } from "vitest";
+import { resetStore } from "./resetStore";
 
 // Mock localStorage for zustand persist
 const localStorageMock = (() => {
@@ -19,4 +21,9 @@ const localStorageMock = (() => {
 
 Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
+});
+
+afterEach(() => {
+  window.localStorage.clear();
+  resetStore();
 });

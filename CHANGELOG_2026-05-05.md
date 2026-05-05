@@ -230,9 +230,50 @@
 | `8935f1f` | `canFlip` disabled regression test; EndSimulationModal assert |
 | `ec695b1` | Fix brace faltante em PositionPanel trailing stop test |
 
+### `67bf3f7` — test: add TP/SL validation i18n tests + Portuguese smoke test
+
+- **6 new unit tests** in `tradingStore.test.ts` verifying TP/SL error messages are in English and do NOT contain Portuguese words (`inválido`, `acima`, `abaixo`, `coloque`).
+- **E2E `i18n-portuguese-smoke.spec.ts`**: scans all pages (`/`, `/trading`, `/achievements`, `/leaderboard`, `/auth/login`, `/auth/signup`) for visible Portuguese text — character patterns (`ç`, `ã`, `õ`) + word blacklist.
+- **E2E `tp-sl-validation.spec.ts`**: validates invalid TP/SL flows show English error messages.
+
 **Totais de Testes (após hoje):**
 - **Unit (Vitest)**: ~250+ tests
 - **E2E (Playwright)**: ~40+ specs
+
+---
+
+## i18n — All User-Facing Text to English
+
+### `d14f872` — i18n: translate all user-facing Portuguese strings to English
+
+- **tradingStore.ts**: 8 TP/SL error messages translated (`inválido` → `Invalid`, `ACIMA` → `ABOVE`, `ABAIXO` → `BELOW`, etc.)
+- **PositionPanel.tsx**: Toast titles, trigger labels (`acima`/`abaixo` → `above`/`below`), placeholders (`mercado` → `market`)
+- **TradeControls.tsx**: Placeholders and helper labels (`vazio = mercado` → `empty = market`)
+- **LandingPage.tsx**: `Conquistas` → `Achievements`
+- **useTimewarpEngine.ts**: Date formatting `pt-BR` → `en-US`
+
+---
+
+## Late-Day Bug Fixes
+
+### `c06ab1f` — fix: TP/SL side display and preserve existing orders on partial update
+
+- `setPositionTpSl` now only cancels the specific order type being updated. Setting SL no longer cancels existing TP (and vice-versa).
+- `position.tpPrice`/`slPrice` now preserve existing values when input is empty.
+- `ordersHistory` items for TP/SL now use correct type `tp`/`sl` instead of `market`.
+- `OrdersPanel` shows reducing side (opposite of position) for TP/SL orders.
+
+### `1f4bde2` — ui: remove cents from Bitcoin price display
+
+- `MarketStatus`, `ChartCanvas`, `OrdersPanel`, `TradeControls`: Bitcoin price shown as whole dollars (rounded), no decimal cents.
+- Inputs and placeholders for limit price default to `.toFixed(0)` instead of `.toFixed(2)`.
+- Internal calculations (PnL, liquidation, triggers) keep full precision — only display is simplified.
+
+### `8076bb0` — fix: closePosition stale state bug — SL stayed pending after TP hit
+
+- **Root cause**: `closePosition` had two sequential `set()` calls. The second `set()` overwrote `ordersHistory` with the stale snapshot from before the first `set()`, losing the `"canceled"` status update for sibling TP/SL orders.
+- **Effect**: When TP hit, the SL disappeared from `pendingOrders` (so `cancelPendingOrder` said "already cancelled") but remained `"pending"` in `ordersHistory`, making it visible but non-interactive in the UI.
+- **Fix**: Consolidated both operations into a single `set()` using local vars. Applies to manual close, TP hit, SL hit, and trailing stop.
 
 ---
 
@@ -269,11 +310,12 @@
 
 ## Stats do Dia
 
-- **Commits**: 62
-- **Arquivos modificados**: 45+
-- **Testes adicionados**: ~70+ unit + ~10 E2E
+- **Commits**: 67
+- **Arquivos modificados**: 50+
+- **Testes adicionados**: ~80+ unit + ~12 E2E
 - **Issues BMAD resolvidas**: 4 CRITICAL + 6 HIGH
-- **Features novas**: Trailing Stop-Loss, BMAD Framework
+- **Features novas**: Trailing Stop-Loss, BMAD Framework, TP/SL Panel Management
+- **Bugfixes críticos**: Stale state em closePosition, TP cancelado ao setar SL, i18n completo
 - **Frameworks/Metodologias adicionadas**: BMAD Method (37 skills, 6 agentes)
 
 ---

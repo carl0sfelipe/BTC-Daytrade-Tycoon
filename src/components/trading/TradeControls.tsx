@@ -17,6 +17,7 @@ export default function TradeControls() {
   const [customStep, setCustomStep] = useState("");
   const [tpPrice, setTpPrice] = useState("");
   const [slPrice, setSlPrice] = useState("");
+  const [trailingStopInput, setTrailingStopInput] = useState("");
   const [pendingTrade, setPendingTrade] = useState<{
     side: "long" | "short";
     leverage: number;
@@ -37,6 +38,7 @@ export default function TradeControls() {
   const skipHighLeverageWarning = useTradingStore((s) => s.skipHighLeverageWarning);
   const setSkipHighLeverageWarning = useTradingStore((s) => s.setSkipHighLeverageWarning);
   const reduceOnly = useTradingStore((s) => s.reduceOnly);
+  const setTrailingStop = useTradingStore((s) => s.setTrailingStop);
 
   // Track whether we have already synced controls to the current position.
   // Only sync when a position first appears (null -> not-null), not on every update.
@@ -400,6 +402,54 @@ export default function TradeControls() {
                     <span>${Math.floor(sliderMax / 2).toLocaleString()}</span>
                     <span>${Math.floor(sliderMax).toLocaleString()}</span>
                   </div>
+
+                  {/* Trailing Stop — only when increasing (not reduce mode) */}
+                  {!isReduceMode && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Trailing Stop</span>
+                        {position.trailingStopPercent != null && (
+                          <span className="text-[10px] font-mono text-crypto-warning">
+                            @{position.trailingStopPrice?.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            min={0.1}
+                            max={20}
+                            step={0.1}
+                            placeholder="0.0"
+                            value={trailingStopInput}
+                            onChange={(e) => setTrailingStopInput(e.target.value)}
+                            className="w-full px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-crypto-text-muted">%</span>
+                        </div>
+                        {position.trailingStopPercent != null ? (
+                          <button
+                            onClick={() => { setTrailingStop(null); setTrailingStopInput(""); }}
+                            className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-short transition-colors"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const val = parseFloat(trailingStopInput);
+                              if (val > 0 && val <= 20) setTrailingStop(val);
+                            }}
+                            disabled={!trailingStopInput || parseFloat(trailingStopInput) <= 0}
+                            className="px-3 py-1.5 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-xs font-semibold text-crypto-text-secondary hover:text-crypto-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Set
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">

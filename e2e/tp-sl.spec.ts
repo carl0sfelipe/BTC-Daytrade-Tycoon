@@ -165,6 +165,8 @@ test.describe('Take Profit and Stop Loss E2E', () => {
           liquidationPrice: 45000,
           tpPrice: null,
           slPrice: null,
+          trailingStopPercent: null,
+          trailingStopPrice: null,
           entryTime: 'now',
           realizedPnL: 0,
         },

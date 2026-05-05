@@ -76,6 +76,8 @@ test.describe('Historical date reveal', () => {
           leverage: 100,
           tpPrice: null,
           slPrice: null,
+          trailingStopPercent: null,
+          trailingStopPrice: null,
           liquidationPrice: liqPrice,
           entryTime: 'now',
           realizedPnL: 0,

@@ -9,25 +9,26 @@ interface KeyboardShortcutCallbacks {
 }
 
 export function useKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks) {
+  const { onLong, onShort, onClose } = callbacks;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorar se estiver em um input
+      // Ignore if focused on an input
       if ((e.target as HTMLElement).tagName === "INPUT") return;
 
       switch (e.key.toLowerCase()) {
         case "l":
-          callbacks.onLong?.();
+          onLong?.();
           break;
         case "s":
-          callbacks.onShort?.();
+          onShort?.();
           break;
         case "x":
-          callbacks.onClose?.();
+          onClose?.();
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [callbacks]);
+  }, [onLong, onShort, onClose]);
 }

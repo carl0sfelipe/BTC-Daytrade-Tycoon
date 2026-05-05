@@ -11,14 +11,22 @@ export function useBinancePrice(symbol: string = "BTCUSDT") {
     const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@ticker`);
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setPrice(parseFloat(data.c));
-      setChange24h(parseFloat(data.P));
-      setIsLoading(false);
+      try {
+        const data = JSON.parse(event.data);
+        setPrice(parseFloat(data.c));
+        setChange24h(parseFloat(data.P));
+        setIsLoading(false);
+      } catch {
+        // ignore malformed messages
+      }
     };
 
     ws.onerror = () => {
       setIsLoading(true);
+    };
+
+    ws.onclose = () => {
+      setIsLoading(false);
     };
 
     return () => {

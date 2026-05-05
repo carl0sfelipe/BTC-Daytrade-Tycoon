@@ -11,6 +11,7 @@ export const makePosition = (overrides: Partial<Position> = {}): Position => ({
   trailingStopPrice: null,
   liquidationPrice: 45000,
   entryTime: "01/01/2024 00:00:00",
+  entryTimestamp: Date.now(),
   realizedPnL: 0,
   ...overrides,
 });
@@ -38,6 +39,7 @@ export const makeTrade = (overrides: Partial<Trade> = {}): Trade => ({
   margin: 100,
   entryTime: "01/01/2024 00:00:00",
   exitTime: "01/01/2024 01:00:00",
+  durationSeconds: 3600,
   ...overrides,
 });
 

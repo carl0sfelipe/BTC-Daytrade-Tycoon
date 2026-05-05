@@ -156,7 +156,7 @@ export default function PositionPanel() {
             </span>
           </div>
           <div className="h-2.5 rounded-full bg-crypto-surface-elevated overflow-hidden">
-            <div data-testid="distance-bar" className="h-full rounded-full risk-gradient transition-all duration-100" style={{ width: `${barPercent}%`, minWidth: '2px' }} />
+            <div data-testid="distance-bar" role="progressbar" aria-valuenow={Math.round(barPercent)} aria-valuemin={0} aria-valuemax={100} className="h-full rounded-full risk-gradient transition-all duration-100" style={{ width: `${barPercent}%`, minWidth: '2px' }} />
           </div>
           <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
             <span>Safe</span>

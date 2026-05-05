@@ -14,7 +14,7 @@ export default function LiquidationModal({ realDate, elapsedTime, simulatedHisto
   const [startDate, endDate] = realDate.split(" → ");
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="liquidation-title">
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
@@ -28,7 +28,7 @@ export default function LiquidationModal({ realDate, elapsedTime, simulatedHisto
                 <Skull className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-crypto-short">ACCOUNT LIQUIDATED!</h2>
+                <h2 id="liquidation-title" className="text-lg font-bold text-crypto-short">ACCOUNT LIQUIDATED!</h2>
                 <p className="text-xs text-crypto-text-muted">Your margin was completely used up</p>
               </div>
             </div>

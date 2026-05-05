@@ -58,6 +58,7 @@ export default function Header() {
           href="https://github.com/carl0sfelipe/BTC-Daytrade-Tycoon"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Contribute on GitHub"
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-medium"
         >
           <Github className="w-4 h-4" />

@@ -26,7 +26,7 @@ export default function ConfirmHighLeverageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="high-leverage-title">
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
@@ -39,7 +39,7 @@ export default function ConfirmHighLeverageModal({
                 <AlertTriangle className="w-5 h-5 text-black" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-crypto-warning">High Risk Detected</h2>
+                <h2 id="high-leverage-title" className="text-lg font-bold text-crypto-warning">High Risk Detected</h2>
                 <p className="text-xs text-crypto-text-muted">Confirmation required</p>
               </div>
             </div>

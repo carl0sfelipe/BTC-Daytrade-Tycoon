@@ -25,7 +25,7 @@ export default function EndSimulationModal({
   const [startDate, endDate] = realDateRange.split(" → ");
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="end-session-title">
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
@@ -38,7 +38,7 @@ export default function EndSimulationModal({
                 <BarChart3 className="w-5 h-5 text-crypto-accent" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-crypto-text">Simulation Ended</h2>
+                <h2 id="end-session-title" className="text-lg font-bold text-crypto-text">Simulation Ended</h2>
                 <p className="text-xs text-crypto-text-muted">Session ended by player</p>
               </div>
             </div>

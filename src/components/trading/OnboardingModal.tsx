@@ -44,7 +44,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
   const c = COLOR_MAP[current.color];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
 
@@ -75,7 +75,7 @@ export default function OnboardingModal({ onStart }: OnboardingModalProps) {
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-crypto-text mb-2">{current.title}</h3>
+                <h3 id="onboarding-title" className="text-xl font-bold text-crypto-text mb-2">{current.title}</h3>
                 <p className="text-sm text-crypto-text-secondary leading-relaxed">{current.description}</p>
               </div>
             </div>

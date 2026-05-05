@@ -102,6 +102,8 @@ export default function ChartCanvas() {
         width={dimensions.width} 
         height={dimensions.height}
         className="w-full h-auto"
+        aria-label="Price chart"
+        role="img"
       />
     </div>
   );

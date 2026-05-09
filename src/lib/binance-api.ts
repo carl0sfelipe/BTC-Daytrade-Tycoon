@@ -17,7 +17,10 @@ export interface SimulatedCandle {
   volume: number;
 }
 
-const BINANCE_API = "https://api.binance.com/api/v3";
+const BINANCE_API =
+  typeof window !== "undefined"
+    ? "/api/binance/api/v3"
+    : "https://api.binance.com/api/v3";
 
 export async function fetchCurrentPrice(symbol = "BTCUSDT"): Promise<number> {
   const url = `${BINANCE_API}/ticker/price?symbol=${symbol}`;

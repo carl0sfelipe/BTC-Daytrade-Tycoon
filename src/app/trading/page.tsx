@@ -16,16 +16,18 @@ import LiquidationModal from "@/components/trading/LiquidationModal";
 import EndSimulationModal from "@/components/trading/EndSimulationModal";
 import OnboardingModal from "@/components/trading/OnboardingModal";
 import MobileTradingView from "@/components/trading/MobileTradingView";
+import DifficultySelector from "@/components/trading/DifficultySelector";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
+import { useHotkeys } from "@/hooks/useHotkeys";
 import { useTradingStore } from "@/store/tradingStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTradeNotifications } from "@/hooks/useTradeNotifications";
-
-const INITIAL_WALLET = 10000;
+import { getCurrentStreak } from "@/utils/streak";
 
 export default function TradingPage() {
   const [mounted, setMounted] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [showDifficulty, setShowDifficulty] = useState(false);
   const [capturedRealDateRange, setCapturedRealDateRange] = useState("");
   const engine = useTimewarpEngine();
   const isMobile = useIsMobile();
@@ -37,9 +39,31 @@ export default function TradingPage() {
   const hasSeenOnboarding = useTradingStore((s) => s.hasSeenOnboarding);
   const setOnboardingSeen = useTradingStore((s) => s.setOnboardingSeen);
   const wallet = useTradingStore((s) => s.wallet);
+  const startingWallet = useTradingStore((s) => s.startingWallet);
   const closedTrades = useTradingStore((s) => s.closedTrades);
+  const position = useTradingStore((s) => s.position);
+  const openPosition = useTradingStore((s) => s.openPosition);
+  const closePosition = useTradingStore((s) => s.closePosition);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Desktop hotkeys
+  useHotkeys({
+    onPlayPause: () => (engine.isPlaying ? engine.pause() : engine.start()),
+    onClose: () => { if (position) closePosition("manual"); },
+    onBuy: () => {
+      if (!position && !engine.isLoading) {
+        const size = Math.max(100, Math.floor(wallet * 10 * 0.1));
+        openPosition("long", 10, size, "", "", null);
+      }
+    },
+    onSell: () => {
+      if (!position && !engine.isLoading) {
+        const size = Math.max(100, Math.floor(wallet * 10 * 0.1));
+        openPosition("short", 10, size, "", "", null);
+      }
+    },
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -84,6 +108,11 @@ export default function TradingPage() {
   const handleNewSession = () => {
     clearLiquidated();
     setShowEndModal(false);
+    setShowDifficulty(true);
+  };
+
+  const handleDifficultyConfirm = () => {
+    setShowDifficulty(false);
     engine.reset();
   };
 
@@ -108,13 +137,14 @@ export default function TradingPage() {
     }
   }
 
+  const initialWallet = startingWallet || 10000;
   const endStats = {
-    pnl: wallet - INITIAL_WALLET,
+    pnl: wallet - initialWallet,
     trades: closedTrades.length,
     winRate: closedTrades.length
       ? (winningTrades.length / closedTrades.length) * 100
       : 0,
-    returnPercent: ((wallet - INITIAL_WALLET) / INITIAL_WALLET) * 100,
+    returnPercent: ((wallet - initialWallet) / initialWallet) * 100,
     bestTrade: winningTrades.length ? Math.max(...winningTrades.map((t) => t.pnl)) : 0,
     worstTrade: losingTrades.length ? Math.min(...losingTrades.map((t) => t.pnl)) : 0,
     avgDurationSeconds: closedTrades.length
@@ -125,6 +155,7 @@ export default function TradingPage() {
     shortTrades: closedTrades.filter((t) => t.side === "short").length,
     maxConsecutiveWins,
     maxConsecutiveLosses,
+    currentStreak: getCurrentStreak(closedTrades),
   };
 
   // Format elapsed time as "5h 30m 15s" from "05:30:15"
@@ -191,6 +222,11 @@ export default function TradingPage() {
             </div>
           </main>
         </>
+      )}
+
+      {/* Difficulty selector */}
+      {showDifficulty && (
+        <DifficultySelector onConfirm={handleDifficultyConfirm} />
       )}
 
       {/* Onboarding */}

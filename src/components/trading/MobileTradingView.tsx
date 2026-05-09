@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronUp, ChevronDown, BarChart3, Trophy, Award } from "lucide-react";
+import { ChevronUp, BarChart3, Trophy, Award } from "lucide-react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTradingStore } from "@/store/tradingStore";
 import type { ReturnTypeUseTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import TradingChart from "./TradingChart";
@@ -23,7 +24,7 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
   const [showControls, setShowControls] = useState(false);
   const [activeTab, setActiveTab] = useState<"chart" | "history">("chart");
 
-  // Auto-open controls when a position is opened (so Reduce Only / Hedge Mode toggle is visible)
+  // Auto-open controls when a position is opened
   useEffect(() => {
     if (position) {
       setShowControls(true);
@@ -111,47 +112,43 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
         </div>
       )}
 
-      {/* Bottom sheet for TradeControls */}
+      {/* Open Position FAB */}
       <div className="mx-3 mb-3 mt-2">
         <button
           type="button"
-          onClick={() => setShowControls(!showControls)}
+          onClick={() => setShowControls(true)}
           className="w-full py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border flex items-center justify-center gap-2"
         >
+          <ChevronUp className="w-4 h-4 text-crypto-text-secondary" />
           <span className="text-sm font-semibold text-crypto-text">
-            {showControls ? "Close Controls" : "Open Position"}
+            {position ? "Manage Position" : "Open Position"}
           </span>
-          {showControls ? (
-            <ChevronDown className="w-4 h-4 text-crypto-text-secondary" />
-          ) : (
-            <ChevronUp className="w-4 h-4 text-crypto-text-secondary" />
-          )}
         </button>
 
-        {showControls && (
-          <div className="mt-2 animate-slide-in">
-            <TradeControls />
-          </div>
-        )}
-
-        {/* Mini PnL */}
-        {!showControls && (
-          <div className="mt-2 card-surface p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-crypto-text-muted uppercase">Balance</span>
-                <span className="text-sm font-bold font-mono text-crypto-text">
-                  ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className={`flex items-center gap-1 px-2 py-1 rounded ${isPositive ? "bg-crypto-long-dim" : "bg-crypto-short-dim"}`}>
-                <span className={`text-xs font-bold font-mono ${isPositive ? "text-crypto-long" : "text-crypto-short"}`}>
-                  {isPositive ? "+" : ""}${sessionPnL.toFixed(2)}
-                </span>
-              </div>
+        {/* Mini PnL always visible */}
+        <div className="mt-2 card-surface p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-crypto-text-muted uppercase">Balance</span>
+              <span className="text-sm font-bold font-mono text-crypto-text">
+                ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div
+              className={`flex items-center gap-1 px-2 py-1 rounded ${
+                isPositive ? "bg-crypto-long-dim" : "bg-crypto-short-dim"
+              }`}
+            >
+              <span
+                className={`text-xs font-bold font-mono ${
+                  isPositive ? "text-crypto-long" : "text-crypto-short"
+                }`}
+              >
+                {isPositive ? "+" : ""}${sessionPnL.toFixed(2)}
+              </span>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -180,6 +177,42 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
           </Link>
         </div>
       </div>
+
+      {/* Bottom Sheet Backdrop */}
+      <AnimatePresence>
+        {showControls && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowControls(false)}
+            />
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 0.3 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80) setShowControls(false);
+              }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-crypto-surface rounded-t-2xl z-50 max-h-[85vh] overflow-y-auto shadow-2xl border-t border-crypto-border"
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-crypto-text-muted/40 rounded-full" />
+              </div>
+              <div className="pb-safe">
+                <TradeControls />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

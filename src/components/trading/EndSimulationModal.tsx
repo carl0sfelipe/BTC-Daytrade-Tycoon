@@ -19,6 +19,7 @@ interface EndSimulationModalProps {
     shortTrades: number;
     maxConsecutiveWins: number;
     maxConsecutiveLosses: number;
+    currentStreak: number;
   };
   onClose: () => void;
   onNewSession: () => void;
@@ -132,6 +133,16 @@ export default function EndSimulationModal({
                 {isPositive ? "+" : ""}{stats.returnPercent.toFixed(1)}%
               </span>
             </div>
+
+            {/* Win Streak Badge */}
+            {stats.currentStreak >= 2 && (
+              <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                <span className="text-2xl" role="img" aria-label="fire">🔥</span>
+                <span className="font-bold text-orange-400">
+                  {stats.currentStreak} Win Streak!
+                </span>
+              </div>
+            )}
 
             {/* Performance Metrics */}
             {stats.trades > 0 && (

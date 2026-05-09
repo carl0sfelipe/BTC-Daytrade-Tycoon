@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Settings2, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Settings2, ChevronUp, ChevronDown, X, Calculator } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { useToast } from "@/hooks/use-toast";
 import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
+import PositionSizeCalculator from "./PositionSizeCalculator";
 
 export default function TradeControls() {
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
@@ -33,6 +34,7 @@ export default function TradeControls() {
     sl: string;
     limitPrice: string | null;
   } | null>(null);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   const wallet = useTradingStore((s) => s.wallet);
   const position = useTradingStore((s) => s.position);
@@ -48,6 +50,7 @@ export default function TradeControls() {
   const setTrailingStop = useTradingStore((s) => s.setTrailingStop);
   const lastActionError = useTradingStore((s) => s.lastActionError);
   const clearLastActionError = useTradingStore((s) => s.clearLastActionError);
+  const maxLeverage = useTradingStore((s) => s.maxLeverage);
   const { toast } = useToast();
 
   // Show action errors as toast notifications
@@ -207,7 +210,7 @@ export default function TradeControls() {
     return wallet + returnedMargin + closePnl >= excessMargin;
   })();
 
-  const leverageOptions = [2, 5, 10, 25, 50, 100];
+  const leverageOptions = [2, 5, 10, 25, 50, 100, 125].filter((o) => o <= maxLeverage);
   const sizeOptions = [10, 25, 50, 100];
   const isLong = side === "long";
 
@@ -217,13 +220,22 @@ export default function TradeControls() {
         {/* Header with mode toggle */}
         <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
           <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Order Controls</h3>
-          <button type="button"
-            onClick={() => setMode(mode === "simple" ? "advanced" : "simple")}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
-          >
-            <Settings2 className="w-3 h-3" />
-            {mode === "simple" ? "Advanced Mode" : "Simple Mode"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button"
+              onClick={() => setShowCalculator(true)}
+              title="Position Size Calculator"
+              className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text transition-colors"
+            >
+              <Calculator className="w-3.5 h-3.5" />
+            </button>
+            <button type="button"
+              onClick={() => setMode(mode === "simple" ? "advanced" : "simple")}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
+            >
+              <Settings2 className="w-3 h-3" />
+              {mode === "simple" ? "Advanced Mode" : "Simple Mode"}
+            </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-4">
@@ -909,6 +921,15 @@ export default function TradeControls() {
           onConfirm={handleConfirmHighLeverage}
           onCancel={() => setPendingTrade(null)}
           onSkipChange={(skip) => setSkipHighLeverageWarning(skip)}
+        />
+      )}
+
+      {/* Position Size Calculator */}
+      {showCalculator && (
+        <PositionSizeCalculator
+          leverage={leverage}
+          onApply={(size) => setPositionSize(size)}
+          onClose={() => setShowCalculator(false)}
         />
       )}
     </>

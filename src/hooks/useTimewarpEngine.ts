@@ -12,6 +12,7 @@ import {
   type SimulatedCandle,
 } from "@/lib/binance-api";
 import { useTradingStore } from "@/store/tradingStore";
+import { DIFFICULTY_PRESETS } from "@/lib/difficulty";
 
 const SPEED_MULTIPLIER = 60; // 1 real min = 1 simulated hour
 const TICK_MS = 100; // updates every 100ms
@@ -115,13 +116,16 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   }, [elapsedTime]);
 
   const resetStore = useCallback(() => {
+    const { difficulty } = useTradingStore.getState();
+    const preset = DIFFICULTY_PRESETS[difficulty];
     useTradingStore.setState({
       price: 0,
       currentPrice: 0,
       volatility: 1.5,
       marketTrend: "neutral",
       priceHistory: [],
-      wallet: 10000,
+      wallet: preset.wallet,
+      startingWallet: preset.wallet,
       closedTrades: [],
       realizedPnL: 0,
       reduceOnly: true,

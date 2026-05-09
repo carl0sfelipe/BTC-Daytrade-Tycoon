@@ -1,5 +1,19 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { DIFFICULTY_PRESETS, type DifficultyKey } from "@/lib/difficulty";
+
+// Safari iOS private mode throws on localStorage access instead of returning null
+const safeLocalStorage = {
+  getItem: (name: string) => {
+    try { return localStorage.getItem(name); } catch { return null; }
+  },
+  setItem: (name: string, value: string) => {
+    try { localStorage.setItem(name, value); } catch { /* noop */ }
+  },
+  removeItem: (name: string) => {
+    try { localStorage.removeItem(name); } catch { /* noop */ }
+  },
+};
 
 export interface Trade {
   pnl: number;
@@ -95,6 +109,9 @@ interface TradingStore {
   skipHighLeverageWarning: boolean;
   reduceOnly: boolean;
   lastActionError: string | null;
+  difficulty: DifficultyKey;
+  maxLeverage: number;
+  startingWallet: number;
 
   setPrice: (price: number) => void;
   setCurrentPrice: (price: number) => void;
@@ -131,6 +148,7 @@ interface TradingStore {
   setSkipHighLeverageWarning: (skip: boolean) => void;
   setReduceOnly: (value: boolean) => void;
   clearLastActionError: () => void;
+  setDifficulty: (key: DifficultyKey) => void;
 }
 
 function formatStoreState(state: TradingStore) {
@@ -191,6 +209,14 @@ export const useTradingStore = create<TradingStore>()(
       skipHighLeverageWarning: false,
       reduceOnly: true,
       lastActionError: null,
+      difficulty: "normal" as DifficultyKey,
+      maxLeverage: 50,
+      startingWallet: 10000,
+
+      setDifficulty: (key: DifficultyKey) => {
+        const preset = DIFFICULTY_PRESETS[key];
+        set({ difficulty: key, maxLeverage: preset.maxLeverage, startingWallet: preset.wallet });
+      },
 
       setPrice: (price) => set({ price, currentPrice: price }),
       setCurrentPrice: (price) => set({ currentPrice: price, price }),
@@ -1168,6 +1194,7 @@ export const useTradingStore = create<TradingStore>()(
     {
       name: "trading-storage",
       version: 1,
+      storage: createJSONStorage(() => safeLocalStorage),
       migrate: (persistedState: unknown) => {
         if (typeof persistedState !== "object" || persistedState === null) {
           return {} as TradingStore;
@@ -1193,6 +1220,9 @@ export const useTradingStore = create<TradingStore>()(
         closedTrades: state.closedTrades,
         realizedPnL: state.realizedPnL,
         ordersHistory: state.ordersHistory,
+        difficulty: state.difficulty,
+        maxLeverage: state.maxLeverage,
+        startingWallet: state.startingWallet,
       }),
     }
   )

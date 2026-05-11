@@ -97,7 +97,7 @@ export default function PositionSizeCalculator({ leverage, onApply, onClose }: P
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] text-crypto-text-muted uppercase">Recommended Size</span>
                   <span className="text-base font-bold font-mono text-crypto-text">
-                    ${cappedSize.toLocaleString()}
+                    ${cappedSize.toLocaleString("en-US")}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

@@ -61,7 +61,7 @@ export default function DifficultySelector({ onConfirm }: DifficultySelectorProp
                     </div>
                     <div className="text-right shrink-0 ml-4">
                       <div className="text-sm font-bold font-mono text-crypto-text">
-                        ${preset.wallet.toLocaleString()}
+                        ${preset.wallet.toLocaleString("en-US")}
                       </div>
                       <div className="text-[10px] text-crypto-text-muted">max {preset.maxLeverage}x</div>
                     </div>

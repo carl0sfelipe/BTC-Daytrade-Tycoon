@@ -19,6 +19,9 @@ export const initialStoreState = {
   hasSeenOnboarding: false,
   skipHighLeverageWarning: false,
   reduceOnly: true,
+  difficulty: "normal" as const,
+  maxLeverage: 50,
+  startingWallet: 10000,
 };
 
 export function resetStore() {

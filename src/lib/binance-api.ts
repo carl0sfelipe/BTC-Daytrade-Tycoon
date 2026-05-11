@@ -19,7 +19,7 @@ export interface SimulatedCandle {
 
 const BINANCE_API =
   typeof window !== "undefined"
-    ? "/api/binance/api/v3"
+    ? `${window.location.origin}/api/binance/api/v3`
     : "https://api.binance.com/api/v3";
 
 export async function fetchCurrentPrice(symbol = "BTCUSDT"): Promise<number> {

@@ -53,8 +53,4 @@ export interface Position {
   entryTime: string;
   entryTimestamp: number;
   realizedPnL: number;
-  /** Best price seen during this position's lifetime (peak for long, trough for short). */
-  bestPrice: number;
-  /** Maximum drawdown experienced as a negative percentage (e.g. -35 means 35% drawdown). */
-  maxDrawdownPercent: number;
 }

@@ -61,7 +61,7 @@ export async function loadSession(
     const historicalCandles = await fetchCandles(originalStartDate);
 
     if (historicalCandles.length === 0) {
-      throw new Error("No data returned by Binance");
+      throw new Error("No historical data available. The Binance API may be temporarily unavailable in your region.");
     }
 
     setLoadingMessage("Preparing simulation...");

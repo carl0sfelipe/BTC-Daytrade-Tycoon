@@ -61,11 +61,10 @@ export default function SessionReplayControls({ onLoad }: SessionReplayControlsP
 
   const handleExportSentinel = () => {
     eventLog.flush();
-    // Access internal buffer for export — in real app this would be via API
-    const pending = eventLog.getPendingCount();
-    const session = exportSentinelSession([], clock);
+    const events = eventLog.getEvents();
+    const session = exportSentinelSession(events, clock);
     downloadSession(session, `sentinel-session-${Date.now()}.json`);
-    showToast(`Session exported 📥 (${pending} pending events)`);
+    showToast(`Session exported 📥 (${events.length} events)`);
   };
 
   if (!isEnabled && !isSentinelEnabled) return null;

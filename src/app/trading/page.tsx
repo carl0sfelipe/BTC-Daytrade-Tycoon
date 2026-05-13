@@ -11,6 +11,7 @@ import PnLDisplay from "@/components/trading/PnLDisplay";
 import TradeHistory from "@/components/trading/TradeHistory";
 import OrdersPanel from "@/components/trading/OrdersPanel";
 import SimulationClock from "@/components/trading/SimulationClock";
+import SessionReplayControls from "@/components/trading/SessionReplayControls";
 import SimulationLoader from "@/components/trading/SimulationLoader";
 import LiquidationModal from "@/components/trading/LiquidationModal";
 import EndSimulationModal from "@/components/trading/EndSimulationModal";
@@ -23,6 +24,7 @@ import { useTradingStore } from "@/store/tradingStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTradeNotifications } from "@/hooks/useTradeNotifications";
 import { getCurrentStreak } from "@/utils/streak";
+import { computeTraderScore } from "@/lib/trading/trader-score";
 
 export default function TradingPage() {
   const [mounted, setMounted] = useState(false);
@@ -138,6 +140,8 @@ export default function TradingPage() {
   }
 
   const initialWallet = startingWallet || 10000;
+  const maxDrawdown = position?.maxDrawdown ?? 0;
+  const rawProfitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
   const endStats = {
     pnl: wallet - initialWallet,
     trades: closedTrades.length,
@@ -150,12 +154,19 @@ export default function TradingPage() {
     avgDurationSeconds: closedTrades.length
       ? Math.floor(closedTrades.reduce((sum, t) => sum + t.durationSeconds, 0) / closedTrades.length)
       : 0,
-    profitFactor: totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0,
+    profitFactor: rawProfitFactor,
     longTrades: closedTrades.filter((t) => t.side === "long").length,
     shortTrades: closedTrades.filter((t) => t.side === "short").length,
     maxConsecutiveWins,
     maxConsecutiveLosses,
     currentStreak: getCurrentStreak(closedTrades),
+    maxDrawdown,
+    traderScore: computeTraderScore({
+      winRate: closedTrades.length ? (winningTrades.length / closedTrades.length) * 100 : 0,
+      returnPercent: ((wallet - initialWallet) / initialWallet) * 100,
+      profitFactor: rawProfitFactor === Infinity ? 5 : rawProfitFactor,
+      maxDrawdown,
+    }),
   };
 
   // Format elapsed time as "5h 30m 15s" from "05:30:15"
@@ -181,19 +192,22 @@ export default function TradingPage() {
       ) : (
         <>
           <div className="container mx-auto px-4 py-3">
-            <SimulationClock
-              elapsedTime={engine.elapsedTime}
-              speed={60}
-              isPlaying={engine.isPlaying}
-              onPause={engine.pause}
-              onResume={engine.start}
-              onReset={engine.reset}
-              onEnd={() => {
-                engine.pause();
-                setCapturedRealDateRange(engine.realDateRange);
-                setShowEndModal(true);
-              }}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-y-3">
+              <SimulationClock
+                elapsedTime={engine.elapsedTime}
+                speed={60}
+                isPlaying={engine.isPlaying}
+                onPause={engine.pause}
+                onResume={engine.start}
+                onReset={engine.reset}
+                onEnd={() => {
+                  engine.pause();
+                  setCapturedRealDateRange(engine.realDateRange);
+                  setShowEndModal(true);
+                }}
+              />
+              <SessionReplayControls onLoad={() => engine.reset()} />
+            </div>
           </div>
 
           <div className="container mx-auto px-4 py-3">

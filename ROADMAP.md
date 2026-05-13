@@ -6,7 +6,22 @@ A Next.js 14 TimeWarp Trading Simulator that drops users into real historical Bi
 
 ---
 
-## Phase 1 — Polish & Stability *(Current)*
+## Phase 0 — Quality Hardening *(Current — May 2026)*
+
+Post-bug-fix stabilization. Every feature below was driven by production bugs.
+
+- [x] **Wick-aware liquidation** — `checkPosition` now evaluates `candleLow`/`candleHigh` so intra-candle price action never misses a liquidation.
+- [x] **Wick-aware limit orders** — `checkPendingOrders` executes limit orders touched by candle wicks, not just interpolated price.
+- [x] **Effective-wallet slider max** — `calcSliderMax` accounts for unrealized PnL, preventing "Insufficient funds" after the user drags to max.
+- [x] **Landing page real links** — Replaced `router.push()` buttons with Next.js `<Link>` for SEO, accessibility, and native browser behavior.
+- [x] **Integration test suite** — `tradingStore.integration.test.ts`, `wick-scenarios.test.ts`, `tick-processor.test.ts`, and `golden-ticks.ts` (20 scenarios).
+- [x] **Contract tests** — Cross-layer compatibility guarantees between engine, store, and transitions.
+- [x] **CI pipeline** — GitHub Actions with unit, integration, build, and typecheck jobs.
+- [x] **Testing Strategy docs** — `TESTING_STRATEGY.md`, `CONTRACT_TESTS.md`, and `CHANGELOG_2026-05-12.md`.
+
+---
+
+## Phase 1 — Polish & Stability *(Shipped)*
 
 The foundation. These are shipped and battle-tested.
 
@@ -21,7 +36,7 @@ The foundation. These are shipped and battle-tested.
 - [x] **TP/SL in Simple Mode** — Take Profit and Stop Loss inputs visible in both Simple and Advanced trade modes.
 - [x] **Limit Price Stepper** — Quick-adjust limit price with configurable step sizes ($1–$100 + custom).
 - [x] **Responsive Layout** — Header, MarketStatus, SimulationClock, and PnLDisplay adapt to smaller screens.
-- [x] **Unit Test Suite** — 65+ Vitest tests covering store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
+- [x] **Unit Test Suite** — 354+ Vitest tests covering store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
 
 ---
 

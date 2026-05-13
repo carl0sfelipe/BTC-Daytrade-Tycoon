@@ -34,6 +34,21 @@
 - **Tests must be F.I.R.S.T:** fast, independent, repeatable,
   self-validating, timely.
 
+### Testing Pyramid (3 Levels)
+
+| Level | Scope | When Required |
+|-------|-------|---------------|
+| **Unit** | Pure transitions, validators, hooks in isolation | Every new function |
+| **Integration** | Engine + Store + candles running ticks together | Every bug fix in trading logic |
+| **E2E** | Full user flows via Playwright | Every user-facing feature |
+
+**Bug fix rule:** A trading logic bug fix must ship with **unit + integration** tests.
+E2E is required when the bug is reproducible via UI.
+
+**Integration test location:** `src/store/tradingStore.integration.test.ts` and
+`src/lib/engine/wick-scenarios.test.ts` are the canonical files for engine-store
+integration tests.
+
 ## Dependencies
 
 - **Inject dependencies** through constructor/parameter, not global/import.
@@ -106,7 +121,7 @@ If a file exceeds the limit, split by responsibility before merging.
 
 ### Test Baseline
 
-- **314 passed, 4 skipped** (Vitest + React Testing Library)
+- **393 passed, 4 skipped** (Vitest + React Testing Library)
 - **Build:** `npm run build` must pass.
 - **TypeScript:** `npx tsc --noEmit` must pass.
 - Any PR that breaks the baseline is rejected.

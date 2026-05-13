@@ -155,10 +155,10 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
 
 1. **Random Date Draw**
    ```ts
-   const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
-   const MAX_DATE = new Date("2020-12-31T00:00:00Z").getTime();
+   const MIN_DATE = new Date("2020-01-01T00:00:00Z").getTime();
+   const MAX_DATE = new Date("2025-12-31T00:00:00Z").getTime();
    ```
-   A random timestamp between these bounds is chosen.
+   A random timestamp between these bounds is chosen. Updated to 2020–2025 range.
 
 2. **Data Fetch**
    - `fetchCurrentPrice()` gets live BTC price from Binance.
@@ -190,8 +190,18 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
    const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
    ```
 
-6. **Interpolation**
-   `interpolatePrice(candles, simulatedTimeSec)` finds the two surrounding candles and linearly interpolates the price between their open values.
+6. **Interpolation & Wick Awareness**
+   `interpolatePrice(candles, simulatedTimeSec)` finds the two surrounding candles and linearly interpolates the price between their open values. However, this interpolation alone misses price action that occurs within candle wicks (e.g., a `low` far below the interpolated path).
+
+   To handle this, `processTick` also returns `candleLow` and `candleHigh` from the active candle:
+   ```ts
+   export interface TickResult {
+     price: number;
+     candleLow: number;
+     candleHigh: number;
+     // ... elapsedTime, marketTrend, volatility, etc.
+   }
+   ```
 
 7. **Metrics Update**
    - **Trend:** `calculateTrend` computes a 20-candle SMA and labels `bull` / `bear` / `neutral` (±1% threshold).
@@ -199,7 +209,15 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
    - **History:** Rolling `priceHistory` array (last 50 closes) is maintained for sparklines.
 
 8. **Position Checks**
-   Every tick calls `store.checkPosition(price)`, which evaluates TP, SL, and liquidation conditions.
+   Every tick calls `store.checkPosition(price, candleLow, candleHigh)`, which evaluates TP, SL, and liquidation conditions against **both** the interpolated price and the candle's wick range. This ensures that liquidations and stop-losses triggered by intra-candle price action are never missed.
+
+   ```ts
+   // Long liquidation: effectiveLow = min(currentPrice, candleLow)
+   if (side === "long" && effectiveLow <= liquidationPrice) { ... }
+
+   // Short liquidation: effectiveHigh = max(currentPrice, candleHigh)
+   if (side === "short" && effectiveHigh >= liquidationPrice) { ... }
+   ```
 
 ---
 
@@ -494,7 +512,21 @@ Playwright tests live in `e2e/`.
 | `trading.spec.ts` | `TRADING-01` | Full simulation journey: skip onboarding, loader, chart advancing, pause, new session. |
 | `date-reveal.spec.ts` | `DATE-REVEAL` | End button reveals date modal; liquidation modal reveals date via `__tradingStore` injection. |
 | `manual-trading.spec.ts` | — | Position lifecycle: open LONG 10× at 50%, increase via slider, decrease via slider, close via panel. |
+| `limit-orders.spec.ts` | `LIMIT-ORDERS` | Create, cancel, and execute limit orders; verify reduction and execution logic. |
+| `hedge-mode.spec.ts` | `HEDGE-MODE` | Reduce Only toggle, flip position, and opposite-order behavior. |
 | `production-bar.spec.ts` | — | Smoke test against live Vercel deployment verifying the distance-to-liquidation bar moves as price changes during simulation. |
+
+### Testing Pyramid
+
+The project follows a **3-level testing strategy**:
+
+| Level | Tool | Responsibility | When to write |
+|-------|------|----------------|---------------|
+| **Unit** | Vitest + RTL | Pure transitions, validators, builders, hooks in isolation | Every new function / bug fix |
+| **Integration** | Vitest | Engine + Store + candles together; tick-by-tick simulation | Every bug in trading logic |
+| **E2E** | Playwright | Full user flows via UI | Every user-facing feature / critical path |
+
+**Rule:** A bug fix in trading logic must include at minimum a unit test + an integration test. E2E is required when the bug is reproducible via UI interaction.
 
 ### Test Helpers
 

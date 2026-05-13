@@ -4,6 +4,7 @@
 
 import {
   interpolatePrice,
+  getCurrentCandle,
   calculateTrend,
   calculateVolatility,
   type SimulatedCandle,
@@ -21,6 +22,8 @@ export interface TickInput {
 
 export interface TickResult {
   price: number;
+  candleLow: number;
+  candleHigh: number;
   elapsedTime: string;
   simulatedHistoricalTime: string;
   currentTimeSec: number;
@@ -69,11 +72,16 @@ export function processTick(input: TickInput): TickOutput {
   const simulatedHistoricalTime = formatDuration(Math.max(0, historicalSeconds / 60));
 
   const price = interpolatePrice(currentCandles, simulatedTimeSec);
+  const currentCandle = getCurrentCandle(currentCandles, simulatedTimeSec);
+  const candleLow = currentCandle?.low ?? price;
+  const candleHigh = currentCandle?.high ?? price;
   const marketTrend = calculateTrend(currentCandles, price);
   const volatility = calculateVolatility(currentCandles);
 
   return {
     price,
+    candleLow,
+    candleHigh,
     elapsedTime,
     simulatedHistoricalTime,
     currentTimeSec: simulatedTimeSec,

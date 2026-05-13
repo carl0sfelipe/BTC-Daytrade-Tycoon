@@ -18,6 +18,12 @@ import {
   computeSizeIncrease,
 } from "@/lib/trading/position-adjust";
 import { calcLiquidationPrice, calcTrailingStopPrice, generateId } from "@/lib/trading";
+import { computeMaxDrawdown } from "@/lib/trading/drawdown";
+import {
+  computeLiquidationCheck,
+  computeTrailingStopCheck,
+  computeTpSlCheck,
+} from "@/lib/trading/position-checks";
 import { formatStoreState } from "@/lib/trading/format-store-state";
 import { logger } from "@/lib/logger";
 
@@ -40,7 +46,7 @@ export interface PositionSlice {
   reducePosition: (reducedSize: number, price: number) => void;
   updatePositionSize: (newSize: number, orderSide?: "long" | "short") => void;
   updateLeverage: (newLeverage: number) => void;
-  checkPosition: (currentPrice: number) => { closed: boolean; reason?: Trade["reason"] };
+  checkPosition: (currentPrice: number, candleLow?: number, candleHigh?: number) => { closed: boolean; reason?: Trade["reason"] };
   setPositionTpSl: (tpPrice: string, slPrice: string) => void;
 }
 
@@ -59,14 +65,16 @@ export const createPositionSlice: StateCreator<
     const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
     const margin = positionSize / leverage;
 
-    const validationError = validateOpenPosition(entryPrice, positionSize, leverage, state.wallet, margin);
-    if (validationError) {
-      set({ lastActionError: validationError });
+    if (state.position && state.position.side === side) {
+      set({ lastActionError: `Close your existing ${side} position first` });
       return;
     }
 
-    if (state.position && state.position.side === side) {
-      set({ lastActionError: `Close your existing ${side} position first` });
+    // Skip wallet validation for flip/reduce — effective wallet is computed later
+    const skipWalletValidation = !!(state.position && state.position.side !== side);
+    const validationError = validateOpenPosition(entryPrice, positionSize, leverage, state.wallet, margin);
+    if (validationError && !skipWalletValidation) {
+      set({ lastActionError: validationError });
       return;
     }
 
@@ -327,7 +335,7 @@ export const createPositionSlice: StateCreator<
     });
   },
 
-  checkPosition: (currentPrice) => {
+  checkPosition: (currentPrice, candleLow, candleHigh) => {
     const state = get();
     if (!state.position) return { closed: false };
 
@@ -343,52 +351,33 @@ export const createPositionSlice: StateCreator<
       }
     }
 
-    if (side === "long" && currentPrice <= liquidationPrice) {
-      logger.log(`[checkPosition] 💀 LIQUIDATION long price=${currentPrice.toFixed(2)} liq=${liquidationPrice.toFixed(2)}`, formatStoreState(state));
-      state.closePosition("liquidation");
-      return { closed: true, reason: "liquidation" };
-    }
-    if (side === "short" && currentPrice >= liquidationPrice) {
-      logger.log(`[checkPosition] 💀 LIQUIDATION short price=${currentPrice.toFixed(2)} liq=${liquidationPrice.toFixed(2)}`, formatStoreState(state));
-      state.closePosition("liquidation");
-      return { closed: true, reason: "liquidation" };
+    const effectiveLow = candleLow !== undefined ? Math.min(currentPrice, candleLow) : currentPrice;
+    const effectiveHigh = candleHigh !== undefined ? Math.max(currentPrice, candleHigh) : currentPrice;
+
+    const liqCheck = computeLiquidationCheck(state.position, effectiveLow, effectiveHigh);
+    if (liqCheck.triggered && liqCheck.reason) {
+      logger.log(`[checkPosition] 💀 LIQUIDATION ${side} price=${currentPrice.toFixed(2)} low=${effectiveLow.toFixed(2)} high=${effectiveHigh.toFixed(2)} liq=${liquidationPrice.toFixed(2)}`, formatStoreState(state));
+      state.closePosition(liqCheck.reason);
+      return { closed: true, reason: liqCheck.reason };
     }
 
-    if (trailingStopPercent && trailingStopPrice !== null) {
-      if (
-        (side === "long" && currentPrice <= trailingStopPrice) ||
-        (side === "short" && currentPrice >= trailingStopPrice)
-      ) {
-        logger.log(`[checkPosition] 📉 TRAILING STOP ${side} price=${currentPrice.toFixed(2)} stop=${trailingStopPrice.toFixed(2)}`, formatStoreState(state));
-        state.closePosition("trailing_stop");
-        return { closed: true, reason: "trailing_stop" };
-      }
+    const tsCheck = computeTrailingStopCheck(state.position, effectiveLow, effectiveHigh);
+    if (tsCheck.triggered && tsCheck.reason) {
+      logger.log(`[checkPosition] 📉 TRAILING STOP ${side} price=${currentPrice.toFixed(2)} low=${effectiveLow.toFixed(2)} high=${effectiveHigh.toFixed(2)} stop=${trailingStopPrice?.toFixed(2)}`, formatStoreState(state));
+      state.closePosition(tsCheck.reason);
+      return { closed: true, reason: tsCheck.reason };
     }
 
-    if (slPrice) {
-      if (side === "long" && currentPrice <= slPrice) {
-        logger.log(`[checkPosition] 🛡️ SL HIT long price=${currentPrice.toFixed(2)} sl=${slPrice.toFixed(2)}`, formatStoreState(state));
-        state.closePosition("sl");
-        return { closed: true, reason: "sl" };
-      }
-      if (side === "short" && currentPrice >= slPrice) {
-        logger.log(`[checkPosition] 🛡️ SL HIT short price=${currentPrice.toFixed(2)} sl=${slPrice.toFixed(2)}`, formatStoreState(state));
-        state.closePosition("sl");
-        return { closed: true, reason: "sl" };
-      }
+    const tpSlCheck = computeTpSlCheck(state.position, effectiveLow, effectiveHigh);
+    if (tpSlCheck.sl.triggered && tpSlCheck.sl.reason) {
+      logger.log(`[checkPosition] 🛡️ SL HIT ${side} price=${currentPrice.toFixed(2)} low=${effectiveLow.toFixed(2)} high=${effectiveHigh.toFixed(2)} sl=${slPrice?.toFixed(2)}`, formatStoreState(state));
+      state.closePosition(tpSlCheck.sl.reason);
+      return { closed: true, reason: tpSlCheck.sl.reason };
     }
-
-    if (tpPrice) {
-      if (side === "long" && currentPrice >= tpPrice) {
-        logger.log(`[checkPosition] 🎯 TP HIT long price=${currentPrice.toFixed(2)} tp=${tpPrice.toFixed(2)}`, formatStoreState(state));
-        state.closePosition("tp");
-        return { closed: true, reason: "tp" };
-      }
-      if (side === "short" && currentPrice <= tpPrice) {
-        logger.log(`[checkPosition] 🎯 TP HIT short price=${currentPrice.toFixed(2)} tp=${tpPrice.toFixed(2)}`, formatStoreState(state));
-        state.closePosition("tp");
-        return { closed: true, reason: "tp" };
-      }
+    if (tpSlCheck.tp.triggered && tpSlCheck.tp.reason) {
+      logger.log(`[checkPosition] 🎯 TP HIT ${side} price=${currentPrice.toFixed(2)} low=${effectiveLow.toFixed(2)} high=${effectiveHigh.toFixed(2)} tp=${tpPrice?.toFixed(2)}`, formatStoreState(state));
+      state.closePosition(tpSlCheck.tp.reason);
+      return { closed: true, reason: tpSlCheck.tp.reason };
     }
 
     return { closed: false };

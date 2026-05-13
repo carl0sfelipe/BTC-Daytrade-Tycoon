@@ -13,7 +13,7 @@ export interface OrdersSlice {
   addPendingOrder: (order: Omit<PendingOrder, "id" | "createdAt">) => void;
   cancelPendingOrder: (id: string) => void;
   cancelPendingOrdersForPosition: () => void;
-  checkPendingOrders: (currentPrice: number) => void;
+  checkPendingOrders: (currentPrice: number, candleLow?: number, candleHigh?: number) => void;
   clearOrdersHistory: () => void;
 }
 
@@ -98,11 +98,14 @@ export const createOrdersSlice: StateCreator<TradingStore, [], [], OrdersSlice> 
       });
     },
 
-    checkPendingOrders: (currentPrice) => {
+    checkPendingOrders: (currentPrice, candleLow, candleHigh) => {
       const state = get();
       if (state.pendingOrders.length === 0) return;
       const executed: PendingOrder[] = [];
       const remaining: PendingOrder[] = [];
+
+      const effectiveLow = candleLow !== undefined ? candleLow : currentPrice;
+      const effectiveHigh = candleHigh !== undefined ? candleHigh : currentPrice;
 
       for (const order of state.pendingOrders) {
         let shouldExecute = false;
@@ -110,12 +113,23 @@ export const createOrdersSlice: StateCreator<TradingStore, [], [], OrdersSlice> 
           shouldExecute =
             (order.side === "long" && currentPrice <= order.limitPrice) ||
             (order.side === "short" && currentPrice >= order.limitPrice);
+          // Wick execution: if the candle's range touched the limit price
+          if (!shouldExecute) {
+            shouldExecute =
+              (order.side === "long" && effectiveLow <= order.limitPrice) ||
+              (order.side === "short" && effectiveHigh >= order.limitPrice);
+          }
         } else if (order.orderType === "take_profit") {
           const pos = state.position;
           if (pos && pos.side === order.side) {
             shouldExecute =
               (pos.side === "long" && currentPrice >= order.limitPrice) ||
               (pos.side === "short" && currentPrice <= order.limitPrice);
+            if (!shouldExecute) {
+              shouldExecute =
+                (pos.side === "long" && effectiveHigh >= order.limitPrice) ||
+                (pos.side === "short" && effectiveLow <= order.limitPrice);
+            }
           }
         } else if (order.orderType === "stop_loss") {
           const pos = state.position;
@@ -123,6 +137,11 @@ export const createOrdersSlice: StateCreator<TradingStore, [], [], OrdersSlice> 
             shouldExecute =
               (pos.side === "long" && currentPrice <= order.limitPrice) ||
               (pos.side === "short" && currentPrice >= order.limitPrice);
+            if (!shouldExecute) {
+              shouldExecute =
+                (pos.side === "long" && effectiveLow <= order.limitPrice) ||
+                (pos.side === "short" && effectiveHigh >= order.limitPrice);
+            }
           }
         }
 

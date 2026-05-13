@@ -155,6 +155,29 @@ export function interpolatePrice(
   return candles[candles.length - 1].close;
 }
 
+/**
+ * Returns the candle that is active at the given simulated time.
+ * This is the candle whose time interval contains simulatedTimeSec.
+ */
+export function getCurrentCandle(
+  candles: SimulatedCandle[],
+  simulatedTimeSec: number
+): SimulatedCandle | null {
+  if (candles.length === 0) return null;
+  if (simulatedTimeSec <= candles[0].time) return candles[0];
+  if (simulatedTimeSec >= candles[candles.length - 1].time) {
+    return candles[candles.length - 1];
+  }
+  for (let i = 0; i < candles.length - 1; i++) {
+    const curr = candles[i];
+    const next = candles[i + 1];
+    if (simulatedTimeSec >= curr.time && simulatedTimeSec < next.time) {
+      return curr;
+    }
+  }
+  return candles[candles.length - 1];
+}
+
 export function calculateTrend(
   candles: SimulatedCandle[],
   currentPrice: number,

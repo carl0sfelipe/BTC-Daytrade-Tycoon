@@ -12,6 +12,7 @@ import {
 } from "@/lib/engine/time-formatters";
 import { loadSession } from "@/lib/engine/session-loader";
 import { processTick, detectLiquidation } from "@/lib/engine/tick-processor";
+import { tickEventLog, resetTickEventLog } from "@/lib/engine/tick-events";
 import { useE2EHelpers } from "@/hooks/engine/useE2EHelpers";
 import { logger } from "@/lib/logger";
 import type { BinanceCandle } from "@/lib/binance-api";
@@ -166,10 +167,31 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       });
 
       storeAddPriceHistory(tickResult.price);
-      storeCheckPendingOrders(tickResult.price);
+
+      const pendingBefore = useTradingStore.getState().pendingOrders.length;
+      storeCheckPendingOrders(tickResult.price, tickResult.candleLow, tickResult.candleHigh);
+      const pendingAfter = useTradingStore.getState().pendingOrders.length;
 
       if (hasLiquidatedRef.current) return;
-      const checkResult = storeCheckPosition(tickResult.price);
+      const checkResult = storeCheckPosition(tickResult.price, tickResult.candleLow, tickResult.candleHigh);
+
+      const checks: Array<import("@/lib/engine/tick-events").TickCheck> = [];
+
+      if (pendingBefore !== pendingAfter) {
+        checks.push({ type: "pending_orders", triggered: true, details: { before: pendingBefore, after: pendingAfter } });
+      }
+
+      if (checkResult.closed && checkResult.reason && checkResult.reason !== "manual") {
+        checks.push({ type: checkResult.reason, triggered: true });
+      }
+
+      tickEventLog.push({
+        simulatedTimeSec: tickResult.currentTimeSec,
+        price: tickResult.price,
+        candleLow: tickResult.candleLow,
+        candleHigh: tickResult.candleHigh,
+        checks,
+      });
 
       const liq = detectLiquidation({
         checkResult,
@@ -232,6 +254,8 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
   const reset = useCallback(() => {
     logger.log("[useTimewarpEngine] reset");
+    hasLiquidatedRef.current = false;
+    resetTickEventLog();
     pause();
     doLoad();
   }, [pause, doLoad]);

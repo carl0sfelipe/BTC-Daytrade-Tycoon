@@ -28,16 +28,7 @@ import { computeTraderScore } from "@/lib/trading/trader-score";
 import { SentinelProvider, useSentinelContext } from "@/lib/sentinel";
 import { SentinelHitlPanel } from "@/components/sentinel/SentinelHitlPanel";
 
-export default function TradingPage() {
-  const [mounted, setMounted] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
-  const [showDifficulty, setShowDifficulty] = useState(false);
-  const [capturedRealDateRange, setCapturedRealDateRange] = useState("");
-  const engine = useTimewarpEngine();
-  const isMobile = useIsMobile();
-  useTradeNotifications();
-
-  // Expose Sentinel context for E2E verification
+function SentinelE2EHelper(): null {
   const sentinelCtx = useSentinelContext();
   useEffect(() => {
     const enabled = process.env.NEXT_PUBLIC_ENABLE_E2E_HELPERS === "true";
@@ -50,6 +41,17 @@ export default function TradingPage() {
       }
     };
   }, [sentinelCtx]);
+  return null;
+}
+
+export default function TradingPage() {
+  const [mounted, setMounted] = useState(false);
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [showDifficulty, setShowDifficulty] = useState(false);
+  const [capturedRealDateRange, setCapturedRealDateRange] = useState("");
+  const engine = useTimewarpEngine();
+  const isMobile = useIsMobile();
+  useTradeNotifications();
 
   const isLiquidated = useTradingStore((s) => s.isLiquidated);
   const simulationRealDate = useTradingStore((s) => s.simulationRealDate);
@@ -197,6 +199,7 @@ export default function TradingPage() {
 
   return (
     <SentinelProvider clock={engine.clock}>
+      <SentinelE2EHelper />
     <div className="min-h-screen bg-crypto-bg text-crypto-text">
       <Header />
 

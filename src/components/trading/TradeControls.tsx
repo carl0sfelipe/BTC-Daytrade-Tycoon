@@ -21,6 +21,7 @@ import {
   OrderSummary,
   ActionButtons,
 } from "./trade-controls";
+import { calcSliderMax } from "@/lib/trading/margin";
 
 export default function TradeControls() {
   const store = useTradingStore();
@@ -75,7 +76,10 @@ export default function TradeControls() {
 
     if (state.orderType === "limit") {
       const li = parseFloat(state.limitPrice);
-      if (!li || li <= 0) return;
+      if (!li || li <= 0) {
+        useTradingStore.setState({ lastActionError: "Enter a valid limit price before placing the order" });
+        return;
+      }
       store.addPendingOrder({
         side: state.side,
         orderType: "open",
@@ -169,8 +173,7 @@ export default function TradeControls() {
     state.setSide(newSide);
     if (!position || state.orderType !== "market") return;
 
-    const goingOpposite = position.side !== newSide;
-    const newMax = calcSideMax(wallet, position, goingOpposite, reduceOnly, state.leverage);
+    const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
     state.setPositionSize(Math.min(1000, newMax));
   };
 
@@ -330,18 +333,4 @@ function ModeToggle({
   );
 }
 
-function calcSideMax(
-  wallet: number,
-  position: { size: number; side: string },
-  goingOpposite: boolean,
-  reduceOnly: boolean,
-  leverage: number
-): number {
-  if (goingOpposite && !reduceOnly) {
-    return Math.max(100, Math.floor(position.size + wallet * leverage));
-  }
-  if (goingOpposite) {
-    return Math.max(100, Math.floor(position.size));
-  }
-  return Math.max(100, Math.floor(wallet * leverage));
-}
+

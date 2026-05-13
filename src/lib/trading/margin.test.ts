@@ -3,22 +3,47 @@ import { calcSliderMax, calcFlipRequiredMargin, calcAvailableAfterTrade } from "
 
 describe("calcSliderMax", () => {
   it("returns wallet * leverage when no position", () => {
-    expect(calcSliderMax(null, 10000, 10, "long", true)).toBe(100000);
+    expect(calcSliderMax(null, 10000, 10, "long", true, 50000)).toBe(100000);
   });
 
   it("returns position size in reduce-only mode with opposite side", () => {
     const position = { size: 5000, side: "short" } as const;
-    expect(calcSliderMax(position as any, 10000, 10, "long", true)).toBe(5000);
+    expect(calcSliderMax(position as any, 10000, 10, "long", true, 50000)).toBe(5000);
   });
 
-  it("returns position.size + wallet * leverage in hedge mode", () => {
-    const position = { size: 3000, side: "short" } as const;
-    expect(calcSliderMax(position as any, 10000, 10, "long", false)).toBe(103000);
+  it("returns effective wallet * leverage in hedge mode considering unrealized loss", () => {
+    // LONG $5000 @ 50000, wallet=9500, price dropped to 48000
+    // closePnl = (48000-50000)/50000 * 5000 = -200
+    // returnedMargin = 500
+    // effectiveWallet = 9500 + 500 - 200 = 9800
+    // max = 9800 * 10 = 98000
+    const position = {
+      size: 5000,
+      side: "long" as const,
+      entry: 50000,
+      leverage: 10,
+    };
+    expect(calcSliderMax(position as any, 9500, 10, "short", false, 48000)).toBe(98000);
+  });
+
+  it("returns effective wallet * leverage in hedge mode considering unrealized profit", () => {
+    // LONG $5000 @ 50000, wallet=9500, price rose to 52000
+    // closePnl = (52000-50000)/50000 * 5000 = 200
+    // returnedMargin = 500
+    // effectiveWallet = 9500 + 500 + 200 = 10200
+    // max = 10200 * 10 = 102000
+    const position = {
+      size: 5000,
+      side: "long" as const,
+      entry: 50000,
+      leverage: 10,
+    };
+    expect(calcSliderMax(position as any, 9500, 10, "short", false, 52000)).toBe(102000);
   });
 
   it("returns wallet * leverage for same-side increase", () => {
     const position = { size: 3000, side: "long" } as const;
-    expect(calcSliderMax(position as any, 10000, 10, "long", true)).toBe(100000);
+    expect(calcSliderMax(position as any, 10000, 10, "long", true, 50000)).toBe(100000);
   });
 });
 

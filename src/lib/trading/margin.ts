@@ -5,18 +5,21 @@ import { calcPositionPnL } from "./pnl";
  * Calculates the maximum position size allowed for the slider.
  *
  * Depends on whether there's an open position, the mode (reduce only vs hedge),
- * and the selected side.
+ * the selected side, and the current market price (to account for unrealized PnL
+ * when flipping).
  *
  * @example
- * calcSliderMax(null, 10000, 10, "long", true) // => 100000
- * calcSliderMax({ size: 5000 }, 10000, 10, "short", true) // => 5000
+ * calcSliderMax(null, 10000, 10, "long", true, 50000) // => 100000
+ * calcSliderMax({ size: 5000, side: "long", entry: 50000, leverage: 10 }, 9500, 10, "short", false, 48000)
+ * // effectiveWallet = 9500 + 500 + (-200) = 9800 → 98000
  */
 export function calcSliderMax(
   position: Position | null,
   wallet: number,
   leverage: number,
   side: "long" | "short",
-  reduceOnly: boolean
+  reduceOnly: boolean,
+  currentPrice: number
 ): number {
   const safeLeverage = leverage || 1;
 
@@ -31,10 +34,14 @@ export function calcSliderMax(
   }
 
   if (isReduceMode && !reduceOnly) {
-    return Math.max(
-      100,
-      Math.floor(position.size + wallet * safeLeverage)
-    );
+    const priceDiff =
+      position.side === "long"
+        ? currentPrice - position.entry
+        : position.entry - currentPrice;
+    const closePnl = (priceDiff / position.entry) * position.size;
+    const returnedMargin = position.size / position.leverage;
+    const effectiveWallet = wallet + returnedMargin + closePnl;
+    return Math.max(100, Math.floor(effectiveWallet * safeLeverage));
   }
 
   return Math.max(100, Math.floor(wallet * safeLeverage));

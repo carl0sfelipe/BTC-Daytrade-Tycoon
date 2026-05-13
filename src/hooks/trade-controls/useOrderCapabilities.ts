@@ -41,7 +41,8 @@ export function useOrderCapabilities(
       wallet,
       leverage,
       side,
-      reduceOnly
+      reduceOnly,
+      currentPrice
     );
 
     const canIncrease =
@@ -56,18 +57,16 @@ export function useOrderCapabilities(
       if (!position || positionSize <= 0 || reduceOnly || !isReduceMode) {
         return false;
       }
-      if (positionSize <= position.size) return true;
-
       const priceDiff =
         position.side === "long"
           ? currentPrice - position.entry
           : position.entry - currentPrice;
       const closePnl = (priceDiff / position.entry) * position.size;
       const returnedMargin = position.size / position.leverage;
-      const excessSize = positionSize - position.size;
-      const excessMargin = excessSize / leverage;
+      const effectiveWallet = wallet + returnedMargin + closePnl;
+      const newMargin = positionSize / safeLeverage;
 
-      return wallet + returnedMargin + closePnl >= excessMargin;
+      return effectiveWallet >= newMargin;
     })();
 
     return {

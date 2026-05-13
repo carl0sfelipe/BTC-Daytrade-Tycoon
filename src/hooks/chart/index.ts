@@ -11,3 +11,5 @@ export { useMeasureTool } from "./useMeasureTool";
 export type { MeasureToolState } from "./useMeasureTool";
 
 export { useCurrentPriceLine } from "./useCurrentPriceLine";
+
+export { useDebugOverlay } from "./useDebugOverlay";

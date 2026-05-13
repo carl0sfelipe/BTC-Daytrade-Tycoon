@@ -2,10 +2,13 @@
 
 import { calcFloatingPnL } from "@/lib/chart";
 import type { Position } from "@/store/tradingStore";
+import type { SimulatedCandle } from "@/lib/binance-api";
 
 interface ChartOverlaysProps {
   position: Position | null;
   currentPrice: number;
+  candles: SimulatedCandle[];
+  currentTimeSec: number;
   measureAnchor: number | null;
   measureCurrent: number | null;
 }
@@ -13,6 +16,8 @@ interface ChartOverlaysProps {
 export default function ChartOverlays({
   position,
   currentPrice,
+  candles,
+  currentTimeSec,
   measureAnchor,
   measureCurrent,
 }: ChartOverlaysProps) {
@@ -64,6 +69,35 @@ export default function ChartOverlays({
           <span>Δ {measurePct.toFixed(2)}%</span>
         </div>
       )}
+
+      <DebugWickBadge candles={candles} currentTimeSec={currentTimeSec} />
     </>
+  );
+}
+
+/** Dev-only badge showing current candle wick range. */
+function DebugWickBadge({
+  candles,
+  currentTimeSec,
+}: {
+  candles: SimulatedCandle[];
+  currentTimeSec: number;
+}) {
+  if (process.env.NODE_ENV === "production") return null;
+
+  const candle = candles.find(
+    (c) => currentTimeSec >= c.time && currentTimeSec < c.time + 60
+  );
+  if (!candle) return null;
+
+  return (
+    <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-blue-950/80 border border-blue-500/30 text-[10px] font-mono text-blue-300 pointer-events-none z-10">
+      <span className="text-amber-400">H</span> {candle.high.toFixed(0)}{" "}
+      <span className="text-blue-400">L</span> {candle.low.toFixed(0)}{" "}
+      <span className="text-crypto-text-muted">
+        Δ{candle.high - candle.low > 0 ? "+" : ""}
+        {(candle.high - candle.low).toFixed(0)}
+      </span>
+    </div>
   );
 }

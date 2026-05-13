@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run src/store/tradingStore.integration.test.ts src/lib/engine/wick-scenarios.test.ts src/lib/engine/tick-processor.test.ts src/test/golden-ticks.test.ts src/contracts/",
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:mobile": "playwright test --project=mobile",
     "test:all": "npm run test && npm run test:e2e"

@@ -10,6 +10,7 @@ import {
   useLimitOrderLines,
   useMeasureTool,
   useCurrentPriceLine,
+  useDebugOverlay,
 } from "@/hooks/chart";
 import ChartHeader from "./ChartHeader";
 import ChartOverlays from "./ChartOverlays";
@@ -41,6 +42,7 @@ export default function TradingChart({
   useCurrentPriceLine(priceLine, currentPrice);
   usePositionOverlays(series, position);
   useLimitOrderLines(series, pendingOrders);
+  useDebugOverlay(series, candles, currentTimeSec);
 
   const { measureMode, setMeasureMode, measureAnchor, measureCurrent } =
     useMeasureTool(chart, series);
@@ -66,6 +68,8 @@ export default function TradingChart({
         <ChartOverlays
           position={position}
           currentPrice={currentPrice}
+          candles={candles}
+          currentTimeSec={currentTimeSec}
           measureAnchor={measureAnchor}
           measureCurrent={measureCurrent}
         />

@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Zap, ArrowRight, Clock, EyeOff, Gauge, TrendingUp, Shield, BarChart3, ChevronRight, Star, Users, Activity } from "lucide-react";
 
 export default function LandingPage() {
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-crypto-bg text-crypto-text">
@@ -20,20 +19,18 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/auth/login")}
+          <Link
+            href="/auth/login"
             className="px-4 py-2 rounded-lg text-sm font-medium text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
             Login
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/auth/signup")}
+          </Link>
+          <Link
+            href="/auth/signup"
             className="px-4 py-2 rounded-lg bg-crypto-accent text-white text-sm font-semibold hover:bg-crypto-accent/90 transition-all shadow-glow-accent"
           >
             Create Account
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -54,25 +51,23 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg text-crypto-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
-            The only platform that drops you into real Bitcoin days between 2017–2020 at 60x speed. Learn to read the market blind, without date bias.
+            The only platform that drops you into real Bitcoin days between 2020–2025 at 60x speed. Learn to read the market blind, without date bias.
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => router.push("/auth/signup")}
+            <Link
+              href="/auth/signup"
               className="flex items-center gap-2 px-8 py-4 rounded-xl bg-crypto-accent text-white font-bold hover:bg-crypto-accent/90 transition-all shadow-glow-accent text-lg"
             >
               Start Free
               <ArrowRight className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/trading")}
+            </Link>
+            <Link
+              href="/trading"
               className="px-8 py-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border text-crypto-text font-semibold hover:border-crypto-text-muted transition-all text-lg"
             >
               Try Demo
-            </button>
+            </Link>
           </div>
 
           {/* Stats */}
@@ -114,7 +109,7 @@ export default function LandingPage() {
                 <EyeOff className="w-6 h-6 text-crypto-cyan" />
               </div>
               <h3 className="text-lg font-bold">Blind Date</h3>
-              <p className="text-sm text-crypto-text-secondary leading-relaxed">The historical date is hidden. You don't know if you're at the 2017 top or the 2020 crash.</p>
+              <p className="text-sm text-crypto-text-secondary leading-relaxed">The historical date is hidden. You don't know if you're at the 2021 top or the 2025 surge.</p>
             </div>
 
             <div className="card-surface p-6 space-y-4">
@@ -184,7 +179,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <FeatureCard icon={TrendingUp} title="Real-Time PnL" desc="Track your profit/loss instantly on every price tick" />
             <FeatureCard icon={Shield} title="Risk Gauge" desc="Visual bar showing your distance from liquidation" />
-            <FeatureCard icon={BarChart3} title="Real Binance Data" desc="Real 1-minute candles between 2017 and 2020" />
+            <FeatureCard icon={BarChart3} title="Real Binance Data" desc="Real 1-minute candles between 2020 and 2025" />
             <FeatureCard icon={Activity} title="Dynamic Volatility" desc="Automatic alerts when the market becomes unstable" />
             <FeatureCard icon={Users} title="Global Rankings" desc="Compete with other traders for percentage returns" />
             <FeatureCard icon={Star} title="Achievements" desc="Unlock badges for performance and consistency" />
@@ -199,14 +194,13 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to become a trader?</h2>
           <p className="text-crypto-text-secondary mb-8">Create your free account in seconds. No credit card required.</p>
-          <button
-            type="button"
-            onClick={() => router.push("/auth/signup")}
-            className="flex items-center gap-2 px-8 py-4 rounded-xl bg-crypto-long text-black font-bold hover:bg-crypto-long/90 transition-all shadow-glow-long text-lg mx-auto"
+          <Link
+            href="/auth/signup"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-crypto-long text-black font-bold hover:bg-crypto-long/90 transition-all shadow-glow-long text-lg mx-auto"
           >
             Create Free Account
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </section>
 

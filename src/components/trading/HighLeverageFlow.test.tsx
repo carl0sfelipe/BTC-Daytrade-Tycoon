@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
 import TradeControls from "./TradeControls";
 import { useTradingStore } from "@/store/tradingStore";
+import { SentinelProvider } from "@/lib/sentinel/provider";
+import { createFrozenClock } from "@/lib/sentinel/clock";
+
+function renderWithSentinel(ui: React.ReactElement) {
+  return render(<SentinelProvider clock={createFrozenClock()}>{ui}</SentinelProvider>);
+}
 
 // No mock of ConfirmHighLeverageModal — tests the full integration flow
 
@@ -14,7 +21,7 @@ describe("TradeControls — high leverage modal full flow", () => {
 
   it("modal intercepts open when leverage >= 50 and skipHighLeverageWarning is false", () => {
     useTradingStore.setState(baseState);
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     // Select 50x leverage
     fireEvent.click(screen.getByText("50x"));
@@ -28,7 +35,7 @@ describe("TradeControls — high leverage modal full flow", () => {
 
   it("confirming modal without checkbox opens position and does not set skip flag", () => {
     useTradingStore.setState(baseState);
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("50x"));
     fireEvent.click(screen.getByText("Open Long"));
@@ -42,7 +49,7 @@ describe("TradeControls — high leverage modal full flow", () => {
 
   it("confirming with 'don't show again' sets skipHighLeverageWarning to true", () => {
     useTradingStore.setState(baseState);
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("50x"));
     fireEvent.click(screen.getByText("Open Long"));
@@ -57,7 +64,7 @@ describe("TradeControls — high leverage modal full flow", () => {
 
   it("second open with 50x skips modal when skipHighLeverageWarning is true", () => {
     useTradingStore.setState({ ...baseState, skipHighLeverageWarning: true });
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("50x"));
     fireEvent.click(screen.getByText("Open Long"));
@@ -69,7 +76,7 @@ describe("TradeControls — high leverage modal full flow", () => {
 
   it("Cancel button closes modal without opening position", () => {
     useTradingStore.setState(baseState);
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("50x"));
     fireEvent.click(screen.getByText("Open Long"));

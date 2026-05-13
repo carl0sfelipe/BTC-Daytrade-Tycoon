@@ -14,3 +14,5 @@ export * from "./log";
 export { useSentinel, type UseSentinelParams, type RecordInteraction, type ObservableStore } from "./hooks";
 export { SentinelProvider, useSentinelContext } from "./provider";
 export type { SentinelProviderProps, SentinelContextValue } from "./provider";
+export { exportSentinelSession, downloadSession } from "./session";
+export type { SentinelSession } from "./session";

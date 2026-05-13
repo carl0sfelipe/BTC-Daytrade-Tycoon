@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
 import TradeControls from "./TradeControls";
 import { useTradingStore } from "@/store/tradingStore";
+import { SentinelProvider } from "@/lib/sentinel/provider";
+import { createFrozenClock } from "@/lib/sentinel/clock";
+
+function renderWithSentinel(ui: React.ReactElement) {
+  return render(<SentinelProvider clock={createFrozenClock()}>{ui}</SentinelProvider>);
+}
 
 vi.mock("./ConfirmHighLeverageModal", () => ({
   default: () => null,
@@ -21,7 +28,7 @@ describe("TradeControls", () => {
   });
 
   it("shows Limit Price input in simple mode when limit is selected", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     // Switch to limit order
     const limitBtn = screen.getByText("Limit");
@@ -33,7 +40,7 @@ describe("TradeControls", () => {
   });
 
   it("shows TP and SL inputs in simple mode when no position", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     // Buttons exist collapsed by default
     expect(screen.getByRole("button", { name: /Set Take Profit/i })).toBeInTheDocument();
@@ -46,7 +53,7 @@ describe("TradeControls", () => {
   });
 
   it("creates a pending limit order instead of opening position immediately", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     // Select limit
     fireEvent.click(screen.getByText("Limit"));
@@ -73,7 +80,7 @@ describe("TradeControls", () => {
   });
 
   it("opens market position immediately when market is selected", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     const openBtn = screen.getByText("Open Long");
     fireEvent.click(openBtn);
@@ -84,7 +91,7 @@ describe("TradeControls", () => {
   });
 
   it("fills limit price with current price on click when empty", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
@@ -95,7 +102,7 @@ describe("TradeControls", () => {
   });
 
   it("adjusts limit price up and down with step buttons", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
@@ -116,7 +123,7 @@ describe("TradeControls", () => {
   });
 
   it("shows step settings on gear icon click and hides by default", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
 
@@ -134,7 +141,7 @@ describe("TradeControls", () => {
   });
 
   it("changes step size via hidden step selector buttons", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
@@ -149,7 +156,7 @@ describe("TradeControls", () => {
   });
 
   it("allows custom step value", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000") as HTMLInputElement;
@@ -190,7 +197,7 @@ describe("TradeControls", () => {
 
     it("INCREASE label shows whenever side === position.side", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Default: side=long, position=long → INCREASE
       expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
@@ -198,7 +205,7 @@ describe("TradeControls", () => {
 
     it("REDUCE label shows whenever side !== position.side", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
       expect(screen.getByText("REDUCE POSITION")).toBeInTheDocument();
@@ -207,7 +214,7 @@ describe("TradeControls", () => {
 
     it("toggles INCREASE/REDUCE when clicking LONG → SHORT → LONG", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       expect(screen.getByText("INCREASE POSITION")).toBeInTheDocument();
 
@@ -223,7 +230,7 @@ describe("TradeControls", () => {
       // Old behavior: slider as total → must drag to $5200 to increase.
       // New behavior: slider as order size → set slider to $200, click INCREASE.
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
       fireEvent.change(slider, { target: { value: "200" } });
@@ -238,7 +245,7 @@ describe("TradeControls", () => {
 
     it("REDUCE applies the order size as a delta from position.size", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
 
@@ -253,7 +260,7 @@ describe("TradeControls", () => {
 
     it("REDUCE slider max is capped at position.size in reduce only mode", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
 
@@ -269,7 +276,7 @@ describe("TradeControls", () => {
         currentPrice: 50000,
         reduceOnly: false,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
 
@@ -280,7 +287,7 @@ describe("TradeControls", () => {
 
     it("INCREASE slider max scales with wallet and leverage", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
       // INCREASE: wallet (10000) * leverage (10) = 100000
@@ -289,7 +296,7 @@ describe("TradeControls", () => {
 
     it("snaps to default $1000 order size on side click", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
       fireEvent.change(slider, { target: { value: "3000" } });
@@ -304,7 +311,7 @@ describe("TradeControls", () => {
 
     it("REDUCE equal to full position size closes the position", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
 
@@ -321,7 +328,7 @@ describe("TradeControls", () => {
 
     it("REDUCE with max slider value closes the position", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("SHORT"));
 
@@ -355,7 +362,7 @@ describe("TradeControls", () => {
         currentPrice: 50000,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
       expect(slider.value).toBe("500");
@@ -363,7 +370,7 @@ describe("TradeControls", () => {
 
     it("shows CLOSE POSITION button in limit mode with open position", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("Limit"));
       expect(screen.getByText("CLOSE POSITION")).toBeInTheDocument();
@@ -371,7 +378,7 @@ describe("TradeControls", () => {
 
     it("limit order with open position creates pending order instead of market reduce", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Switch to SHORT side (reduce) + Limit
       fireEvent.click(screen.getByText("SHORT"));
@@ -396,7 +403,7 @@ describe("TradeControls", () => {
 
     it("limit order with open position (same side) creates pending increase order", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Stay on LONG side + Limit
       fireEvent.click(screen.getByText("Limit"));
@@ -418,7 +425,7 @@ describe("TradeControls", () => {
 
     it("shows TP/SL inputs in advanced mode with open position + limit selected", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Switch to advanced mode
       fireEvent.click(screen.getByText("Advanced Mode"));
@@ -432,7 +439,7 @@ describe("TradeControls", () => {
 
     it("INCREASE recalculates liquidation price after adding to position", () => {
       openLong5k();
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       const slider = screen.getByRole("slider") as HTMLInputElement;
       fireEvent.change(slider, { target: { value: "5000" } });
@@ -470,7 +477,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // User clicks LONG (opposite side) to flip
       fireEvent.click(screen.getByText("LONG"));
@@ -522,7 +529,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Click LONG to flip from SHORT
       fireEvent.click(screen.getByText("LONG"));
@@ -569,7 +576,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -609,7 +616,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -661,7 +668,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -698,7 +705,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -733,7 +740,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -756,7 +763,7 @@ describe("TradeControls", () => {
         currentPrice: 50000,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       // Default slider is 1000 @ leverage 10 → margin 100 > wallet 50
       const openBtn = screen.getByText("Open Long");
@@ -787,7 +794,7 @@ describe("TradeControls", () => {
         reduceOnly: false,
         skipHighLeverageWarning: true,
       });
-      render(<TradeControls />);
+      renderWithSentinel(<TradeControls />);
 
       fireEvent.click(screen.getByText("LONG"));
 
@@ -817,7 +824,7 @@ describe("TradeControls — TP/SL input flows", () => {
   });
 
   it("TP and SL typed by user are passed to openPosition", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     // Expand TP, fill trigger price
     fireEvent.click(screen.getByRole("button", { name: /Set Take Profit/i }));
@@ -835,7 +842,7 @@ describe("TradeControls — TP/SL input flows", () => {
   });
 
   it("TP and SL are passed to addPendingOrder in limit mode", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("Limit"));
     const limitInput = screen.getByPlaceholderText("50000");
@@ -872,14 +879,14 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
   });
 
   it("Set button is disabled when value > 20 (bug B2 regression)", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
     const tsInput = screen.getByPlaceholderText("0.0");
     fireEvent.change(tsInput, { target: { value: "25" } });
     expect(screen.getByText("Set")).toBeDisabled();
   });
 
   it("Set button enabled with valid value and updates store", () => {
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
     const tsInput = screen.getByPlaceholderText("0.0");
     fireEvent.change(tsInput, { target: { value: "5" } });
     expect(screen.getByText("Set")).not.toBeDisabled();
@@ -896,7 +903,7 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
         entryTime: "now", entryTimestamp: 0, realizedPnL: 0,
       },
     });
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
     fireEvent.click(screen.getByText("Remove"));
     expect(useTradingStore.getState().position!.trailingStopPercent).toBeNull();
     expect(screen.getByText("Set")).toBeInTheDocument();
@@ -914,7 +921,7 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
       currentPrice: 60000, // losing short → closePnl negative
       reduceOnly: false, skipHighLeverageWarning: true,
     });
-    render(<TradeControls />);
+    renderWithSentinel(<TradeControls />);
 
     fireEvent.click(screen.getByText("LONG"));
     fireEvent.click(screen.getByText("Limit"));

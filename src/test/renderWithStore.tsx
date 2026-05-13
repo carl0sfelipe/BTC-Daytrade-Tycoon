@@ -4,6 +4,8 @@ import { useTradingStore } from "@/store/tradingStore";
 import { makePosition } from "./factories";
 import { resetStore } from "./resetStore";
 import type { Position } from "@/store/tradingStore";
+import { SentinelProvider } from "@/lib/sentinel/provider";
+import { createFrozenClock } from "@/lib/sentinel/clock";
 
 type TradingState = Parameters<typeof useTradingStore.setState>[0];
 
@@ -29,7 +31,9 @@ export function renderWithStore(
     useTradingStore.setState(opts.store);
   }
 
-  const result = render(ui);
+  const result = render(
+    <SentinelProvider clock={createFrozenClock()}>{ui}</SentinelProvider>
+  );
 
   const updateStore = (patch: Partial<TradingState>) => {
     act(() => {

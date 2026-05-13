@@ -1,0 +1,59 @@
+{
+  "header": {
+    "appVersion": "1.0.0",
+    "sentinelVersion": "0.1.0",
+    "startTime": 1715611200000,
+    "initialClockTime": 0,
+    "rngSeed": "test-seed-42"
+  },
+  "events": [
+    {
+      "id": "ev-001",
+      "sequenceId": 1,
+      "timestamp": 100,
+      "type": "UI_ACTION",
+      "semanticId": "trade-controls:leverage-selector",
+      "role": "spinbutton",
+      "payload": { "type": "change", "value": 10 },
+      "engineSnapshot": {
+        "changedPaths": [{ "path": "leverage", "oldValue": 2, "newValue": 10 }],
+        "isCheckpoint": false
+      },
+      "marketContext": { "price": 50000, "indexPrice": 50000, "timestamp": 100 },
+      "accessibilityRef": ""
+    },
+    {
+      "id": "ev-002",
+      "sequenceId": 2,
+      "timestamp": 250,
+      "type": "UI_ACTION",
+      "semanticId": "trade-controls:button:Open Long",
+      "role": "button",
+      "payload": { "type": "click", "side": "long", "orderType": "market", "leverage": 10, "size": 1000 },
+      "engineSnapshot": {
+        "changedPaths": [
+          { "path": "position.side", "oldValue": null, "newValue": "long" },
+          { "path": "position.size", "oldValue": null, "newValue": 1000 }
+        ],
+        "isCheckpoint": false
+      },
+      "marketContext": { "price": 50100, "indexPrice": 50100, "timestamp": 250 },
+      "accessibilityRef": ""
+    },
+    {
+      "id": "ev-003",
+      "sequenceId": 3,
+      "timestamp": 500,
+      "type": "UI_ACTION",
+      "semanticId": "trade-controls:button:Close Position",
+      "role": "button",
+      "payload": { "type": "click", "reason": "manual" },
+      "engineSnapshot": {
+        "changedPaths": [{ "path": "position", "oldValue": { "side": "long", "size": 1000 }, "newValue": null }],
+        "isCheckpoint": false
+      },
+      "marketContext": { "price": 50200, "indexPrice": 50200, "timestamp": 500 },
+      "accessibilityRef": ""
+    }
+  ]
+}

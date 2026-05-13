@@ -26,6 +26,7 @@ import { useTradeNotifications } from "@/hooks/useTradeNotifications";
 import { getCurrentStreak } from "@/utils/streak";
 import { computeTraderScore } from "@/lib/trading/trader-score";
 import { SentinelProvider, useSentinelContext } from "@/lib/sentinel";
+import { SentinelHitlPanel } from "@/components/sentinel/SentinelHitlPanel";
 
 export default function TradingPage() {
   const [mounted, setMounted] = useState(false);
@@ -248,6 +249,7 @@ export default function TradingPage() {
                 <PositionPanel />
                 <TradeControls />
                 <PnLDisplay />
+                <SentinelHitlPanel />
               </div>
             </div>
           </main>

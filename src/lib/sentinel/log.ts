@@ -74,6 +74,10 @@ export function createEventLog(config: EventLogConfig) {
     return buffer.length;
   }
 
+  function getEvents(): readonly SentinelEvent[] {
+    return Object.freeze([...buffer]);
+  }
+
   return {
     append,
     flush,
@@ -81,6 +85,7 @@ export function createEventLog(config: EventLogConfig) {
     startAutoFlush,
     stopAutoFlush,
     getPendingCount,
+    getEvents,
   };
 }
 

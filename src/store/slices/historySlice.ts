@@ -14,6 +14,8 @@ export const createHistorySlice: StateCreator<TradingStore, [], [], HistorySlice
   (set) => ({
     closedTrades: [],
     realizedPnL: 0,
+    maxDrawdown: 0,
+    peakUnrealizedPnl: 0,
     addClosedTrade: (trade) =>
       set((state) => ({
         closedTrades: [...state.closedTrades, trade].slice(-MAX_CLOSED_TRADES),

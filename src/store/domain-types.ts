@@ -53,4 +53,6 @@ export interface Position {
   entryTime: string;
   entryTimestamp: number;
   realizedPnL: number;
+  maxDrawdown?: number;
+  peakUnrealizedPnl?: number;
 }

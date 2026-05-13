@@ -81,6 +81,8 @@ export function buildNewPosition(
     entryTime: now,
     entryTimestamp: Date.now(),
     realizedPnL: 0,
+    maxDrawdown: 0,
+    peakUnrealizedPnl: 0,
   };
 }
 

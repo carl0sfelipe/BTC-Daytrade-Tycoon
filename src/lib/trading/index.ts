@@ -27,3 +27,10 @@ export {
   calcFlipRequiredMargin,
   calcAvailableAfterTrade,
 } from "./margin";
+
+export {
+  buildEventLog,
+  tradeToEventLogItem,
+  orderToEventLogItem,
+} from "./event-log";
+export type { EventLogItem } from "./event-log";

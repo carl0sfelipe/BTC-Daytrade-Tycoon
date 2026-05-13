@@ -97,10 +97,7 @@ export function computeAddToPosition(
   const margin = additionalSize / leverage;
   const newSize = size + additionalSize;
   const newEntry = (size * entry + additionalSize * price) / newSize;
-  const rawLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
-  const newLiqPrice = side === "short"
-    ? Math.min(rawLiqPrice, position.liquidationPrice)
-    : Math.max(rawLiqPrice, position.liquidationPrice);
+  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
 
   return {
     wallet: wallet - margin,
@@ -136,10 +133,7 @@ export function computeSizeIncrease(
   const newMargin = newSize * marginPerUnit;
   const additionalSize = newSize - size;
   const newEntry = (size * entry + additionalSize * price) / newSize;
-  const rawLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
-  const newLiqPrice = side === "short"
-    ? Math.min(rawLiqPrice, position.liquidationPrice)
-    : Math.max(rawLiqPrice, position.liquidationPrice);
+  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
   const now = formatTimestamp();
 
   const historyItem: OrderHistoryItem = {

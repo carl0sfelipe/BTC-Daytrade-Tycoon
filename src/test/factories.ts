@@ -13,6 +13,8 @@ export const makePosition = (overrides: Partial<Position> = {}): Position => ({
   entryTime: "01/01/2024 00:00:00",
   entryTimestamp: Date.now(),
   realizedPnL: 0,
+  maxDrawdown: 0,
+  peakUnrealizedPnl: 0,
   ...overrides,
 });
 

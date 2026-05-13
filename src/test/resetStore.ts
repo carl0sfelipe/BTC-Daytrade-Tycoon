@@ -9,6 +9,8 @@ export const initialStoreState = {
   wallet: 10000,
   closedTrades: [],
   realizedPnL: 0,
+    maxDrawdown: 0,
+    peakUnrealizedPnl: 0,
   position: null,
   pendingOrders: [],
   ordersHistory: [],

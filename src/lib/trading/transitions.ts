@@ -164,6 +164,8 @@ export function computeHedgeFlip(
     entryTime: now,
     entryTimestamp: Date.now(),
     realizedPnL: 0,
+    maxDrawdown: 0,
+    peakUnrealizedPnl: 0,
   };
 
   const historyItem: OrderHistoryItem = {
@@ -307,6 +309,8 @@ export function computeFreshOpen(
     entryTime: now,
     entryTimestamp: Date.now(),
     realizedPnL: 0,
+    maxDrawdown: 0,
+    peakUnrealizedPnl: 0,
   };
 
   if (!limitPrice) {

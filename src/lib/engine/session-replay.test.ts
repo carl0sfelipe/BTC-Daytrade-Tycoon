@@ -42,8 +42,8 @@ describe("captureSessionSnapshot", () => {
     const store = makeMockStore({ isLoading: true, isLiquidated: true });
     const snap = captureSessionSnapshot(store);
 
-    expect((snap as Record<string, unknown>).isLoading).toBeUndefined();
-    expect((snap as Record<string, unknown>).isLiquidated).toBeUndefined();
+    expect((snap as unknown as Record<string, unknown>).isLoading).toBeUndefined();
+    expect((snap as unknown as Record<string, unknown>).isLiquidated).toBeUndefined();
   });
 });
 

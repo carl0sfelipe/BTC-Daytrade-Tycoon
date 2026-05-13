@@ -16,6 +16,8 @@ import { tickEventLog, resetTickEventLog } from "@/lib/engine/tick-events";
 import { useE2EHelpers } from "@/hooks/engine/useE2EHelpers";
 import { logger } from "@/lib/logger";
 import type { BinanceCandle } from "@/lib/binance-api";
+import { createWallClock } from "@/lib/sentinel";
+import type { VirtualClock } from "@/lib/sentinel";
 
 const TICK_MS = 100;
 
@@ -30,6 +32,7 @@ export interface UseTimewarpEngineReturn {
   error: string | null;
   realDateRange: string;
   simulatedHistoricalTime: string;
+  clock: VirtualClock;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -49,7 +52,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const historicalCandlesRef = useRef<BinanceCandle[]>([]);
   const startDateRef = useRef<Date | null>(null);
   const originalStartDateRef = useRef<Date | null>(null);
-  const simulationStartRealTimeRef = useRef<number>(0);
+  const clockRef = useRef<VirtualClock>(createWallClock());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const candlesRef = useRef<SimulatedCandle[]>([]);
@@ -145,7 +148,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       const tickResult = processTick({
         startDate: startDateRef.current,
         currentCandles: candlesRef.current,
-        simulationStartRealTime: simulationStartRealTimeRef.current,
+        clock: clockRef.current,
       });
 
       if ("error" in tickResult) return;
@@ -219,7 +222,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const startSimulation = useCallback(() => {
     logger.log("[useTimewarpEngine] startSimulation");
     clearTickInterval();
-    simulationStartRealTimeRef.current = Date.now();
+    clockRef.current = createWallClock();
     setIsPlaying(true);
     isPlayingRef.current = true;
     intervalRef.current = setInterval(tick, TICK_MS);
@@ -242,9 +245,10 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       if (elapsedTime !== "00:00:00") {
         const [h, m, s] = elapsedTime.split(":").map(Number);
         const elapsedSec = h * 3600 + m * 60 + s;
-        simulationStartRealTimeRef.current = Date.now() - elapsedSec * 1000;
+        clockRef.current = createWallClock();
+        clockRef.current.advance(-elapsedSec * 1000);
       } else {
-        simulationStartRealTimeRef.current = Date.now();
+        clockRef.current = createWallClock();
       }
       setIsPlaying(true);
       isPlayingRef.current = true;
@@ -291,6 +295,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     error,
     realDateRange,
     simulatedHistoricalTime,
+    clock: clockRef.current,
     start,
     pause,
     reset,

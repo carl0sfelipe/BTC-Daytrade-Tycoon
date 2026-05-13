@@ -36,11 +36,14 @@ function LeveragePills({
       <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
         Leverage
       </span>
-      <div className="grid grid-cols-6 gap-1.5">
+      <div className="grid grid-cols-6 gap-1.5" role="radiogroup" aria-label="Leverage">
         {options.map((opt) => (
           <button
             type="button"
             key={opt}
+            role="radio"
+            aria-checked={leverage === opt}
+            aria-label={`${opt}x leverage`}
             onClick={() => onChange(opt)}
             className={`py-1.5 rounded-md text-xs font-bold font-mono transition-all ${
               leverage === opt
@@ -87,6 +90,7 @@ function LeverageSlider({
         min={2}
         max={100}
         value={leverage}
+        aria-label="Leverage slider"
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
       />

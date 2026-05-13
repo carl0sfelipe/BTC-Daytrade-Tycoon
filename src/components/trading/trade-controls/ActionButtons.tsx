@@ -133,6 +133,7 @@ function ActionButton({
     <button
       type="button"
       data-testid={testId}
+      aria-label={label}
       onClick={onClick}
       disabled={disabled}
       className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
@@ -151,6 +152,7 @@ function CloseButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       data-testid="trade-controls-close-btn"
+      aria-label="Close Position"
       onClick={onClick}
       className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
     >

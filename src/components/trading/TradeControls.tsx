@@ -22,6 +22,7 @@ import {
   ActionButtons,
 } from "./trade-controls";
 import { calcSliderMax } from "@/lib/trading/margin";
+import { useTradeSentinel } from "@/hooks/trade-controls";
 
 export default function TradeControls() {
   const store = useTradingStore();
@@ -50,11 +51,14 @@ export default function TradeControls() {
   );
 
   // Handlers
+  const recordLeverage = useTradeSentinel("trade-controls:leverage-selector", "spinbutton");
   const handleLeverageChange = (newLeverage: number) => {
     state.setLeverage(newLeverage);
     if (position) store.updateLeverage(newLeverage);
+    recordLeverage({ type: "change", value: newLeverage });
   };
 
+  const recordOpen = useTradeSentinel("trade-controls:button:Open Position", "button");
   const handleOpen = () => {
     if (!caps.canOpen) return;
 
@@ -102,6 +106,7 @@ export default function TradeControls() {
       );
       resetInputs();
     }
+    recordOpen({ type: "click", side: state.side, orderType: state.orderType, leverage: state.leverage, size: state.positionSize });
   };
 
   const handleConfirmHighLeverage = () => {
@@ -139,6 +144,12 @@ export default function TradeControls() {
     state.setPendingTrade(null);
   };
 
+  const recordUpdate = useTradeSentinel("trade-controls:button:Update Position", "button");
+  const recordClose = useTradeSentinel("trade-controls:button:Close Position", "button");
+  const handleClose = () => {
+    store.closePosition("manual");
+    recordClose({ type: "click", reason: "manual" });
+  };
   const handleUpdate = () => {
     if (!position) return;
 
@@ -156,6 +167,7 @@ export default function TradeControls() {
     } else {
       store.updatePositionSize(targetSize, state.side);
     }
+    recordUpdate({ type: "click", side: state.side, size: state.positionSize, isReduceMode: caps.isReduceMode });
   };
 
   const resetInputs = () => {
@@ -169,12 +181,14 @@ export default function TradeControls() {
     state.setPositionSize(position ? 1000 : state.positionSize);
   };
 
+  const recordSideChange = useTradeSentinel("trade-controls:tablist:Side", "tab");
   const handleSideChange = (newSide: "long" | "short") => {
     state.setSide(newSide);
     if (!position || state.orderType !== "market") return;
 
     const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
     state.setPositionSize(Math.min(1000, newMax));
+    recordSideChange({ type: "select", side: newSide });
   };
 
   return (
@@ -276,7 +290,7 @@ export default function TradeControls() {
             positionSize={state.positionSize}
             onOpen={handleOpen}
             onUpdate={handleUpdate}
-            onClose={() => store.closePosition("manual")}
+            onClose={handleClose}
           />
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createFrozenClock } from "@/lib/sentinel";
 import { processTick } from "./tick-processor";
 import type { SimulatedCandle } from "@/lib/binance-api";
 
@@ -31,7 +32,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -52,7 +53,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -71,7 +72,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -91,7 +92,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -111,7 +112,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -131,7 +132,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -151,7 +152,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -171,7 +172,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -191,7 +192,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -212,7 +213,7 @@ describe("wick scenarios — deterministic table", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);

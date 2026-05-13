@@ -73,13 +73,16 @@ function SizePills({
           Max: ${Math.floor(wallet * leverage).toLocaleString()}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Position Size">
         {options.map((pct) => {
           const targetSize = Math.floor(wallet * leverage * (pct / 100));
           return (
             <button
               type="button"
               key={pct}
+              role="radio"
+              aria-checked={Math.abs(positionSize - targetSize) < 1}
+              aria-label={`${pct}% position size`}
               onClick={() => onChange(targetSize)}
               className={`py-1.5 rounded-md text-xs font-bold transition-all ${
                 Math.abs(positionSize - targetSize) < 1
@@ -128,6 +131,7 @@ function SizeSlider({
         max={Math.max(100, sliderMax)}
         step={100}
         value={positionSize}
+        aria-label="Position size slider"
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
       />

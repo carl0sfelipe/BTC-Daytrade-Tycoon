@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { createFrozenClock } from "@/lib/sentinel";
 import { useTradingStore } from "@/store/tradingStore";
 import { processTick } from "@/lib/engine/tick-processor";
 import { goldenTickScenarios } from "./golden-ticks";
@@ -28,7 +29,7 @@ describe("Golden Ticks — regression snapshot", () => {
       const tickResult = processTick({
         startDate: new Date(0),
         currentCandles: scenario.candles,
-        simulationStartRealTime: Date.now(),
+        clock: createFrozenClock(0),
       });
 
       expect("error" in tickResult).toBe(false);

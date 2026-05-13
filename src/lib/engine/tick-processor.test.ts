@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createFrozenClock } from "@/lib/sentinel";
 import { processTick, detectLiquidation } from "./tick-processor";
 import type { SimulatedCandle } from "@/lib/binance-api";
 
@@ -27,7 +28,7 @@ describe("tick-processor — liquidation with wicks", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now() - 1000, // 1s real = 60s simulated
+      clock: createFrozenClock(1000), // 1s real = 60s simulated
     });
 
     expect("error" in result).toBe(false);

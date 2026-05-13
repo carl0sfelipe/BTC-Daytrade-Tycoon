@@ -10,6 +10,7 @@ import {
   type SimulatedCandle,
 } from "@/lib/binance-api";
 import { formatElapsedTime, formatDuration } from "./time-formatters";
+import type { VirtualClock } from "@/lib/sentinel";
 
 const SPEED_MULTIPLIER = 60;
 const FETCH_AHEAD_MINUTES = 300;
@@ -17,7 +18,7 @@ const FETCH_AHEAD_MINUTES = 300;
 export interface TickInput {
   startDate: Date | null;
   currentCandles: SimulatedCandle[];
-  simulationStartRealTime: number;
+  clock: VirtualClock;
 }
 
 export interface TickResult {
@@ -49,13 +50,13 @@ export type TickOutput = TickResult | TickErrorResult;
  * if ("error" in result) { handleError(result.error); }
  */
 export function processTick(input: TickInput): TickOutput {
-  const { startDate, currentCandles, simulationStartRealTime } = input;
+  const { startDate, currentCandles, clock } = input;
 
   if (!currentCandles.length || !startDate) {
     return { error: "No candles or start date" };
   }
 
-  const realElapsedMs = Date.now() - simulationStartRealTime;
+  const realElapsedMs = clock.now();
   const simulatedElapsedMs = realElapsedMs * SPEED_MULTIPLIER;
   const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
   const simulatedTimeSec = Math.floor(simulatedTimeMs / 1000);

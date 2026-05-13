@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createFrozenClock } from "@/lib/sentinel";
 import { processTick } from "@/lib/engine/tick-processor";
 import type { SimulatedCandle } from "@/lib/binance-api";
 
@@ -20,7 +21,7 @@ describe("Contract: Engine → Store (TickResult)", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -36,7 +37,7 @@ describe("Contract: Engine → Store (TickResult)", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -54,7 +55,7 @@ describe("Contract: Engine → Store (TickResult)", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);
@@ -73,7 +74,7 @@ describe("Contract: Engine → Store (TickResult)", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now() - 100000, // far in the past
+      clock: createFrozenClock(100000), // far in the past
     });
 
     expect("error" in result).toBe(false);
@@ -88,7 +89,7 @@ describe("Contract: Engine → Store (TickResult)", () => {
     const result = processTick({
       startDate,
       currentCandles: candles,
-      simulationStartRealTime: Date.now(),
+      clock: createFrozenClock(0),
     });
 
     expect("error" in result).toBe(false);

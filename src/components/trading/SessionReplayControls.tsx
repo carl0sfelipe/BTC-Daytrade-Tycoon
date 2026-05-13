@@ -60,7 +60,6 @@ export default function SessionReplayControls({ onLoad }: SessionReplayControlsP
   };
 
   const handleExportSentinel = () => {
-    eventLog.flush();
     const events = eventLog.getEvents();
     const session = exportSentinelSession(events, clock);
     downloadSession(session, `sentinel-session-${Date.now()}.json`);

@@ -11,34 +11,48 @@ describe("calcSliderMax", () => {
     expect(calcSliderMax(position as any, 10000, 10, "long", true, 50000)).toBe(5000);
   });
 
-  it("returns effective wallet * leverage in hedge mode considering unrealized loss", () => {
+  it("returns position.size + effective wallet * leverage in hedge mode considering unrealized loss", () => {
     // LONG $5000 @ 50000, wallet=9500, price dropped to 48000
     // closePnl = (48000-50000)/50000 * 5000 = -200
     // returnedMargin = 500
     // effectiveWallet = 9500 + 500 - 200 = 9800
-    // max = 9800 * 10 = 98000
+    // max = 5000 (close) + 9800 * 10 (new short) = 5000 + 98000 = 103000
     const position = {
       size: 5000,
       side: "long" as const,
       entry: 50000,
       leverage: 10,
     };
-    expect(calcSliderMax(position as any, 9500, 10, "short", false, 48000)).toBe(98000);
+    expect(calcSliderMax(position as any, 9500, 10, "short", false, 48000)).toBe(103000);
   });
 
-  it("returns effective wallet * leverage in hedge mode considering unrealized profit", () => {
+  it("returns position.size + effective wallet * leverage in hedge mode considering unrealized profit", () => {
     // LONG $5000 @ 50000, wallet=9500, price rose to 52000
     // closePnl = (52000-50000)/50000 * 5000 = 200
     // returnedMargin = 500
     // effectiveWallet = 9500 + 500 + 200 = 10200
-    // max = 10200 * 10 = 102000
+    // max = 5000 (close) + 10200 * 10 (new short) = 5000 + 102000 = 107000
     const position = {
       size: 5000,
       side: "long" as const,
       entry: 50000,
       leverage: 10,
     };
-    expect(calcSliderMax(position as any, 9500, 10, "short", false, 52000)).toBe(102000);
+    expect(calcSliderMax(position as any, 9500, 10, "short", false, 52000)).toBe(107000);
+  });
+
+  it("flip max includes existing position size — user-reported bug scenario", () => {
+    // LONG $50k @ 50000 (10x), wallet=$1000 remaining, no PnL
+    // returnedMargin = 50000/10 = 5000
+    // effectiveWallet = 1000 + 5000 + 0 = 6000
+    // max = 50000 (close) + 6000 * 10 (new short) = 50000 + 60000 = 110000
+    const position = {
+      size: 50000,
+      side: "long" as const,
+      entry: 50000,
+      leverage: 10,
+    };
+    expect(calcSliderMax(position as any, 1000, 10, "short", false, 50000)).toBe(110000);
   });
 
   it("returns wallet * leverage for same-side increase", () => {

@@ -67,9 +67,8 @@ describe("useOrderCapabilities — flip bug reproduction", () => {
     // closePnl = (52000-50000)/50000 * 5000 = 200
     // returnedMargin = 500
     // effectiveWallet = 9500 + 500 + 200 = 10200
-    // newMargin for 105000 @ 10x = 10500
-    // 10200 < 10500 → still false at 105k
-
+    // sliderMax = 5000 + 10200*10 = 107000
+    // At 105000: excessMargin = (105000-5000)/10 = 10000 ≤ 10200 → true
     const { result } = renderHook(() =>
       useOrderCapabilities(
         9500,
@@ -82,21 +81,62 @@ describe("useOrderCapabilities — flip bug reproduction", () => {
       )
     );
 
-    expect(result.current.canFlip).toBe(false);
+    expect(result.current.canFlip).toBe(true);
 
-    // But at 100000, newMargin = 10000, 10200 >= 10000 → true
+    // At sliderMax (107000): excessMargin = (107000-5000)/10 = 10200 = effectiveWallet → true
     const { result: result2 } = renderHook(() =>
       useOrderCapabilities(
         9500,
         position,
         "short",
         10,
-        100000,
+        107000,
         52000,
         false
       )
     );
 
     expect(result2.current.canFlip).toBe(true);
+
+    // Above sliderMax (107001): excessMargin = 10200.1 > 10200 → false
+    const { result: result3 } = renderHook(() =>
+      useOrderCapabilities(
+        9500,
+        position,
+        "short",
+        10,
+        107001,
+        52000,
+        false
+      )
+    );
+
+    expect(result3.current.canFlip).toBe(false);
+  });
+
+  it("canFlip is false when positionSize does not exceed existing position (reduce mode)", () => {
+    const position: Position = {
+      side: "long",
+      entry: 50000,
+      size: 5000,
+      leverage: 10,
+      liquidationPrice: 45000,
+      tpPrice: null,
+      slPrice: null,
+      trailingStopPercent: null,
+      trailingStopPrice: null,
+      entryTime: "now",
+      entryTimestamp: 0,
+      realizedPnL: 0,
+      maxDrawdown: 0,
+      peakUnrealizedPnl: 0,
+    };
+
+    // positionSize = 3000 ≤ position.size = 5000 → reduce, not flip
+    const { result } = renderHook(() =>
+      useOrderCapabilities(9500, position, "short", 10, 3000, 50000, false)
+    );
+
+    expect(result.current.canFlip).toBe(false);
   });
 });

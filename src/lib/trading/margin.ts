@@ -41,7 +41,8 @@ export function calcSliderMax(
     const closePnl = (priceDiff / position.entry) * position.size;
     const returnedMargin = position.size / position.leverage;
     const effectiveWallet = wallet + returnedMargin + closePnl;
-    return Math.max(100, Math.floor(effectiveWallet * safeLeverage));
+    // Slider represents total order: close (position.size) + open new position
+    return Math.max(100, Math.floor(position.size + effectiveWallet * safeLeverage));
   }
 
   return Math.max(100, Math.floor(wallet * safeLeverage));

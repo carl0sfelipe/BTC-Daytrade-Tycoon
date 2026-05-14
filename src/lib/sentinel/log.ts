@@ -12,6 +12,7 @@ export type EventLogConfig = {
 export function createEventLog(config: EventLogConfig) {
   let sequence = 0;
   let buffer: SentinelEvent[] = [];
+  let allEvents: SentinelEvent[] = [];
   let sealed = false;
   let flushTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -36,6 +37,7 @@ export function createEventLog(config: EventLogConfig) {
     };
 
     buffer.push(enriched);
+    allEvents.push(enriched);
 
     if (buffer.length >= config.maxSize) {
       flush();
@@ -75,7 +77,7 @@ export function createEventLog(config: EventLogConfig) {
   }
 
   function getEvents(): readonly SentinelEvent[] {
-    return Object.freeze([...buffer]);
+    return Object.freeze([...allEvents]);
   }
 
   return {

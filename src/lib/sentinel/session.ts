@@ -25,8 +25,8 @@ export function exportSentinelSession(
     header: {
       appVersion: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0",
       sentinelVersion: "0.1.0",
-      startTime: Date.now(),
-      initialClockTime: 0,
+      startTime: clock.now(),
+      initialClockTime: clock.now(),
       rngSeed: "", // TODO: capture Math.random seed if used
     },
     events,

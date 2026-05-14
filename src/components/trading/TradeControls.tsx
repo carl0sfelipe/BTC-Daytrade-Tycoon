@@ -53,9 +53,10 @@ export default function TradeControls() {
   // Handlers
   const recordLeverage = useTradeSentinel("trade-controls:leverage-selector", "spinbutton");
   const handleLeverageChange = (newLeverage: number) => {
-    state.setLeverage(newLeverage);
-    if (position) store.updateLeverage(newLeverage);
-    recordLeverage({ type: "change", value: newLeverage });
+    recordLeverage(() => {
+      state.setLeverage(newLeverage);
+      if (position) store.updateLeverage(newLeverage);
+    }, { type: "change", value: newLeverage });
   };
 
   const recordOpen = useTradeSentinel("trade-controls:button:Open Position", "button");
@@ -78,35 +79,36 @@ export default function TradeControls() {
       return;
     }
 
-    if (state.orderType === "limit") {
-      const li = parseFloat(state.limitPrice);
-      if (!li || li <= 0) {
-        useTradingStore.setState({ lastActionError: "Enter a valid limit price before placing the order" });
-        return;
+    recordOpen(() => {
+      if (state.orderType === "limit") {
+        const li = parseFloat(state.limitPrice);
+        if (!li || li <= 0) {
+          useTradingStore.setState({ lastActionError: "Enter a valid limit price before placing the order" });
+          return;
+        }
+        store.addPendingOrder({
+          side: state.side,
+          orderType: "open",
+          leverage: state.leverage,
+          size: state.positionSize,
+          tpPrice: state.tpPrice ? parseFloat(state.tpPrice) : null,
+          slPrice: state.slPrice ? parseFloat(state.slPrice) : null,
+          limitPrice: li,
+          orderPrice: null,
+        });
+        resetInputs();
+      } else {
+        store.openPosition(
+          state.side,
+          state.leverage,
+          state.positionSize,
+          state.tpPrice,
+          state.slPrice,
+          null
+        );
+        resetInputs();
       }
-      store.addPendingOrder({
-        side: state.side,
-        orderType: "open",
-        leverage: state.leverage,
-        size: state.positionSize,
-        tpPrice: state.tpPrice ? parseFloat(state.tpPrice) : null,
-        slPrice: state.slPrice ? parseFloat(state.slPrice) : null,
-        limitPrice: li,
-        orderPrice: null,
-      });
-      resetInputs();
-    } else {
-      store.openPosition(
-        state.side,
-        state.leverage,
-        state.positionSize,
-        state.tpPrice,
-        state.slPrice,
-        null
-      );
-      resetInputs();
-    }
-    recordOpen({ type: "click", side: state.side, orderType: state.orderType, leverage: state.leverage, size: state.positionSize });
+    }, { type: "click", side: state.side, orderType: state.orderType, leverage: state.leverage, size: state.positionSize });
   };
 
   const handleConfirmHighLeverage = () => {
@@ -116,58 +118,62 @@ export default function TradeControls() {
       ? parseFloat(state.pendingTrade.limitPrice)
       : null;
 
-    if (li && li > 0) {
-      store.addPendingOrder({
-        side: state.pendingTrade.side,
-        orderType: "open",
-        leverage: state.pendingTrade.leverage,
-        size: state.pendingTrade.size,
-        tpPrice: state.pendingTrade.tp ? parseFloat(state.pendingTrade.tp) : null,
-        slPrice: state.pendingTrade.sl ? parseFloat(state.pendingTrade.sl) : null,
-        limitPrice: li,
-        orderPrice: null,
-      });
-      resetInputs();
-    } else if (!state.pendingTrade.limitPrice) {
-      store.openPosition(
-        state.pendingTrade.side,
-        state.pendingTrade.leverage,
-        state.pendingTrade.size,
-        state.pendingTrade.tp,
-        state.pendingTrade.sl,
-        state.pendingTrade.limitPrice
-      );
-      state.setTpPrice("");
-      state.setSlPrice("");
-    }
+    recordOpen(() => {
+      if (li && li > 0) {
+        store.addPendingOrder({
+          side: state.pendingTrade!.side,
+          orderType: "open",
+          leverage: state.pendingTrade!.leverage,
+          size: state.pendingTrade!.size,
+          tpPrice: state.pendingTrade!.tp ? parseFloat(state.pendingTrade!.tp) : null,
+          slPrice: state.pendingTrade!.sl ? parseFloat(state.pendingTrade!.sl) : null,
+          limitPrice: li,
+          orderPrice: null,
+        });
+        resetInputs();
+      } else if (!state.pendingTrade!.limitPrice) {
+        store.openPosition(
+          state.pendingTrade!.side,
+          state.pendingTrade!.leverage,
+          state.pendingTrade!.size,
+          state.pendingTrade!.tp,
+          state.pendingTrade!.sl,
+          state.pendingTrade!.limitPrice
+        );
+        state.setTpPrice("");
+        state.setSlPrice("");
+      }
 
-    state.setPendingTrade(null);
+      state.setPendingTrade(null);
+    }, { type: "click", side: state.pendingTrade.side, orderType: li ? "limit" : "market", leverage: state.pendingTrade.leverage, size: state.pendingTrade.size });
   };
 
   const recordUpdate = useTradeSentinel("trade-controls:button:Update Position", "button");
   const recordClose = useTradeSentinel("trade-controls:button:Close Position", "button");
   const handleClose = () => {
-    store.closePosition("manual");
-    recordClose({ type: "click", reason: "manual" });
+    recordClose(() => {
+      store.closePosition("manual");
+    }, { type: "click", reason: "manual" });
   };
   const handleUpdate = () => {
     if (!position) return;
 
-    if (caps.isReduceMode && !reduceOnly) {
-      store.openPosition(state.side, state.leverage, state.positionSize, state.tpPrice, state.slPrice, null);
-      return;
-    }
+    recordUpdate(() => {
+      if (caps.isReduceMode && !reduceOnly) {
+        store.openPosition(state.side, state.leverage, state.positionSize, state.tpPrice, state.slPrice, null);
+        return;
+      }
 
-    const targetSize = caps.isReduceMode
-      ? position.size - state.positionSize
-      : position.size + state.positionSize;
+      const targetSize = caps.isReduceMode
+        ? position.size - state.positionSize
+        : position.size + state.positionSize;
 
-    if (targetSize <= 0) {
-      store.closePosition("manual");
-    } else {
-      store.updatePositionSize(targetSize, state.side);
-    }
-    recordUpdate({ type: "click", side: state.side, size: state.positionSize, isReduceMode: caps.isReduceMode });
+      if (targetSize <= 0) {
+        store.closePosition("manual");
+      } else {
+        store.updatePositionSize(targetSize, state.side);
+      }
+    }, { type: "click", side: state.side, size: state.positionSize, isReduceMode: caps.isReduceMode });
   };
 
   const resetInputs = () => {
@@ -183,12 +189,13 @@ export default function TradeControls() {
 
   const recordSideChange = useTradeSentinel("trade-controls:tablist:Side", "tab");
   const handleSideChange = (newSide: "long" | "short") => {
-    state.setSide(newSide);
-    if (!position || state.orderType !== "market") return;
+    recordSideChange(() => {
+      state.setSide(newSide);
+      if (!position || state.orderType !== "market") return;
 
-    const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
-    state.setPositionSize(Math.min(1000, newMax));
-    recordSideChange({ type: "select", side: newSide });
+      const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
+      state.setPositionSize(Math.min(1000, newMax));
+    }, { type: "select", side: newSide });
   };
 
   return (

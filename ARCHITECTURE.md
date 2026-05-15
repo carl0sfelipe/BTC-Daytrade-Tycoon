@@ -70,34 +70,57 @@ BTC-Daytrade-Tycoon/
 │   ├── components/
 │   │   ├── layout/             # Header, MarketStatus
 │   │   ├── trading/            # Core trading UI components
-│   │   └── ui/                 # shadcn/ui primitives (Button, Dialog, Slider, etc.)
+│   │   │   └── trade-controls/ # Sub-components extracted from TradeControls
+│   │   └── ui/                 # shadcn/ui primitives
 │   ├── hooks/
-│   │   ├── useTimewarpEngine.ts   # Simulation loop & data fetch
-│   │   ├── useTradingEngine.ts    # (legacy compat)
+│   │   ├── useTimewarpEngine.ts
+│   │   ├── useTradingEngine.ts
 │   │   ├── useBinancePrice.ts
 │   │   ├── useMarketVolatility.ts
 │   │   ├── useKeyboardShortcuts.ts
-│   │   └── use-mobile.tsx
+│   │   ├── use-mobile.tsx
+│   │   ├── trade-controls/     # Hooks specific to trade controls
+│   │   └── chart/              # Hooks specific to chart features
 │   ├── store/
-│   │   └── tradingStore.ts     # Zustand store + persist
+│   │   ├── tradingStore.ts     # Compositor: spread slices + persist
+│   │   ├── types.ts            # TradingStore = intersection of all slices
+│   │   ├── domain-types.ts     # Position, Trade, PendingOrder, OrderHistoryItem
+│   │   └── slices/             # Zustand slices
+│   │       ├── marketSlice.ts
+│   │       ├── sessionSlice.ts
+│   │       ├── historySlice.ts
+│   │       ├── uiSlice.ts
+│   │       ├── ordersSlice.ts
+│   │       └── positionSlice.ts
 │   ├── lib/
-│   │   ├── binance-api.ts      # Fetch + normalize + interpolate candles
-│   │   ├── fake-auth.ts        # Client-side fake auth
-│   │   └── utils.ts            # cn() helper
+│   │   ├── trading/            # Pure transition functions + validators
+│   │   │   ├── pnl.ts
+│   │   │   ├── margin.ts
+│   │   │   ├── validation.ts
+│   │   │   ├── position-builders.ts
+│   │   │   ├── transitions.ts
+│   │   │   ├── position-adjust.ts
+│   │   │   └── utils.ts
+│   │   ├── binance-api.ts
+│   │   ├── fake-auth.ts
+│   │   └── utils.ts
 │   ├── types/
-│   │   └── trading.ts          # Shared type definitions
+│   │   └── trading.ts
+│   ├── test/                   # Test helpers and factories
+│   │   ├── factories.ts
+│   │   ├── renderWithStore.tsx
+│   │   └── resetStore.ts
 │   └── utils/
 │       ├── priceCalc.ts
 │       ├── formatCurrency.ts
 │       ├── volatilityEngine.ts
 │       └── streak.ts
 ├── e2e/                        # Playwright specs
-│   ├── trading.spec.ts
-│   ├── date-reveal.spec.ts
-│   ├── manual-trading.spec.ts
-│   └── _helper.ts
 ├── public/
-│   └── chatgpt-extractor.js
+├── _bmad-output/               # BMad planning + party mode artifacts
+│   ├── planning-artifacts/
+│   ├── implementation-artifacts/
+│   └── party-mode-sessions/
 ├── next.config.mjs
 ├── tailwind.config.ts
 ├── playwright.config.ts
@@ -132,10 +155,10 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
 
 1. **Random Date Draw**
    ```ts
-   const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
-   const MAX_DATE = new Date("2020-12-31T00:00:00Z").getTime();
+   const MIN_DATE = new Date("2020-01-01T00:00:00Z").getTime();
+   const MAX_DATE = new Date("2025-12-31T00:00:00Z").getTime();
    ```
-   A random timestamp between these bounds is chosen.
+   A random timestamp between these bounds is chosen. Updated to 2020–2025 range.
 
 2. **Data Fetch**
    - `fetchCurrentPrice()` gets live BTC price from Binance.
@@ -167,8 +190,18 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
    const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
    ```
 
-6. **Interpolation**
-   `interpolatePrice(candles, simulatedTimeSec)` finds the two surrounding candles and linearly interpolates the price between their open values.
+6. **Interpolation & Wick Awareness**
+   `interpolatePrice(candles, simulatedTimeSec)` finds the two surrounding candles and linearly interpolates the price between their open values. However, this interpolation alone misses price action that occurs within candle wicks (e.g., a `low` far below the interpolated path).
+
+   To handle this, `processTick` also returns `candleLow` and `candleHigh` from the active candle:
+   ```ts
+   export interface TickResult {
+     price: number;
+     candleLow: number;
+     candleHigh: number;
+     // ... elapsedTime, marketTrend, volatility, etc.
+   }
+   ```
 
 7. **Metrics Update**
    - **Trend:** `calculateTrend` computes a 20-candle SMA and labels `bull` / `bear` / `neutral` (±1% threshold).
@@ -176,60 +209,102 @@ The simulation is driven by the `useTimewarpEngine` hook. It orchestrates data f
    - **History:** Rolling `priceHistory` array (last 50 closes) is maintained for sparklines.
 
 8. **Position Checks**
-   Every tick calls `store.checkPosition(price)`, which evaluates TP, SL, and liquidation conditions.
+   Every tick calls `store.checkPosition(price, candleLow, candleHigh)`, which evaluates TP, SL, and liquidation conditions against **both** the interpolated price and the candle's wick range. This ensures that liquidations and stop-losses triggered by intra-candle price action are never missed.
+
+   ```ts
+   // Long liquidation: effectiveLow = min(currentPrice, candleLow)
+   if (side === "long" && effectiveLow <= liquidationPrice) { ... }
+
+   // Short liquidation: effectiveHigh = max(currentPrice, candleHigh)
+   if (side === "short" && effectiveHigh >= liquidationPrice) { ... }
+   ```
 
 ---
 
 ## State Management (Zustand)
 
-The store lives in `src/store/tradingStore.ts`. It uses Zustand's `persist` middleware with the key `trading-storage`.
+The store uses the **Slice + Pure Transitions** pattern. It lives in `src/store/tradingStore.ts` as a thin compositor, with domain logic split across slices and pure transition functions.
 
-### Store Shape
+```
+src/store/
+├── tradingStore.ts          # Compositor: spread slices + persist middleware
+├── types.ts                 # TradingStore = intersection of all slices
+├── domain-types.ts          # Position, Trade, PendingOrder, OrderHistoryItem
+└── slices/
+    ├── marketSlice.ts       # Price, volatility, trend, priceHistory
+    ├── sessionSlice.ts      # Wallet, difficulty, leverage, onboarding flags
+    ├── historySlice.ts      # closedTrades, realizedPnL
+    ├── uiSlice.ts           # isLoading, lastCloseReason, isLiquidated, errors
+    ├── ordersSlice.ts       # pendingOrders, ordersHistory, checkPendingOrders
+    └── positionSlice.ts     # position + actions (thin orchestrator)
+```
+
+Pure transition functions live in `src/lib/trading/`:
+- `transitions.ts` — `computeClosePosition`, `computeHedgeFlip`, `computeReduceOrClose`, `computeFreshOpen`
+- `position-adjust.ts` — `computePartialReduce`, `computeAddToPosition`, `computeSizeIncrease`
+- `validation.ts` — `validateTpSl`, `validateTpSlCurrentPrice`, `validateOpenPosition`
+- `position-builders.ts` — `buildTrade`, `buildNewPosition`, `buildOrderHistoryItem`, `buildPendingOrder`
+
+A transition function receives a typed snapshot and returns a `Partial<TradingStore>` patch. No side effects. No `set`/`get`.
+
+### Why This Pattern
+
+- **API Freeze:** `useTradingStore((s) => s.xxx)` selectors in 40+ components never change.
+- **Testability:** Pure transitions are tested in isolation without Zustand mocks.
+- **SRP:** Each slice owns one domain. Files stay under 500 lines.
+- **Cross-slice calls:** `ordersSlice.checkPendingOrders()` calls `get().closePosition("tp")` at runtime — Zustand composes all slices before any action runs.
+
+### Persist Config
 
 ```ts
-interface TradingStore {
-  price: number;                    // Current simulated BTC price
-  currentPrice: number;             // Alias synced with price
-  volatility: number;               // Computed over last 24 candles
-  marketTrend: "bull" | "bear" | "neutral";
-  priceHistory: number[];           // Last 50 prices for sparklines
+persist(combinedSlices, {
+  name: "trading-storage",
+  version: 1,
+  migrate: (persistedState) => {
+    // Clear transient state on hydration
+    return { ...persistedState, position: null, pendingOrders: [] };
+  },
+  partialize: (state) => ({
+    wallet, hasSeenOnboarding, skipHighLeverageWarning, reduceOnly,
+    closedTrades, realizedPnL, ordersHistory,
+    difficulty, maxLeverage, startingWallet,
+  }),
+})
+```
 
-  wallet: number;                   // Free balance (starts at $10,000)
-  position: Position | null;        // Active position
-  activePositions: Position[];      // Historical array of open positions
-  closedTrades: Trade[];            // Closed trade history
-  pendingOrders: PendingOrder[];    // Active limit orders waiting for price
-  ordersHistory: OrderHistoryItem[]; // Complete order log (pending/filled/canceled)
-  realizedPnL: number;              // Session-wide realized P&L from partial closes
-  reduceOnly: boolean;              // true = one-way mode (default), false = hedge mode
+Intentionally **does not persist:** `position`, `pendingOrders`, `isLiquidated`, `simulationRealDate`.
 
-  isLiquidated: boolean;
-  simulationRealDate: string | null; // Revealed on end/liquidation
-  hasSeenOnboarding: boolean;
-  lastCloseReason: string | null;
+### Dev Debug Hook
 
-  // Actions
-  openPosition(side, leverage, size, tpPrice, slPrice, limitPrice): void;
-  closePosition(reason?): void;
-  addToPosition(additionalSize, price, tpPrice, slPrice): void;
-  reducePosition(reducedSize, price): void;
-  updatePositionSize(newSize, orderSide?): void;
-  updateLeverage(newLeverage): void;
-  checkPosition(currentPrice): { closed: boolean; reason? };
-  addPendingOrder(order): void;
-  cancelPendingOrder(id): void;
-  checkPendingOrders(currentPrice): void;
-  clearOrdersHistory(): void;
-  setLiquidated(date): void;
-  clearLiquidated(): void;
-  setOnboardingSeen(): void;
-  setReduceOnly(value): void;
+In non-production builds, the store is exposed globally:
+
+```ts
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as any).__tradingStore = useTradingStore;
 }
 ```
 
-### Position Interface
+This is actively used by E2E tests to inject positions for liquidation scenarios.
+
+### Store Shape
+
+`TradingStore` is the intersection of all slices. See `src/store/types.ts` for the full type, and `src/store/domain-types.ts` for domain interfaces.
 
 ```ts
+// src/store/types.ts
+type TradingStore =
+  MarketSlice &
+  SessionSlice &
+  HistorySlice &
+  UISlice &
+  OrdersSlice &
+  PositionSlice;
+```
+
+### Key Domain Types
+
+```ts
+// src/store/domain-types.ts
 interface Position {
   side: "long" | "short";
   entry: number;
@@ -237,34 +312,26 @@ interface Position {
   leverage: number;
   tpPrice: number | null;
   slPrice: number | null;
+  trailingStopPercent: number | null;
+  trailingStopPrice: number | null;
   liquidationPrice: number;
   entryTime: string;
+  entryTimestamp: number;
   realizedPnL: number;
 }
 
-interface PendingOrder {
-  id: string;
+interface Trade {
+  pnl: number;
   side: "long" | "short";
-  leverage: number;
+  reason: "manual" | "tp" | "sl" | "liquidation" | "trailing_stop";
+  entryPrice: number;
+  exitPrice: number;
   size: number;
-  tpPrice: number | null;
-  slPrice: number | null;
-  limitPrice: number;
-  createdAt: string;
-}
-
-interface OrderHistoryItem {
-  id: string;
-  side: "long" | "short";
-  type: "market" | "limit";
-  status: "pending" | "filled" | "canceled";
   leverage: number;
-  size: number;
-  price: number;
-  tpPrice: number | null;
-  slPrice: number | null;
-  createdAt: string;
-  updatedAt: string | null;
+  margin: number;
+  entryTime: string;
+  exitTime: string;
+  durationSeconds: number;
 }
 ```
 
@@ -282,7 +349,7 @@ This is actively used by E2E tests to inject positions for liquidation scenarios
 
 ### Debug Logging
 
-All user actions (open, update, close, pause, resume, end, cancel order, etc.) are logged to the console with full store state context via `formatStoreState()`. In production, these logs are stripped by tree-shaking.
+`formatStoreState()` was removed during the slice refactor. Debug is done via `window.__tradingStore` in dev mode.
 
 ---
 
@@ -445,7 +512,21 @@ Playwright tests live in `e2e/`.
 | `trading.spec.ts` | `TRADING-01` | Full simulation journey: skip onboarding, loader, chart advancing, pause, new session. |
 | `date-reveal.spec.ts` | `DATE-REVEAL` | End button reveals date modal; liquidation modal reveals date via `__tradingStore` injection. |
 | `manual-trading.spec.ts` | — | Position lifecycle: open LONG 10× at 50%, increase via slider, decrease via slider, close via panel. |
+| `limit-orders.spec.ts` | `LIMIT-ORDERS` | Create, cancel, and execute limit orders; verify reduction and execution logic. |
+| `hedge-mode.spec.ts` | `HEDGE-MODE` | Reduce Only toggle, flip position, and opposite-order behavior. |
 | `production-bar.spec.ts` | — | Smoke test against live Vercel deployment verifying the distance-to-liquidation bar moves as price changes during simulation. |
+
+### Testing Pyramid
+
+The project follows a **3-level testing strategy**:
+
+| Level | Tool | Responsibility | When to write |
+|-------|------|----------------|---------------|
+| **Unit** | Vitest + RTL | Pure transitions, validators, builders, hooks in isolation | Every new function / bug fix |
+| **Integration** | Vitest | Engine + Store + candles together; tick-by-tick simulation | Every bug in trading logic |
+| **E2E** | Playwright | Full user flows via UI | Every user-facing feature / critical path |
+
+**Rule:** A bug fix in trading logic must include at minimum a unit test + an integration test. E2E is required when the bug is reproducible via UI interaction.
 
 ### Test Helpers
 

@@ -2,59 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  fetchCurrentPrice,
   fetchCandles,
-  interpolatePrice,
-  calculateTrend,
-  calculateVolatility,
   normalizeCandlesToBasePrice,
-  type BinanceCandle,
+  normalizeCandlesWithContinuity,
   type SimulatedCandle,
 } from "@/lib/binance-api";
 import { useTradingStore } from "@/store/tradingStore";
-import { DIFFICULTY_PRESETS } from "@/lib/difficulty";
+import {
+  formatRealDate,
+} from "@/lib/engine/time-formatters";
+import { loadSession } from "@/lib/engine/session-loader";
+import { processTick, detectLiquidation } from "@/lib/engine/tick-processor";
+import { tickEventLog, resetTickEventLog } from "@/lib/engine/tick-events";
+import { useE2EHelpers } from "@/hooks/engine/useE2EHelpers";
+import { logger, diag } from "@/lib/logger";
+import type { BinanceCandle } from "@/lib/binance-api";
+import { createWallClock } from "@/lib/sentinel";
+import type { VirtualClock } from "@/lib/sentinel";
 
-const SPEED_MULTIPLIER = 60; // 1 real min = 1 simulated hour
-const TICK_MS = 100; // updates every 100ms
-const HISTORY_OFFSET_CANDLES = 30; // pre-loaded candles as visible history
-const FETCH_AHEAD_MINUTES = 300; // fetch more data when < 5 hours remain
-
-// Draw window: 12/01/2017 to 12/31/2025
-const MIN_DATE = new Date("2017-12-01T00:00:00Z").getTime();
-const MAX_DATE = new Date("2025-12-31T00:00:00Z").getTime();
-
-function randomDate(): Date {
-  const ts = MIN_DATE + Math.random() * (MAX_DATE - MIN_DATE);
-  return new Date(ts);
-}
-
-function formatRealDate(d: Date): string {
-  return d.toLocaleString("en-US", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatElapsedTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-}
-
-function formatDuration(minutes: number): string {
-  const days = Math.floor(minutes / 1440);
-  const hours = Math.floor((minutes % 1440) / 60);
-  const mins = Math.floor(minutes % 60);
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
-  return parts.join(" ");
-}
+const TICK_MS = 100;
 
 export interface UseTimewarpEngineReturn {
   isLoading: boolean;
@@ -67,6 +33,7 @@ export interface UseTimewarpEngineReturn {
   error: string | null;
   realDateRange: string;
   simulatedHistoricalTime: string;
+  clock: VirtualClock;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -86,15 +53,13 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const historicalCandlesRef = useRef<BinanceCandle[]>([]);
   const startDateRef = useRef<Date | null>(null);
   const originalStartDateRef = useRef<Date | null>(null);
-  const simulationStartRealTimeRef = useRef<number>(0);
+  const clockRef = useRef<VirtualClock>(createWallClock());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const candlesRef = useRef<SimulatedCandle[]>([]);
   const isPlayingRef = useRef(false);
   const isFetchingMoreRef = useRef(false);
-  const basePriceRef = useRef<number>(0);
   const hasLiquidatedRef = useRef(false);
-  const elapsedTimeRef = useRef("00:00:00");
   const mountedRef = useRef(true);
   const startSimulationRef = useRef<(() => void) | null>(null);
 
@@ -102,42 +67,14 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
   const storeCheckPosition = useTradingStore((s) => s.checkPosition);
   const storeCheckPendingOrders = useTradingStore((s) => s.checkPendingOrders);
 
-  // Keeps ref synchronized with state
-  useEffect(() => {
-    candlesRef.current = candles;
-  }, [candles]);
+  useEffect(() => { candlesRef.current = candles; }, [candles]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
-    elapsedTimeRef.current = elapsedTime;
-  }, [elapsedTime]);
-
-  const resetStore = useCallback(() => {
-    const { difficulty } = useTradingStore.getState();
-    const preset = DIFFICULTY_PRESETS[difficulty];
-    useTradingStore.setState({
-      price: 0,
-      currentPrice: 0,
-      volatility: 1.5,
-      marketTrend: "neutral",
-      priceHistory: [],
-      wallet: preset.wallet,
-      startingWallet: preset.wallet,
-      closedTrades: [],
-      realizedPnL: 0,
-      reduceOnly: true,
-      position: null,
-
-      isLoading: false,
-      isLiquidated: false,
-      simulationRealDate: null,
-      pendingOrders: [],
-      ordersHistory: [],
-      lastCloseReason: null,
-    });
+  const clearTickInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
   const appendMoreCandles = useCallback(async () => {
@@ -145,242 +82,221 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     isFetchingMoreRef.current = true;
 
     try {
-      const lastHistCandle = historicalCandlesRef.current[historicalCandlesRef.current.length - 1];
-      if (!lastHistCandle) return;
+      const lastHist = historicalCandlesRef.current[historicalCandlesRef.current.length - 1];
+      if (!lastHist) {
+        diag.warn("appendMoreCandles: no historical candles to append from");
+        return;
+      }
 
-      const nextStart = new Date(lastHistCandle.closeTime + 1);
+      const nextStart = new Date(lastHist.closeTime + 1);
+      diag.log(`appendMoreCandles: fetching from ${nextStart.toISOString()}`);
       const newHistorical = await fetchCandles(nextStart);
 
       if (newHistorical.length === 0) {
-        // No more historical data available — pause and show error
+        logger.log("[useTimewarpEngine] appendMoreCandles — no more data");
+        diag.log("appendMoreCandles: no more data, stopping simulation");
         setIsPlaying(false);
-        if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+        clearTickInterval();
         setError("No more historical data available for this period.");
         return;
       }
 
-      // Append to historical ref
+      logger.log(`[useTimewarpEngine] appendMoreCandles — +${newHistorical.length} candles`);
+      diag.log(`appendMoreCandles: got ${newHistorical.length} raw candles`);
+
       historicalCandlesRef.current = [...historicalCandlesRef.current, ...newHistorical];
+      const lastExisting = candlesRef.current[candlesRef.current.length - 1];
+      const lastClose = lastExisting?.close ?? candlesRef.current[0]?.open ?? 0;
+      diag.log(`appendMoreCandles: lastExistingClose=${lastClose}, existingCount=${candlesRef.current.length}`);
 
-      // Normalize using the SAME base price so the chart stays continuous
-      const basePrice = basePriceRef.current;
-      const newSimulated = normalizeCandlesToBasePrice(newHistorical, basePrice);
-
-      // Append to simulated candles
+      const newSimulated = normalizeCandlesWithContinuity(newHistorical, lastClose);
       const updated = [...candlesRef.current, ...newSimulated];
       setCandles(updated);
       candlesRef.current = updated;
+      diag.log(`appendMoreCandles: total candles now=${updated.length}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch more data";
+      diag.error(`appendMoreCandles: ${msg}`);
       setError(msg);
     } finally {
       isFetchingMoreRef.current = false;
     }
-  }, []);
+  }, [clearTickInterval]);
 
-  const loadSession = useCallback(async () => {
+  const doLoad = useCallback(async () => {
+    logger.log("[useTimewarpEngine] loadSession starting...");
+    diag.log("doLoad: starting session load");
     setIsLoading(true);
-    setError(null);
-    setIsPlaying(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    const result = await loadSession({
+      setLoadingMessage,
+      setError,
+    });
 
-    try {
-      setLoadingMessage("Fetching current BTC price...");
-      const currentPrice = await fetchCurrentPrice();
-      basePriceRef.current = currentPrice;
-
-      setLoadingMessage("Drawing historical scenario...");
-      const startDate = randomDate();
-      startDateRef.current = startDate;
-      originalStartDateRef.current = startDate;
-
-      setLoadingMessage("Downloading historical data from Binance...");
-      const historicalCandles = await fetchCandles(startDate);
-      historicalCandlesRef.current = historicalCandles;
-
-      if (historicalCandles.length === 0) {
-        throw new Error("No data returned by Binance");
-      }
-
-      setLoadingMessage("Preparing simulation...");
-      const simulated = normalizeCandlesToBasePrice(historicalCandles, currentPrice);
-      setCandles(simulated);
-      candlesRef.current = simulated;
-
-      // Starts simulation with history already visible (offset candles already formed)
-      const offsetIdx = Math.min(HISTORY_OFFSET_CANDLES, simulated.length - 1);
-      const simStartDate = new Date(simulated[offsetIdx].time * 1000);
-      startDateRef.current = simStartDate;
-
-      const initialPrice = simulated[offsetIdx].open;
-      setCurrentPrice(initialPrice);
-      setCurrentTimeSec(simulated[offsetIdx].time);
-
-      resetStore();
-      useTradingStore.setState({
-        price: initialPrice,
-        currentPrice: initialPrice,
-        priceHistory: simulated.slice(0, Math.min(50, simulated.length)).map((c) => c.close),
-      });
-
+    if (result) {
+      logger.log(`[useTimewarpEngine] loadSession complete — ${result.simulated.length} candles, start=${result.originalStartDate.toISOString()}`);
+      diag.log(`doLoad: ${result.simulated.length} candles loaded, initialPrice=${result.initialPrice}`);
+      historicalCandlesRef.current = result.historicalCandles;
+      startDateRef.current = result.startDate;
+      originalStartDateRef.current = result.originalStartDate;
+      setCandles(result.simulated);
+      candlesRef.current = result.simulated;
+      setCurrentPrice(result.initialPrice);
+      setCurrentTimeSec(result.initialTimeSec);
       setElapsedTime("00:00:00");
-      setLoadingMessage("");
       setIsLoading(false);
+      setLoadingMessage("");
 
-      // Auto-start (with delay for React to render the initial state)
       autoStartTimeoutRef.current = setTimeout(() => {
         if (candlesRef.current.length > 0 && mountedRef.current) {
+          diag.log("doLoad: auto-starting simulation");
           startSimulationRef.current?.();
         }
       }, 500);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg);
-      setLoadingMessage("");
+    } else {
+      logger.log("[useTimewarpEngine] loadSession failed");
+      diag.error("doLoad: loadSession returned null/undefined");
       setIsLoading(false);
+      setLoadingMessage("");
     }
-  }, [resetStore]);
+  }, []);
 
   const tick = useCallback(() => {
     try {
-      const startDate = startDateRef.current;
-      const currentCandles = candlesRef.current;
-      if (!currentCandles.length || !startDate) return;
+      const tickResult = processTick({
+        startDate: startDateRef.current,
+        currentCandles: candlesRef.current,
+        clock: clockRef.current,
+      });
 
-      const realElapsedMs = Date.now() - simulationStartRealTimeRef.current;
-      const simulatedElapsedMs = realElapsedMs * SPEED_MULTIPLIER;
-      const simulatedTimeMs = startDate.getTime() + simulatedElapsedMs;
-      const simulatedTimeSec = Math.floor(simulatedTimeMs / 1000);
+      if ("error" in tickResult) return;
 
-      const lastCandle = currentCandles[currentCandles.length - 1];
-
-      // Check if we need to fetch more data (< 5 hours remaining)
-      const minutesRemaining = (lastCandle.time - simulatedTimeSec) / 60;
-      if (minutesRemaining < FETCH_AHEAD_MINUTES / SPEED_MULTIPLIER && !isFetchingMoreRef.current) {
+      if (tickResult.shouldFetchMore && !isFetchingMoreRef.current) {
         appendMoreCandles();
       }
 
-      // Updates elapsed time
-      const totalSeconds = Math.floor(realElapsedMs / 1000);
-      setElapsedTime(formatElapsedTime(totalSeconds));
-      setCurrentTimeSec(simulatedTimeSec);
-
-      // Accumulated historical time covered (seconds of historical data simulated)
-      const historicalSeconds = simulatedTimeSec - Math.floor(startDate.getTime() / 1000);
-      setSimulatedHistoricalTime(formatDuration(Math.max(0, historicalSeconds / 60)));
-
-      const price = interpolatePrice(currentCandles, simulatedTimeSec);
-      const trend = calculateTrend(currentCandles, price);
-      const volatility = calculateVolatility(currentCandles);
-      setCurrentPrice(price);
+      setElapsedTime(tickResult.elapsedTime);
+      setCurrentTimeSec(tickResult.currentTimeSec);
+      setSimulatedHistoricalTime(tickResult.simulatedHistoricalTime);
+      setCurrentPrice(tickResult.price);
 
       useTradingStore.setState({
-        price,
-        currentPrice: price,
-        marketTrend: trend,
-        volatility,
+        price: tickResult.price,
+        currentPrice: tickResult.price,
+        marketTrend: tickResult.marketTrend,
+        volatility: tickResult.volatility,
       });
 
-      storeAddPriceHistory(price);
+      storeAddPriceHistory(tickResult.price);
 
-      // Checks pending limit orders
-      storeCheckPendingOrders(price);
+      const pendingBefore = useTradingStore.getState().pendingOrders.length;
+      storeCheckPendingOrders(tickResult.price, tickResult.candleLow, tickResult.candleHigh);
+      const pendingAfter = useTradingStore.getState().pendingOrders.length;
 
-      // Checks liquidation / SL / TP (skip if already liquidated)
       if (hasLiquidatedRef.current) return;
-      const checkResult = storeCheckPosition(price);
-      if (checkResult.closed && checkResult.reason === "liquidation" && originalStartDateRef.current) {
+      const checkResult = storeCheckPosition(tickResult.price, tickResult.candleLow, tickResult.candleHigh);
+
+      const checks: Array<import("@/lib/engine/tick-events").TickCheck> = [];
+
+      if (pendingBefore !== pendingAfter) {
+        checks.push({ type: "pending_orders", triggered: true, details: { before: pendingBefore, after: pendingAfter } });
+      }
+
+      if (checkResult.closed && checkResult.reason && checkResult.reason !== "manual") {
+        checks.push({ type: checkResult.reason, triggered: true });
+      }
+
+      tickEventLog.push({
+        simulatedTimeSec: tickResult.currentTimeSec,
+        price: tickResult.price,
+        candleLow: tickResult.candleLow,
+        candleHigh: tickResult.candleHigh,
+        checks,
+      });
+
+      const liq = detectLiquidation({
+        checkResult,
+        originalStartDate: originalStartDateRef.current,
+        currentCandles: candlesRef.current,
+      });
+
+      if (liq.liquidationDetected) {
         hasLiquidatedRef.current = true;
-        const endDate = new Date(originalStartDateRef.current.getTime() + (candlesRef.current.length - 1) * 60_000);
-        const dateRange = `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(endDate)}`;
-        useTradingStore.setState({ simulationRealDate: dateRange, isLiquidated: true });
+        useTradingStore.setState({
+          simulationRealDate: liq.simulationRealDate,
+          isLiquidated: true,
+        });
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Simulation error";
+      logger.error("[useTimewarpEngine] tick error:", msg);
       setIsPlaying(false);
       isPlayingRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      setError(err instanceof Error ? err.message : "Simulation error");
+      clearTickInterval();
+      setError(msg);
     }
-  }, [storeAddPriceHistory, storeCheckPosition, appendMoreCandles]);
+  }, [storeAddPriceHistory, storeCheckPosition, storeCheckPendingOrders, appendMoreCandles, clearTickInterval]);
 
   const startSimulation = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    simulationStartRealTimeRef.current = Date.now();
+    logger.log("[useTimewarpEngine] startSimulation");
+    clearTickInterval();
+    clockRef.current = createWallClock();
     setIsPlaying(true);
     isPlayingRef.current = true;
     intervalRef.current = setInterval(tick, TICK_MS);
-  }, [tick]);
+  }, [tick, clearTickInterval]);
 
   useEffect(() => {
     startSimulationRef.current = startSimulation;
   }, [startSimulation]);
 
   const pause = useCallback(() => {
+    logger.log("[useTimewarpEngine] pause");
     setIsPlaying(false);
     isPlayingRef.current = false;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
+    clearTickInterval();
+  }, [clearTickInterval]);
 
   const start = useCallback(() => {
+    logger.log("[useTimewarpEngine] resume");
     if (!isPlayingRef.current && candlesRef.current.length > 0) {
-      // Resume from where we paused
-      if (elapsedTimeRef.current !== "00:00:00") {
-        const parts = elapsedTimeRef.current.split(":").map(Number);
-        const elapsedSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
-        simulationStartRealTimeRef.current = Date.now() - elapsedSec * 1000;
+      if (elapsedTime !== "00:00:00") {
+        const [h, m, s] = elapsedTime.split(":").map(Number);
+        const elapsedSec = h * 3600 + m * 60 + s;
+        clockRef.current = createWallClock();
+        clockRef.current.advance(-elapsedSec * 1000);
       } else {
-        simulationStartRealTimeRef.current = Date.now();
+        clockRef.current = createWallClock();
       }
       setIsPlaying(true);
       isPlayingRef.current = true;
       intervalRef.current = setInterval(tick, TICK_MS);
     }
-  }, [tick]);
+  }, [tick, elapsedTime]);
 
   const reset = useCallback(() => {
+    logger.log("[useTimewarpEngine] reset");
+    hasLiquidatedRef.current = false;
+    resetTickEventLog();
     pause();
-    loadSession();
-  }, [pause, loadSession]);
+    doLoad();
+  }, [pause, doLoad]);
 
   useEffect(() => {
     mountedRef.current = true;
     hasLiquidatedRef.current = false;
-    loadSession();
+    doLoad();
     return () => {
       mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      clearTickInterval();
       if (autoStartTimeoutRef.current) {
         clearTimeout(autoStartTimeoutRef.current);
         autoStartTimeoutRef.current = null;
       }
     };
-  }, [loadSession]);
+  }, [doLoad, clearTickInterval]);
 
-  // Expose engine control for E2E tests
-  useEffect(() => {
-    if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_ENABLE_E2E_HELPERS === "true") {
-      (window as Window & { __timewarpEngine?: { pause: () => void; start: () => void; reset: () => void } }).__timewarpEngine = { pause, start, reset };
-    }
-    return () => {
-      if (typeof window !== "undefined") {
-        delete (window as Window & { __timewarpEngine?: unknown }).__timewarpEngine;
-      }
-    };
-  }, [pause, start, reset]);
+  useE2EHelpers({ pause, start, reset });
 
-  // realDateRange shows start → current simulated end date
   const realDateRange = originalStartDateRef.current
     ? `${formatRealDate(originalStartDateRef.current)} → ${formatRealDate(new Date(currentTimeSec * 1000))}`
     : "";
@@ -396,6 +312,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     error,
     realDateRange,
     simulatedHistoricalTime,
+    clock: clockRef.current,
     start,
     pause,
     reset,

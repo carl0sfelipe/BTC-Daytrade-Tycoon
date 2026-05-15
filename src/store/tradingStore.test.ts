@@ -678,7 +678,7 @@ describe("TradingStore — updateLeverage", () => {
 
     const pos = useTradingStore.getState().position;
     expect(pos!.leverage).toBe(20);
-    expect(pos!.liquidationPrice).toBe(47500); // 50000 * (1 - 1/20)
+    expect(pos!.liquidationPrice).toBe(0); // total collateral (50 + 9950) >= size (1000)
   });
 
   it("refunds margin diff on leverage increase", () => {

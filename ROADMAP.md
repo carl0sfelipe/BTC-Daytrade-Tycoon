@@ -6,7 +6,22 @@ A Next.js 14 TimeWarp Trading Simulator that drops users into real historical Bi
 
 ---
 
-## Phase 1 — Polish & Stability *(Current)*
+## Phase 0 — Quality Hardening *(Current — May 2026)*
+
+Post-bug-fix stabilization. Every feature below was driven by production bugs.
+
+- [x] **Wick-aware liquidation** — `checkPosition` now evaluates `candleLow`/`candleHigh` so intra-candle price action never misses a liquidation.
+- [x] **Wick-aware limit orders** — `checkPendingOrders` executes limit orders touched by candle wicks, not just interpolated price.
+- [x] **Effective-wallet slider max** — `calcSliderMax` accounts for unrealized PnL, preventing "Insufficient funds" after the user drags to max.
+- [x] **Landing page real links** — Replaced `router.push()` buttons with Next.js `<Link>` for SEO, accessibility, and native browser behavior.
+- [x] **Integration test suite** — `tradingStore.integration.test.ts`, `wick-scenarios.test.ts`, `tick-processor.test.ts`, and `golden-ticks.ts` (20 scenarios).
+- [x] **Contract tests** — Cross-layer compatibility guarantees between engine, store, and transitions.
+- [x] **CI pipeline** — GitHub Actions with unit, integration, build, and typecheck jobs.
+- [x] **Testing Strategy docs** — `TESTING_STRATEGY.md`, `CONTRACT_TESTS.md`, and `CHANGELOG_2026-05-12.md`.
+
+---
+
+## Phase 1 — Polish & Stability *(Shipped)*
 
 The foundation. These are shipped and battle-tested.
 
@@ -21,7 +36,7 @@ The foundation. These are shipped and battle-tested.
 - [x] **TP/SL in Simple Mode** — Take Profit and Stop Loss inputs visible in both Simple and Advanced trade modes.
 - [x] **Limit Price Stepper** — Quick-adjust limit price with configurable step sizes ($1–$100 + custom).
 - [x] **Responsive Layout** — Header, MarketStatus, SimulationClock, and PnLDisplay adapt to smaller screens.
-- [x] **Unit Test Suite** — 65+ Vitest tests covering store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
+- [x] **Unit Test Suite** — 354+ Vitest tests covering store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
 
 ---
 
@@ -34,8 +49,24 @@ Make every session feel unique, replayable, and competitive.
 - [ ] **Streak system** — Track consecutive profitable sessions; display fire streak badges.
 - [ ] **Daily challenge** — Everyone gets the same random historical day. Compete for best PnL on identical price action.
 - [x] **Position partial close** — Close X% of a position instead of all-or-nothing exits (via `reducePosition()` on opposite-side limit orders).
-- [ ] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
+- [x] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
 - [x] **Reduce Only / Hedge Mode toggle** — `Reduce Only` (default, one-way): opposite-side orders reduce or close the existing position only. When unchecked (hedge mode): opposite-side orders can open a new position on the other side if the size exceeds the current position (e.g., long $50k + short $70k = close long + open short $20k).
+
+### Simulation Realism
+
+- [ ] **Realistic intra-candle price path** — Today the simulated tick price moves linearly from `open → close` inside each candle; the `high` and `low` only show up as wicks the live price never actually reaches. Replace the linear interpolation with a randomized path that *visits both extremes* before the close: either `open → low → high → close` or `open → high → low → close`, with the order picked per candle (Binance OHLC doesn't disclose which extreme came first, so randomness is the honest choice).
+  - **Why:** current behavior breaks immersion and trader intuition — wicks form on the chart, but the live price never touches them, so liquidations and limit-order fills that "obviously" should happen near a wick feel arbitrary and disconnected from what the eye sees.
+  - **Touchpoints:** `src/lib/binance-api.ts::interpolatePrice`, `src/lib/engine/tick-processor.ts`, `src/hooks/useTimewarpEngine.ts` (tick scheduling).
+  - **Open questions:** (a) deterministic per-candle seeding so session replays and shared links reproduce the same path; (b) doji-like candles where `high ≈ low ≈ open ≈ close` — degenerate to current linear behavior; (c) whether to drive liquidation/limit triggers off the new simulated path or keep the existing wick-aware checks (low-risk to keep them, since the path still passes through both extremes — but timing of the trigger may shift, which is part of the realism win).
+  - **Non-goals:** modeling true tick-level micro-structure (volume profile, order-book pressure). Two extrema visited in random order is enough to fix the visual disconnect.
+
+### Metrics & Telemetry
+
+- [ ] **Max Drawdown tracking** — Track the worst peak-to-trough decline (as a negative %) for every open position. Updated on every tick. Shown in PositionPanel and included in trade history. Critical metric for prop firm partnerships and trader scoring.
+- [ ] **Structured telemetry pipeline** — `src/lib/telemetry/` with batch queue, retry logic, and anonymization (hashed IDs, rounded wallets, truncated timestamps). Separate streams for trade events (自建) and product analytics (PostHog).
+- [ ] **Trader Score algorithm** — Composite score based on win rate, Sharpe-like ratio, max drawdown, and consistency. Enables future monetization via prop firm referrals.
+
+> **💡 Insight on Max Drawdown:** This single metric separates hobbyists from professionals. A trader with +50% return and -40% max drawdown is considered high-risk. A trader with +30% return and -5% max drawdown is considered disciplined. Prop firms use this ratio (return / |drawdown|) as their primary hiring signal. For us, it unlocks a data product: "anonymized drawdown patterns of profitable traders" is worth $2k–$5k/month to hedge funds.
 
 ### Chart Trading Overlays *(Visual trading directly on the chart)*
 

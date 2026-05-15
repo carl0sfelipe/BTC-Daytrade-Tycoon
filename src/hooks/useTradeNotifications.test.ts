@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useTradeNotifications } from "./useTradeNotifications";
 import { useTradingStore } from "@/store/tradingStore";
-import { makePosition, makeTrade } from "@/test/factories";
+import { makePosition, makeTrade } from "@/test/helpers";
 
 const mockToast = vi.fn();
 

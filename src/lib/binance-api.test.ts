@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { interpolatePrice } from "./binance-api";
-import type { SimulatedCandle } from "./binance-api";
+import {
+  interpolatePrice,
+  normalizeCandlesWithContinuity,
+  MAX_CANDLE_GAP_RATIO,
+} from "./binance-api";
+import type { SimulatedCandle, BinanceCandle } from "./binance-api";
 
 const makeCandle = (time: number, open: number, close: number): SimulatedCandle => ({
   time, open, close, high: Math.max(open, close), low: Math.min(open, close), volume: 100,
@@ -58,5 +62,89 @@ describe("interpolatePrice", () => {
     const candles = [makeCandle(0, 55000, 54000), makeCandle(60, 50000, 49000)];
     // at t=30 → 55000 + (50000-55000)*0.5 = 55000 - 2500 = 52500
     expect(interpolatePrice(candles, 30)).toBe(52500);
+  });
+});
+
+const makeBinanceCandle = (
+  open: number,
+  close: number,
+  openTime: number
+): BinanceCandle => ({
+  open,
+  close,
+  high: Math.max(open, close) * 1.01,
+  low: Math.min(open, close) * 0.99,
+  volume: 100,
+  openTime,
+  closeTime: openTime + 59999,
+});
+
+describe("normalizeCandlesWithContinuity", () => {
+  it("returns empty array for empty input", () => {
+    expect(normalizeCandlesWithContinuity([], 50000)).toEqual([]);
+  });
+
+  it("scales first new open to match last existing close", () => {
+    const newHistorical = [
+      makeBinanceCandle(1000, 1050, 0),
+      makeBinanceCandle(1050, 1100, 60_000),
+    ];
+    const lastClose = 50000;
+    const result = normalizeCandlesWithContinuity(newHistorical, lastClose);
+
+    // first new open should equal lastClose
+    expect(result[0].open).toBeCloseTo(lastClose, 0);
+    // internal proportions preserved: 1050/1000 = 1.05
+    expect(result[1].open / result[0].open).toBeCloseTo(1050 / 1000, 5);
+  });
+
+  it("preserves percentage variations within the batch", () => {
+    const newHistorical = [
+      makeBinanceCandle(2000, 2100, 0),
+      makeBinanceCandle(2100, 1900, 60_000),
+      makeBinanceCandle(1900, 1950, 120_000),
+    ];
+    const result = normalizeCandlesWithContinuity(newHistorical, 80000);
+
+    // Ratios between open prices should be identical
+    expect(result[1].open / result[0].open).toBeCloseTo(2100 / 2000, 5);
+    expect(result[2].open / result[1].open).toBeCloseTo(1900 / 2100, 5);
+
+    // high/low scaled consistently
+    expect(result[0].high / result[0].open).toBeCloseTo(
+      newHistorical[0].high / newHistorical[0].open,
+      5
+    );
+  });
+
+  it("throws on invalid lastExistingClose (zero or negative)", () => {
+    expect(() => normalizeCandlesWithContinuity([makeBinanceCandle(100, 110, 0)], 0)).toThrow(
+      "Invalid lastExistingClose"
+    );
+    expect(() =>
+      normalizeCandlesWithContinuity([makeBinanceCandle(100, 110, 0)], -5)
+    ).toThrow("Invalid lastExistingClose");
+  });
+
+  it("throws when raw first candle gap exceeds MAX_CANDLE_GAP_RATIO", () => {
+    const hugeGap = makeBinanceCandle(1000, 1000 * (1 + MAX_CANDLE_GAP_RATIO + 0.01), 0);
+    expect(() => normalizeCandlesWithContinuity([hugeGap], 50000)).toThrow(
+      "Candle gap too large"
+    );
+  });
+
+  it("does not throw when raw first candle gap is within limit", () => {
+    const smallGap = makeBinanceCandle(1000, 1000 * (1 + MAX_CANDLE_GAP_RATIO * 0.5), 0);
+    expect(() => normalizeCandlesWithContinuity([smallGap], 50000)).not.toThrow();
+  });
+
+  it("handles single-candle new batch correctly", () => {
+    const newHistorical = [makeBinanceCandle(500, 520, 0)];
+    const lastClose = 25000;
+    const result = normalizeCandlesWithContinuity(newHistorical, lastClose);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].open).toBeCloseTo(lastClose, 0);
+    expect(result[0].close).toBeCloseTo((520 / 500) * lastClose, 0);
   });
 });

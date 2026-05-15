@@ -1,6 +1,7 @@
 "use client";
 
-import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer, Activity } from "lucide-react";
+import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer, Activity, TrendingDown, Award } from "lucide-react";
+import { getTraderTier } from "@/lib/trading/trader-score";
 
 interface EndSimulationModalProps {
   realDateRange: string;
@@ -20,6 +21,8 @@ interface EndSimulationModalProps {
     maxConsecutiveWins: number;
     maxConsecutiveLosses: number;
     currentStreak: number;
+    maxDrawdown: number;
+    traderScore: number;
   };
   onClose: () => void;
   onNewSession: () => void;
@@ -134,6 +137,20 @@ export default function EndSimulationModal({
               </span>
             </div>
 
+            {/* Trader Score */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-crypto-accent" />
+                <span className="text-sm font-semibold text-crypto-text-secondary">Trader Score</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold font-mono text-crypto-text">{stats.traderScore}</span>
+                <span className={`text-sm font-bold ${getTraderTier(stats.traderScore).color}`}>
+                  {getTraderTier(stats.traderScore).emoji} {getTraderTier(stats.traderScore).label}
+                </span>
+              </div>
+            </div>
+
             {/* Win Streak Badge */}
             {stats.currentStreak >= 2 && (
               <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
@@ -178,6 +195,13 @@ export default function EndSimulationModal({
                       <span className="text-crypto-long">{stats.maxConsecutiveWins}W</span>
                       {" / "}
                       <span className="text-crypto-short">{stats.maxConsecutiveLosses}L</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-crypto-text-muted uppercase">Max Drawdown</span>
+                    <span className={`text-sm font-bold font-mono ${stats.maxDrawdown > 15 ? "text-crypto-short" : stats.maxDrawdown > 5 ? "text-yellow-400" : "text-crypto-long"}`}>
+                      <TrendingDown className="w-3 h-3 inline mr-1" />
+                      {stats.maxDrawdown.toFixed(1)}%
                     </span>
                   </div>
                 </div>

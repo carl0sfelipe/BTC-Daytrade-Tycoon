@@ -41,6 +41,15 @@ vi.mock("@/lib/binance-api", () => ({
       close: 50000,
     }))
   ),
+  normalizeCandlesWithContinuity: vi.fn((candles) =>
+    candles.map((c: unknown) => ({
+      ...(c as Record<string, unknown>),
+      open: 50000,
+      high: 51000,
+      low: 49000,
+      close: 50000,
+    }))
+  ),
 }));
 
 describe("useTimewarpEngine", () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MobileTradingView from "./MobileTradingView";
 import { useTradingStore } from "@/store/tradingStore";
-import { makePosition } from "@/test/factories";
+import { makePosition } from "@/test/helpers";
 
 vi.mock("./TradingChart", () => ({
   default: () => <div data-testid="trading-chart">Chart</div>,

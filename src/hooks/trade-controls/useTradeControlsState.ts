@@ -24,6 +24,13 @@ export function useTradeControlsState() {
   const [orderType, setOrderType] = useState<OrderType>("market");
   const [leverage, setLeverage] = useState(10);
   const [positionSize, setPositionSize] = useState(1000);
+  // When set (0..1), positionSize is treated as "user wants X% of current
+  // capacity" and is re-derived from sliderMax whenever capacity changes
+  // (e.g., unrealized PnL ticks). When null, positionSize is an absolute
+  // dollar amount and the slider position drifts as capacity changes.
+  // Cleared automatically by manual-input or programmatic absolute setters
+  // in TradeControls.
+  const [sizeIntentPercent, setSizeIntentPercent] = useState<number | null>(null);
   const [limitPrice, setLimitPrice] = useState("");
   const [limitStep, setLimitStep] = useState(10);
   const [showStepSettings, setShowStepSettings] = useState(false);
@@ -51,6 +58,8 @@ export function useTradeControlsState() {
     setLeverage,
     positionSize,
     setPositionSize,
+    sizeIntentPercent,
+    setSizeIntentPercent,
     limitPrice,
     setLimitPrice,
     limitStep,

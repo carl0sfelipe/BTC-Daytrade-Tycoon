@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect } from "react";
 import { Settings2, Calculator } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import ConfirmHighLeverageModal from "./ConfirmHighLeverageModal";
@@ -37,8 +38,22 @@ export default function TradeControls() {
   const reduceOnly = store.reduceOnly;
   const lastActionError = store.lastActionError;
 
+  // ── Size setters: separate "intent by percentage" from "intent in dollars" ──
+  // Percent intent locks the slider's visual proportion and re-derives the
+  // dollar value whenever capacity (sliderMax) changes — so a user who picks
+  // MAX or 50% stays at that visual position when unrealized PnL moves the
+  // capacity. Absolute intent fixes the dollar value and lets the slider
+  // visual drift, which is what the user expects when they type a number.
+  const setSizeAbsolute = useCallback(
+    (v: number | ((prev: number) => number)) => {
+      state.setSizeIntentPercent(null);
+      state.setPositionSize(v);
+    },
+    [state]
+  );
+
   // Hooks
-  usePositionSync(position, state.setLeverage, state.setSide, state.setPositionSize);
+  usePositionSync(position, state.setLeverage, state.setSide, setSizeAbsolute);
   useActionErrorToast(lastActionError, store.clearLastActionError);
 
   const caps = useOrderCapabilities(
@@ -49,6 +64,30 @@ export default function TradeControls() {
     state.positionSize,
     currentPrice,
     reduceOnly
+  );
+
+  // When the user has locked a percentage (via slider drag or pill click),
+  // re-derive positionSize from the current sliderMax. Snap to the slider's
+  // step ($100) so the DOM range input renders at the chosen position.
+  useEffect(() => {
+    if (state.sizeIntentPercent === null) return;
+    const max = Math.max(100, caps.sliderMax);
+    const raw = max * state.sizeIntentPercent;
+    const snapped = Math.max(100, Math.min(max, Math.floor(raw / 100) * 100));
+    if (snapped !== state.positionSize) {
+      state.setPositionSize(snapped);
+    }
+  }, [caps.sliderMax, state.sizeIntentPercent, state.positionSize, state]);
+
+  const setSizePercent = useCallback(
+    (pct: number) => {
+      const clamped = Math.min(1, Math.max(0, pct));
+      const max = Math.max(100, caps.sliderMax);
+      const snapped = Math.max(100, Math.min(max, Math.floor((max * clamped) / 100) * 100));
+      state.setSizeIntentPercent(clamped);
+      state.setPositionSize(snapped);
+    },
+    [caps.sliderMax, state]
   );
 
   // Handlers
@@ -247,7 +286,7 @@ export default function TradeControls() {
     state.setSlOrderPrice("");
     state.setShowTp(false);
     state.setShowSl(false);
-    state.setPositionSize(position ? 1000 : state.positionSize);
+    setSizeAbsolute(position ? 1000 : state.positionSize);
   };
 
   const recordSideChange = useTradeSentinel("trade-controls:tablist:Side", "tab");
@@ -257,7 +296,7 @@ export default function TradeControls() {
       if (!position || state.orderType !== "market") return;
 
       const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
-      state.setPositionSize(Math.min(1000, newMax));
+      setSizeAbsolute(Math.min(1000, newMax));
     }, buildPayload({ type: "select", side: newSide }, { side: newSide }));
   };
 
@@ -324,7 +363,8 @@ export default function TradeControls() {
             leverage={state.leverage}
             positionSize={state.positionSize}
             sliderMax={caps.sliderMax}
-            onChange={state.setPositionSize}
+            onChangePercent={setSizePercent}
+            onChangeAbsolute={setSizeAbsolute}
           />
 
           {state.orderType === "limit" && (
@@ -380,7 +420,7 @@ export default function TradeControls() {
       {state.showCalculator && (
         <PositionSizeCalculator
           leverage={state.leverage}
-          onApply={(size) => state.setPositionSize(size)}
+          onApply={(size) => setSizeAbsolute(size)}
           onClose={() => state.setShowCalculator(false)}
         />
       )}

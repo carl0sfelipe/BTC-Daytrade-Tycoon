@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent, act } from "@testing-library/react";
 import TradeControls from "./TradeControls";
 import { useTradingStore } from "@/store/tradingStore";
 import { renderWithSentinel, openLong5k, resetStore, getSlider } from "@/test/helpers";
@@ -282,5 +282,148 @@ describe("TradeControls — slider and position labels", () => {
     fireEvent.change(input, { target: { value: "999999" } });
 
     expect(getSlider().value).toBe(getSlider().max);
+  });
+
+  describe("size intent — percent (slider/pill) vs absolute (input)", () => {
+    /**
+     * The reported bug: clicking MAX or 50% froze a DOLLAR amount.
+     * When unrealized PnL moved the slider's max (capacity), the slider's
+     * visual position drifted because the absolute value stayed put. The
+     * fix: pill clicks and slider drags lock a PERCENTAGE; the dollar
+     * amount is re-derived from current capacity on every render.
+     * Typing in the input keeps the old absolute behavior so the user can
+     * pin an exact dollar size.
+     */
+
+    it("slider stays at MAX when capacity grows (unrealized profit increases sliderMax)", () => {
+      openLong5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      const initialMax = Number(slider.max);
+      // Drag to MAX
+      fireEvent.change(slider, { target: { value: slider.max } });
+      expect(slider.value).toBe(String(initialMax));
+
+      // Simulate unrealized profit: long at 50000, price rises to 55000.
+      // calcSliderMax includes unrealizedPnL, so sliderMax should grow.
+      act(() => {
+        useTradingStore.setState({ currentPrice: 55000 });
+      });
+
+      const newSlider = getSlider();
+      const newMax = Number(newSlider.max);
+      expect(newMax).toBeGreaterThan(initialMax);
+      // The crucial assertion: value still equals max (we're locked at 100%).
+      expect(newSlider.value).toBe(newSlider.max);
+    });
+
+    it("slider stays at 50% (snapped to $100 step) when capacity changes", () => {
+      openLong5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      const initialMax = Number(slider.max);
+      // Drag to half of current max
+      const halfTarget = Math.floor(initialMax / 200) * 100; // snap to step
+      fireEvent.change(slider, { target: { value: String(halfTarget) } });
+      expect(Number(slider.value)).toBe(halfTarget);
+
+      // Capacity grows from PnL
+      act(() => {
+        useTradingStore.setState({ currentPrice: 55000 });
+      });
+
+      const newSlider = getSlider();
+      const newMax = Number(newSlider.max);
+      const newValue = Number(newSlider.value);
+      // Still ~50% of the new max (within one $100 step of rounding error).
+      expect(newValue / newMax).toBeCloseTo(0.5, 1);
+    });
+
+    it("manually typed dollar amount stays fixed when capacity changes", () => {
+      openLong5k();
+      renderWithSentinel(<TradeControls />);
+
+      const input = screen.getByTestId("trade-controls-size-input") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "3000" } });
+      expect(getSlider().value).toBe("3000");
+
+      // Capacity changes from PnL — the typed value should NOT track it.
+      act(() => {
+        useTradingStore.setState({ currentPrice: 55000 });
+      });
+
+      expect(getSlider().value).toBe("3000");
+    });
+
+    it("typing in the input clears a previously locked percentage", () => {
+      openLong5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      // Lock at MAX via slider
+      fireEvent.change(slider, { target: { value: slider.max } });
+
+      // Now type a specific value — this should switch to absolute mode.
+      const input = screen.getByTestId("trade-controls-size-input") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "2000" } });
+      expect(getSlider().value).toBe("2000");
+
+      // Capacity grows — typed value stays put (not tracking 100% anymore).
+      act(() => {
+        useTradingStore.setState({ currentPrice: 55000 });
+      });
+
+      expect(getSlider().value).toBe("2000");
+    });
+
+    it("changing side clears the percent lock (resets to absolute $1000)", () => {
+      openLong5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      // Lock at MAX
+      fireEvent.change(slider, { target: { value: slider.max } });
+
+      // Side click should reset to the default $1000 absolute.
+      fireEvent.click(screen.getByText("SHORT"));
+      expect(getSlider().value).toBe("1000");
+
+      // And subsequent capacity changes should NOT make the slider jump.
+      act(() => {
+        useTradingStore.setState({ currentPrice: 55000 });
+      });
+      expect(getSlider().value).toBe("1000");
+    });
+
+    it("simple-mode 100% pill (no position) tracks wallet*leverage when leverage changes", () => {
+      // No position: SizePills is shown. The 100% pill should lock to MAX.
+      useTradingStore.setState({
+        wallet: 10000,
+        position: null,
+        currentPrice: 50000,
+        skipHighLeverageWarning: true,
+      });
+      renderWithSentinel(<TradeControls />);
+
+      // Click the 100% pill (rendered as the "100%" radio).
+      fireEvent.click(screen.getByRole("radio", { name: /100% position size/i }));
+
+      // Default leverage 10 → MAX = 100000. With no position, only the size
+      // slider exists once we switch to advanced mode below.
+      fireEvent.click(screen.getByText("Advanced Mode"));
+      const sizeSlider = screen.getByTestId("trade-controls-size-slider") as HTMLInputElement;
+      expect(sizeSlider.value).toBe("100000");
+
+      // Bumping leverage to 25 via the leverage slider should grow MAX to
+      // 250000 and the locked 100% should follow.
+      const leverageSlider = screen.getByLabelText(/leverage slider/i) as HTMLInputElement;
+      fireEvent.change(leverageSlider, { target: { value: "25" } });
+
+      const sizeSliderAfter = screen.getByTestId("trade-controls-size-slider") as HTMLInputElement;
+      expect(sizeSliderAfter.value).toBe(sizeSliderAfter.max);
+      expect(Number(sizeSliderAfter.max)).toBe(250000);
+    });
   });
 });

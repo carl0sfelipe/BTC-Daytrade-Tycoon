@@ -10,7 +10,19 @@ interface SizeSelectorProps {
   leverage: number;
   positionSize: number;
   sliderMax: number;
-  onChange: (value: number) => void;
+  /**
+   * Called when the user picks a value by VISUAL PROPORTION
+   * (dragging the slider or clicking a percentage pill). The argument
+   * is a fraction in [0, 1]. The parent locks this percentage and
+   * re-derives the dollar value whenever capacity changes.
+   */
+  onChangePercent: (pct: number) => void;
+  /**
+   * Called when the user types a specific dollar amount in the
+   * numeric input. The parent stores this as an absolute value;
+   * the slider visual will drift if capacity changes.
+   */
+  onChangeAbsolute: (value: number) => void;
 }
 
 export default function SizeSelector({
@@ -21,7 +33,8 @@ export default function SizeSelector({
   leverage,
   positionSize,
   sliderMax,
-  onChange,
+  onChangePercent,
+  onChangeAbsolute,
 }: SizeSelectorProps) {
   if (position) {
     return (
@@ -30,13 +43,21 @@ export default function SizeSelector({
         positionSize={positionSize}
         sliderMax={sliderMax}
         currentSize={position.size}
-        onChange={onChange}
+        onChangePercent={onChangePercent}
+        onChangeAbsolute={onChangeAbsolute}
       />
     );
   }
 
   if (mode === "simple") {
-    return <SizePills wallet={wallet} leverage={leverage} positionSize={positionSize} onChange={onChange} />;
+    return (
+      <SizePills
+        wallet={wallet}
+        leverage={leverage}
+        positionSize={positionSize}
+        onChangePercent={onChangePercent}
+      />
+    );
   }
 
   return (
@@ -45,7 +66,8 @@ export default function SizeSelector({
       positionSize={positionSize}
       sliderMax={sliderMax}
       currentSize={null}
-      onChange={onChange}
+      onChangePercent={onChangePercent}
+      onChangeAbsolute={onChangeAbsolute}
     />
   );
 }
@@ -54,12 +76,12 @@ function SizePills({
   wallet,
   leverage,
   positionSize,
-  onChange,
+  onChangePercent,
 }: {
   wallet: number;
   leverage: number;
   positionSize: number;
-  onChange: (v: number) => void;
+  onChangePercent: (pct: number) => void;
 }) {
   const options = [10, 25, 50, 100];
 
@@ -83,7 +105,7 @@ function SizePills({
               role="radio"
               aria-checked={Math.abs(positionSize - targetSize) < 1}
               aria-label={`${pct}% position size`}
-              onClick={() => onChange(targetSize)}
+              onClick={() => onChangePercent(pct / 100)}
               className={`py-1.5 rounded-md text-xs font-bold transition-all ${
                 Math.abs(positionSize - targetSize) < 1
                   ? "bg-crypto-surface-elevated text-crypto-text border border-crypto-accent"
@@ -104,23 +126,25 @@ function SizeSlider({
   positionSize,
   sliderMax,
   currentSize,
-  onChange,
+  onChangePercent,
+  onChangeAbsolute,
 }: {
   label: string;
   positionSize: number;
   sliderMax: number;
   currentSize: number | null;
-  onChange: (v: number) => void;
+  onChangePercent: (pct: number) => void;
+  onChangeAbsolute: (v: number) => void;
 }) {
   const safeMax = Math.max(100, sliderMax);
 
   const handleInputChange = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ""), 10);
     if (Number.isNaN(num)) {
-      onChange(100);
+      onChangeAbsolute(100);
       return;
     }
-    onChange(Math.min(safeMax, Math.max(100, num)));
+    onChangeAbsolute(Math.min(safeMax, Math.max(100, num)));
   };
 
   return (
@@ -154,7 +178,7 @@ function SizeSlider({
         step={100}
         value={positionSize}
         aria-label="Position size slider"
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChangePercent(Number(e.target.value) / safeMax)}
         className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
       />
       <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">

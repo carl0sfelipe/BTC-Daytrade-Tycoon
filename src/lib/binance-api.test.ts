@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   interpolatePrice,
+  normalizeCandlesToBasePrice,
   normalizeCandlesWithContinuity,
+  computeInternalGapStats,
   MAX_CANDLE_GAP_RATIO,
+  SUSPICIOUS_INTERNAL_GAP_RATIO,
 } from "./binance-api";
 import type { SimulatedCandle, BinanceCandle } from "./binance-api";
 
@@ -146,5 +149,136 @@ describe("normalizeCandlesWithContinuity", () => {
     expect(result).toHaveLength(1);
     expect(result[0].open).toBeCloseTo(lastClose, 0);
     expect(result[0].close).toBeCloseTo((520 / 500) * lastClose, 0);
+  });
+});
+
+describe("computeInternalGapStats", () => {
+  it("returns zero stats for candles.length < 2", () => {
+    expect(computeInternalGapStats([])).toEqual({
+      count: 0,
+      median: 0,
+      max: 0,
+      suspicious: 0,
+      threshold: SUSPICIOUS_INTERNAL_GAP_RATIO,
+    });
+    expect(computeInternalGapStats([makeCandle(0, 100, 110)]).count).toBe(0);
+  });
+
+  it("reports zero suspicious gaps on a perfectly continuous series", () => {
+    const candles: SimulatedCandle[] = [
+      makeCandle(0, 50000, 50100),
+      makeCandle(60, 50100, 50200),
+      makeCandle(120, 50200, 50300),
+    ];
+    const stats = computeInternalGapStats(candles);
+    expect(stats.count).toBe(2);
+    expect(stats.max).toBe(0);
+    expect(stats.median).toBe(0);
+    expect(stats.suspicious).toBe(0);
+  });
+
+  it("reports tiny gaps as not suspicious (typical real 1m BTC)", () => {
+    const candles: SimulatedCandle[] = [
+      makeCandle(0, 50000, 50100),
+      makeCandle(60, 50102, 50200),   // gap = 2/50100 ≈ 0.004%
+      makeCandle(120, 50198, 50300),  // gap = 2/50200 ≈ 0.004%
+    ];
+    const stats = computeInternalGapStats(candles);
+    expect(stats.count).toBe(2);
+    expect(stats.suspicious).toBe(0);
+    expect(stats.max).toBeLessThan(SUSPICIOUS_INTERNAL_GAP_RATIO);
+  });
+
+  it("flags a > 0.5% open/close gap as suspicious", () => {
+    const candles: SimulatedCandle[] = [
+      makeCandle(0, 50000, 50100),
+      makeCandle(60, 50100, 50200),   // clean
+      makeCandle(120, 50700, 50800),  // open 50700, prev close 50200 → ≈ 1% gap
+      makeCandle(180, 50800, 50900),  // clean
+    ];
+    const stats = computeInternalGapStats(candles);
+    expect(stats.count).toBe(3);
+    expect(stats.suspicious).toBe(1);
+    expect(stats.max).toBeGreaterThan(0.009); // ≈ 1%
+  });
+
+  it("honors a custom threshold", () => {
+    const candles: SimulatedCandle[] = [
+      makeCandle(0, 50000, 50100),
+      makeCandle(60, 50180, 50250),   // 0.16% gap
+    ];
+    // Default 0.5% threshold → not suspicious.
+    expect(computeInternalGapStats(candles).suspicious).toBe(0);
+    // Tighten to 0.1% → flagged.
+    expect(computeInternalGapStats(candles, 0.001).suspicious).toBe(1);
+  });
+
+  it("skips pairs where the previous close is zero (avoids division by zero)", () => {
+    const candles: SimulatedCandle[] = [
+      makeCandle(0, 100, 0),     // close 0 — should be skipped
+      makeCandle(60, 100, 110),
+      makeCandle(120, 110, 120),
+    ];
+    const stats = computeInternalGapStats(candles);
+    expect(stats.count).toBe(1); // only the second pair is countable
+    expect(stats.suspicious).toBe(0);
+  });
+});
+
+describe("normalizeCandlesToBasePrice — consecutive-candle continuity", () => {
+  it("preserves the open/close ratio between every consecutive pair", () => {
+    // Mix of tiny gaps and perfect continuity to cover both shapes.
+    const raw: BinanceCandle[] = [
+      makeBinanceCandle(50000, 50100, 0),
+      makeBinanceCandle(50105, 50200, 60_000),   // tiny gap of 5
+      makeBinanceCandle(50200, 50300, 120_000),  // perfect continuity
+      makeBinanceCandle(50295, 50400, 180_000),  // tiny gap of -5
+    ];
+    const normalized = normalizeCandlesToBasePrice(raw, 80_000);
+
+    for (let i = 1; i < normalized.length; i++) {
+      const rawRatio = raw[i].open / raw[i - 1].close;
+      const normRatio = normalized[i].open / normalized[i - 1].close;
+      expect(normRatio).toBeCloseTo(rawRatio, 8);
+    }
+  });
+
+  it("preserves perfect continuity: open[N+1] === close[N] after scaling", () => {
+    const raw: BinanceCandle[] = [
+      makeBinanceCandle(50000, 50100, 0),
+      makeBinanceCandle(50100, 50200, 60_000),
+      makeBinanceCandle(50200, 50300, 120_000),
+    ];
+    const normalized = normalizeCandlesToBasePrice(raw, 80_000);
+    for (let i = 1; i < normalized.length; i++) {
+      expect(normalized[i].open).toBeCloseTo(normalized[i - 1].close, 6);
+    }
+  });
+
+  it("internal gap stats are invariant under normalization (raw vs scaled)", () => {
+    // 20-candle series with mostly clean continuity and one big jump.
+    const raw: BinanceCandle[] = Array.from({ length: 20 }, (_, i) => {
+      const base = 50_000 + i * 20;
+      const open = base + (i === 10 ? 300 : 2); // single 0.6% jump at index 10
+      return makeBinanceCandle(open, base + 100, i * 60_000);
+    });
+    const normalized = normalizeCandlesToBasePrice(raw, 80_000);
+
+    const rawAsSim: SimulatedCandle[] = raw.map((c) => ({
+      time: Math.floor(c.openTime / 1000),
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volume,
+    }));
+    const rawStats = computeInternalGapStats(rawAsSim);
+    const normStats = computeInternalGapStats(normalized);
+
+    // Suspicious-count and shape must match — normalize cannot introduce
+    // or hide a gap by construction.
+    expect(normStats.suspicious).toBe(rawStats.suspicious);
+    expect(normStats.max).toBeCloseTo(rawStats.max, 8);
+    expect(normStats.median).toBeCloseTo(rawStats.median, 8);
   });
 });

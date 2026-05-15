@@ -197,6 +197,20 @@ export function normalizeCandlesToBasePrice(
     diag.log(`  norm[${i}] open=${r.open.toFixed(2)} high=${r.high.toFixed(2)} low=${r.low.toFixed(2)} wickUp=${wickUp}% wickDown=${wickDown}%`);
   }
 
+  // Audit consecutive-candle continuity. Real 1m BTC almost never has
+  // |open[N+1] - close[N]| / close[N] > 0.5%, so a high suspicious count
+  // here is a strong signal the upstream batch has missing minutes or
+  // low-volume artifacts. Logged at warn level so it surfaces in prod.
+  const gapStats = computeInternalGapStats(result);
+  diag.log(
+    `normalizeCandlesToBasePrice: gap stats count=${gapStats.count} median=${(gapStats.median * 100).toFixed(4)}% max=${(gapStats.max * 100).toFixed(3)}% suspicious=${gapStats.suspicious} (threshold=${(gapStats.threshold * 100).toFixed(2)}%)`
+  );
+  if (gapStats.suspicious > result.length * 0.02) {
+    diag.warn(
+      `normalizeCandlesToBasePrice: ${gapStats.suspicious}/${gapStats.count} consecutive-candle pairs have a > ${(gapStats.threshold * 100).toFixed(2)}% open/close gap — raw Binance data likely has missing minutes or low-volume spread artifacts`
+    );
+  }
+
   diag.log(
     `normalizeCandlesToBasePrice: normalized range ${result[0].open.toFixed(2)}-${result[result.length - 1].close.toFixed(2)}, times ${result[0].time}-${result[result.length - 1].time}`
   );
@@ -210,6 +224,67 @@ export function normalizeCandlesToBasePrice(
  * validation error (indicates corrupt/mismatched API data).
  */
 export const MAX_CANDLE_GAP_RATIO = 0.15; // 15%
+
+/**
+ * Threshold above which a gap between consecutive candles (within a single
+ * batch) is considered suspicious. Real BTC 1-minute candles almost always
+ * have |open[N+1] - close[N]| / close[N] well under this number — anything
+ * above it suggests a missing-minute, a low-volume spread artifact, or a
+ * pipeline bug.
+ */
+export const SUSPICIOUS_INTERNAL_GAP_RATIO = 0.005; // 0.5%
+
+export interface InternalGapStats {
+  /** Number of consecutive-candle pairs analyzed (candles.length - 1). */
+  count: number;
+  /** Median absolute gap ratio across all pairs. */
+  median: number;
+  /** Max absolute gap ratio observed. */
+  max: number;
+  /** Number of pairs whose gap exceeds the threshold. */
+  suspicious: number;
+  /** Threshold used to mark a pair as suspicious. */
+  threshold: number;
+}
+
+/**
+ * Audits a contiguous candle series for unexpected gaps between
+ * consecutive candles, defined as |open[N+1] - close[N]| / close[N].
+ *
+ * Works for both raw {@link BinanceCandle} and {@link SimulatedCandle}.
+ * Returns a small stats object that callers can log, assert on, or use
+ * to trigger fallbacks.
+ *
+ * Mathematical note: normalizeCandlesToBasePrice scales every candle by
+ * the same `basePrice / firstOpen` factor, so this ratio is invariant
+ * under that normalization. Gaps reported here always exist in the raw
+ * Binance data already — normalize can never introduce or hide them.
+ */
+export function computeInternalGapStats(
+  candles: Array<{ open: number; close: number }>,
+  threshold = SUSPICIOUS_INTERNAL_GAP_RATIO
+): InternalGapStats {
+  if (candles.length < 2) {
+    return { count: 0, median: 0, max: 0, suspicious: 0, threshold };
+  }
+  const gaps: number[] = [];
+  for (let i = 1; i < candles.length; i++) {
+    const prevClose = candles[i - 1].close;
+    if (prevClose <= 0) continue;
+    gaps.push(Math.abs(candles[i].open - prevClose) / prevClose);
+  }
+  if (gaps.length === 0) {
+    return { count: 0, median: 0, max: 0, suspicious: 0, threshold };
+  }
+  const sorted = [...gaps].sort((a, b) => a - b);
+  return {
+    count: gaps.length,
+    median: sorted[Math.floor(sorted.length / 2)],
+    max: sorted[sorted.length - 1],
+    suspicious: gaps.filter((g) => g > threshold).length,
+    threshold,
+  };
+}
 
 /**
  * Normalizes new historical candles to seamlessly continue from the last

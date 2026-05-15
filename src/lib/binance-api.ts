@@ -174,6 +174,14 @@ export function normalizeCandlesToBasePrice(
     };
   });
 
+  // Log first 3 normalized candles to verify wick preservation
+  for (let i = 0; i < Math.min(3, result.length); i++) {
+    const r = result[i];
+    const wickUp = ((r.high - r.open) / r.open * 100).toFixed(3);
+    const wickDown = ((r.open - r.low) / r.open * 100).toFixed(3);
+    diag.log(`  norm[${i}] open=${r.open.toFixed(2)} high=${r.high.toFixed(2)} low=${r.low.toFixed(2)} wickUp=${wickUp}% wickDown=${wickDown}%`);
+  }
+
   diag.log(
     `normalizeCandlesToBasePrice: normalized range ${result[0].open.toFixed(2)}-${result[result.length - 1].close.toFixed(2)}, times ${result[0].time}-${result[result.length - 1].time}`
   );

@@ -18,8 +18,10 @@ export function buildCandleUpdate(
   return {
     time: candle.time as Time,
     open: candle.open,
-    high: Math.max(candle.high, currentPrice),
-    low: Math.min(candle.low, currentPrice),
+    // Project only from open→currentPrice. Do NOT use candle.high/low
+    // because that would reveal future wick information (look-ahead bias).
+    high: Math.max(candle.open, currentPrice),
+    low: Math.min(candle.open, currentPrice),
     close: currentPrice,
   };
 }

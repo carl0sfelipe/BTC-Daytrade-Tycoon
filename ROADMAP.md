@@ -52,6 +52,14 @@ Make every session feel unique, replayable, and competitive.
 - [x] **Trailing stop-loss** — Auto-adjusting stop that trails the price by a user-defined distance.
 - [x] **Reduce Only / Hedge Mode toggle** — `Reduce Only` (default, one-way): opposite-side orders reduce or close the existing position only. When unchecked (hedge mode): opposite-side orders can open a new position on the other side if the size exceeds the current position (e.g., long $50k + short $70k = close long + open short $20k).
 
+### Simulation Realism
+
+- [ ] **Realistic intra-candle price path** — Today the simulated tick price moves linearly from `open → close` inside each candle; the `high` and `low` only show up as wicks the live price never actually reaches. Replace the linear interpolation with a randomized path that *visits both extremes* before the close: either `open → low → high → close` or `open → high → low → close`, with the order picked per candle (Binance OHLC doesn't disclose which extreme came first, so randomness is the honest choice).
+  - **Why:** current behavior breaks immersion and trader intuition — wicks form on the chart, but the live price never touches them, so liquidations and limit-order fills that "obviously" should happen near a wick feel arbitrary and disconnected from what the eye sees.
+  - **Touchpoints:** `src/lib/binance-api.ts::interpolatePrice`, `src/lib/engine/tick-processor.ts`, `src/hooks/useTimewarpEngine.ts` (tick scheduling).
+  - **Open questions:** (a) deterministic per-candle seeding so session replays and shared links reproduce the same path; (b) doji-like candles where `high ≈ low ≈ open ≈ close` — degenerate to current linear behavior; (c) whether to drive liquidation/limit triggers off the new simulated path or keep the existing wick-aware checks (low-risk to keep them, since the path still passes through both extremes — but timing of the trigger may shift, which is part of the realism win).
+  - **Non-goals:** modeling true tick-level micro-structure (volume profile, order-book pressure). Two extrema visited in random order is enough to fix the visual disconnect.
+
 ### Metrics & Telemetry
 
 - [ ] **Max Drawdown tracking** — Track the worst peak-to-trough decline (as a negative %) for every open position. Updated on every tick. Shown in PositionPanel and included in trade history. Critical metric for prop firm partnerships and trader scoring.

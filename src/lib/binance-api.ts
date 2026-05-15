@@ -131,6 +131,60 @@ export function normalizeCandlesToBasePrice(
   });
 }
 
+/**
+ * Maximum acceptable gap between last existing candle and first new candle,
+ * as a fraction of the last close price. Gaps larger than this trigger a
+ * validation error (indicates corrupt/mismatched API data).
+ */
+export const MAX_CANDLE_GAP_RATIO = 0.15; // 15%
+
+/**
+ * Normalizes new historical candles to seamlessly continue from the last
+ * existing simulated candle. Preserves percentage variations within the
+ * new batch, but scales so that the first new open equals the last existing
+ * close.
+ *
+ * @param newHistorical - Raw candles fetched from the API
+ * @param lastExistingClose - Close price of the last candle already in simulation
+ * @throws If the raw data gap exceeds MAX_CANDLE_GAP_RATIO
+ */
+export function normalizeCandlesWithContinuity(
+  newHistorical: BinanceCandle[],
+  lastExistingClose: number
+): SimulatedCandle[] {
+  if (newHistorical.length === 0) return [];
+  if (lastExistingClose <= 0) {
+    throw new Error(
+      `Invalid lastExistingClose for continuity: ${lastExistingClose}`
+    );
+  }
+
+  const firstOpen = newHistorical[0].open;
+  const firstClose = newHistorical[0].close;
+
+  // Validate that the raw data isn't wildly different (corrupt/mismatched batch)
+  const rawGapRatio = Math.abs(firstOpen - firstClose) / firstOpen;
+  if (rawGapRatio > MAX_CANDLE_GAP_RATIO) {
+    throw new Error(
+      `Candle gap too large: raw first candle open=${firstOpen} close=${firstClose} ` +
+        `(gap ${(rawGapRatio * 100).toFixed(1)}% > max ${(MAX_CANDLE_GAP_RATIO * 100).toFixed(0)}%). ` +
+        `Possible corrupt API data or mismatched timeframe.`
+    );
+  }
+
+  // Scale factor: what multiplier makes the first new open equal last existing close?
+  const scale = lastExistingClose / firstOpen;
+
+  return newHistorical.map((c) => ({
+    time: Math.floor(c.openTime / 1000),
+    open: c.open * scale,
+    high: c.high * scale,
+    low: c.low * scale,
+    close: c.close * scale,
+    volume: c.volume,
+  }));
+}
+
 export function interpolatePrice(
   candles: SimulatedCandle[],
   simulatedTimeSec: number

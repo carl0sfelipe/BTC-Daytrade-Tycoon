@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchCandles,
   normalizeCandlesToBasePrice,
+  normalizeCandlesWithContinuity,
   type SimulatedCandle,
 } from "@/lib/binance-api";
 import { useTradingStore } from "@/store/tradingStore";
@@ -98,8 +99,9 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       logger.log(`[useTimewarpEngine] appendMoreCandles — +${newHistorical.length} candles`);
 
       historicalCandlesRef.current = [...historicalCandlesRef.current, ...newHistorical];
-      const basePrice = candlesRef.current[0]?.open ?? 0;
-      const newSimulated = normalizeCandlesToBasePrice(newHistorical, basePrice);
+      const lastExisting = candlesRef.current[candlesRef.current.length - 1];
+      const lastClose = lastExisting?.close ?? candlesRef.current[0]?.open ?? 0;
+      const newSimulated = normalizeCandlesWithContinuity(newHistorical, lastClose);
       const updated = [...candlesRef.current, ...newSimulated];
       setCandles(updated);
       candlesRef.current = updated;

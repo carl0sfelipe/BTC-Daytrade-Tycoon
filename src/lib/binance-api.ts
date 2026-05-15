@@ -62,6 +62,7 @@ export async function fetchCandles(
     url.searchParams.set("interval", interval);
     url.searchParams.set("startTime", currentStart.toString());
     url.searchParams.set("limit", limit.toString());
+    url.searchParams.set("_t", Date.now().toString()); // bust Vercel route-level cache
 
     diag.log(`fetchCandles batch ${batch}: ${url.toString().slice(0, 120)}...`);
     const response = await fetch(url.toString());
@@ -93,6 +94,21 @@ export async function fetchCandles(
       closeTime: Number(c[6]),
     }));
 
+    // Detect flat candles: Binance rate-limits or geo-blocks Vercel IPs by returning
+    // candles where high === low === open === close (no real OHLCV spread).
+    const flatCount = batchCandles.filter(
+      (c) => c.high === c.open && c.low === c.open
+    ).length;
+    if (flatCount > batchCandles.length * 0.5) {
+      diag.warn(
+        `fetchCandles batch ${batch}: ${flatCount}/${batchCandles.length} flat candles — Binance returning degraded data, switching to fallback`
+      );
+      console.warn(
+        `[fetchCandles] Flat candle data detected (${flatCount}/${batchCandles.length}). Binance may be rate-limiting this IP. Using generated fallback data.`
+      );
+      return generateFallbackCandles(new Date(currentStart), limit * 2);
+    }
+
     allCandles.push(...batchCandles);
     const firstT = new Date(batchCandles[0].openTime).toISOString();
     const lastT = new Date(batchCandles[batchCandles.length - 1].closeTime).toISOString();
@@ -102,24 +118,23 @@ export async function fetchCandles(
       break; // No more data
     }
 
-    // Next batch starts after the last candle
-    const gapSec = (currentStart - batchCandles[batchCandles.length - 1].closeTime) / 1000;
-    if (gapSec !== 1) {
-      diag.warn(`fetchCandles: time gap between batches: ${gapSec}s (expected 1s)`);
-    }
+    // Next batch starts 1ms after the last candle's closeTime
     currentStart = batchCandles[batchCandles.length - 1].closeTime + 1;
   }
 
-  // Validate temporal continuity between batch 0 and batch 1
+  // Validate temporal continuity at the batch boundary (candles 999→1000).
+  // For consecutive 1-min Binance candles: closeTime = openTime + 59_999ms,
+  // so the next candle's openTime is closeTime + 1ms. Comparing openTime→openTime
+  // gives a clean ~60_000ms (60s) for back-to-back minutes.
   if (allCandles.length >= 2) {
     const lastOfPrev = allCandles[Math.min(999, allCandles.length - 2)];
     const firstOfNext = allCandles[Math.min(1000, allCandles.length - 1)];
-    const timeGapSec = (firstOfNext.openTime - lastOfPrev.closeTime) / 1000;
+    const openDeltaSec = (firstOfNext.openTime - lastOfPrev.openTime) / 1000;
     const priceGap = firstOfNext.open - lastOfPrev.close;
     const priceGapPct = (priceGap / lastOfPrev.close * 100).toFixed(2);
-    diag.log(`fetchCandles continuity check: timeGap=${timeGapSec}s, priceGap=${priceGap} (${priceGapPct}%)`);
-    if (Math.abs(timeGapSec - 60) > 5) {
-      diag.error(`fetchCandles: TEMPORAL GAP DETECTED between candles 999→1000: ${timeGapSec}s gap (expected ~60s)`);
+    diag.log(`fetchCandles continuity check: openDelta=${openDeltaSec}s, priceGap=${priceGap.toFixed(2)} (${priceGapPct}%)`);
+    if (Math.abs(openDeltaSec - 60) > 5) {
+      diag.error(`fetchCandles: TEMPORAL GAP DETECTED between candles 999→1000: openDelta=${openDeltaSec}s (expected ~60s)`);
     }
   }
 

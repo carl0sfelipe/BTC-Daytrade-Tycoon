@@ -1,9 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 const BINANCE_BASE = "https://api.binance.com";
 const BINANCE_US_BASE = "https://api.binance.us";
+
+const RAW_RESPONSE_HEADERS = {
+  "Content-Type": "application/json",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+};
+
+function buildBinanceUrl(base: string, endpoint: string, search: string): string {
+  // Strip the client-side _t cache-buster — Binance rejects unknown query params with 400.
+  // The _t was only ever needed to bust Vercel's route-level cache (browser → proxy hop),
+  // not the proxy → Binance hop.
+  const cleanSearch = search.replace(/[?&]_t=[^&]*/g, "").replace(/^&/, "?");
+  return `${base}/${endpoint}${cleanSearch}`;
+}
+
+async function fetchFromBinance(url: string): Promise<Response> {
+  return fetch(url, {
+    headers: {
+      Accept: "application/json",
+      // Disable compression — gzip/brotli decompression bugs on Vercel can flatten OHLC values
+      "Accept-Encoding": "identity",
+    },
+    cache: "no-store",
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -12,61 +36,50 @@ export async function GET(
   const { path } = await params;
   const endpoint = path.join("/");
   const search = request.nextUrl.search;
-
-  // Try global Binance first — no caching, fresh data every time
-  const globalUrl = `${BINANCE_BASE}/${endpoint}${search}`;
   const ts = Date.now();
+
+  const globalUrl = buildBinanceUrl(BINANCE_BASE, endpoint, search);
   try {
-    const res = await fetch(globalUrl, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
+    const res = await fetchFromBinance(globalUrl);
 
     if (res.ok) {
-      const data = await res.json();
-      const len = Array.isArray(data) ? data.length : "object";
-      // Log first candle raw data to verify high/low integrity
-      if (Array.isArray(data) && data.length > 0) {
-        const first = data[0];
-        console.log(`[diag][proxy] first candle raw: open=${first[1]} high=${first[2]} low=${first[3]} close=${first[4]}`);
-      }
-      console.log(`[diag][proxy] OK ${res.status} ${endpoint} → ${len} items (${Date.now() - ts}ms)`);
-      return NextResponse.json(data);
+      // Return raw bytes directly — no JSON parse/re-serialize avoids any numeric corruption
+      const rawText = await res.text();
+      console.log(
+        `[diag][proxy] OK ${res.status} ${endpoint} → ${rawText.length} bytes (${Date.now() - ts}ms) preview=${rawText.slice(0, 120)}`
+      );
+      return new Response(rawText, { status: 200, headers: RAW_RESPONSE_HEADERS });
     }
 
-    // If 451 (geo-blocked), try Binance US as fallback
+    // Geo-blocked — try Binance US
     if (res.status === 451) {
       console.warn(`[diag][proxy] 451 geo-blocked, trying Binance US for ${endpoint}`);
-      const usUrl = `${BINANCE_US_BASE}/${endpoint}${search}`;
-      const usRes = await fetch(usUrl, {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
+      const usUrl = buildBinanceUrl(BINANCE_US_BASE, endpoint, search);
+      const usRes = await fetchFromBinance(usUrl);
 
       if (usRes.ok) {
-        const data = await usRes.json();
-        const len = Array.isArray(data) ? data.length : "object";
-        console.log(`[diag][proxy] US OK ${usRes.status} ${endpoint} → ${len} items (${Date.now() - ts}ms)`);
-        return NextResponse.json(data);
+        const rawText = await usRes.text();
+        console.log(`[diag][proxy] US OK ${usRes.status} ${endpoint} → ${rawText.length} bytes (${Date.now() - ts}ms)`);
+        return new Response(rawText, { status: 200, headers: RAW_RESPONSE_HEADERS });
       }
 
       console.error(`[diag][proxy] US also failed for ${endpoint}: ${usRes.status}`);
-      return NextResponse.json(
-        { error: "Binance API unavailable (geo-blocked). Both global and US endpoints returned errors.", status: 451 },
-        { status: 503 }
+      return new Response(
+        JSON.stringify({ error: "Binance API unavailable (geo-blocked). Both global and US endpoints returned errors.", status: 451 }),
+        { status: 503, headers: RAW_RESPONSE_HEADERS }
       );
     }
 
     console.warn(`[diag][proxy] ${res.status} for ${endpoint} (${Date.now() - ts}ms)`);
-    return NextResponse.json(
-      { error: `Binance returned ${res.status}` },
-      { status: res.status }
+    return new Response(
+      JSON.stringify({ error: `Binance returned ${res.status}` }),
+      { status: res.status, headers: RAW_RESPONSE_HEADERS }
     );
   } catch (err) {
     console.error(`[diag][proxy] EXCEPTION ${endpoint}: ${String(err)} (${Date.now() - ts}ms)`);
-    return NextResponse.json(
-      { error: "Proxy fetch failed", detail: String(err) },
-      { status: 502 }
+    return new Response(
+      JSON.stringify({ error: "Proxy fetch failed", detail: String(err) }),
+      { status: 502, headers: RAW_RESPONSE_HEADERS }
     );
   }
 }

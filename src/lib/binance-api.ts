@@ -94,14 +94,33 @@ export async function fetchCandles(
     }));
 
     allCandles.push(...batchCandles);
-    diag.log(`fetchCandles batch ${batch}: ${batchCandles.length} candles, price range ${batchCandles[0].open}-${batchCandles[batchCandles.length - 1].close}`);
+    const firstT = new Date(batchCandles[0].openTime).toISOString();
+    const lastT = new Date(batchCandles[batchCandles.length - 1].closeTime).toISOString();
+    diag.log(`fetchCandles batch ${batch}: ${batchCandles.length} candles, time ${firstT}→${lastT}, price ${batchCandles[0].open}-${batchCandles[batchCandles.length - 1].close}`);
 
     if (batchCandles.length < limit) {
       break; // No more data
     }
 
     // Next batch starts after the last candle
+    const gapSec = (currentStart - batchCandles[batchCandles.length - 1].closeTime) / 1000;
+    if (gapSec !== 1) {
+      diag.warn(`fetchCandles: time gap between batches: ${gapSec}s (expected 1s)`);
+    }
     currentStart = batchCandles[batchCandles.length - 1].closeTime + 1;
+  }
+
+  // Validate temporal continuity between batch 0 and batch 1
+  if (allCandles.length >= 2) {
+    const lastOfPrev = allCandles[Math.min(999, allCandles.length - 2)];
+    const firstOfNext = allCandles[Math.min(1000, allCandles.length - 1)];
+    const timeGapSec = (firstOfNext.openTime - lastOfPrev.closeTime) / 1000;
+    const priceGap = firstOfNext.open - lastOfPrev.close;
+    const priceGapPct = (priceGap / lastOfPrev.close * 100).toFixed(2);
+    diag.log(`fetchCandles continuity check: timeGap=${timeGapSec}s, priceGap=${priceGap} (${priceGapPct}%)`);
+    if (Math.abs(timeGapSec - 60) > 5) {
+      diag.error(`fetchCandles: TEMPORAL GAP DETECTED between candles 999→1000: ${timeGapSec}s gap (expected ~60s)`);
+    }
   }
 
   if (allCandles.length === 0) {
@@ -124,8 +143,15 @@ export function normalizeCandlesToBasePrice(
   if (historicalCandles.length === 0) return [];
 
   const firstOpen = historicalCandles[0].open;
+  const firstTime = historicalCandles[0].openTime;
+  const lastTime = historicalCandles[historicalCandles.length - 1].closeTime;
+  const timeSpanMin = ((lastTime - firstTime) / 60000).toFixed(0);
 
-  return historicalCandles.map((c) => {
+  diag.log(
+    `normalizeCandlesToBasePrice: ${historicalCandles.length} candles, basePrice=${basePrice}, firstOpen=${firstOpen}, timeSpan=${timeSpanMin}min`
+  );
+
+  const result = historicalCandles.map((c) => {
     // Escala proporcional ao primeiro candle
     const openPct = c.open / firstOpen;
     const highPct = c.high / firstOpen;
@@ -141,6 +167,12 @@ export function normalizeCandlesToBasePrice(
       volume: c.volume,
     };
   });
+
+  diag.log(
+    `normalizeCandlesToBasePrice: normalized range ${result[0].open.toFixed(2)}-${result[result.length - 1].close.toFixed(2)}, times ${result[0].time}-${result[result.length - 1].time}`
+  );
+
+  return result;
 }
 
 /**

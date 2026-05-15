@@ -71,9 +71,12 @@ export function computePartialReduce(
     };
   }
 
+  const newSize = size - reducedSize;
+  const newWallet = wallet + marginReturned + pnlPartial;
+  const newLiqPrice = calcLiquidationPrice(entry, leverage, side, newSize, newWallet);
   return {
-    wallet: wallet + marginReturned + pnlPartial,
-    position: { ...position, size: size - reducedSize, realizedPnL: position.realizedPnL + pnlPartial },
+    wallet: newWallet,
+    position: { ...position, size: newSize, realizedPnL: position.realizedPnL + pnlPartial, liquidationPrice: newLiqPrice },
     ordersHistory: [...ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
     closedTrades,
     realizedPnL: realizedPnL + pnlPartial,
@@ -97,10 +100,13 @@ export function computeAddToPosition(
   const margin = additionalSize / leverage;
   const newSize = size + additionalSize;
   const newEntry = (size * entry + additionalSize * price) / newSize;
-  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+  // Clamp to 0: when unrealized PnL covers the margin, wallet may not have
+  // enough cash — the shortfall is implicitly collateralised by the position's PnL.
+  const newWallet = Math.max(0, wallet - margin);
+  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side, newSize, newWallet);
 
   return {
-    wallet: wallet - margin,
+    wallet: newWallet,
     position: {
       ...position,
       entry: newEntry,
@@ -133,7 +139,8 @@ export function computeSizeIncrease(
   const newMargin = newSize * marginPerUnit;
   const additionalSize = newSize - size;
   const newEntry = (size * entry + additionalSize * price) / newSize;
-  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side);
+  const newWallet = Math.max(0, wallet - (newMargin - oldMargin));
+  const newLiqPrice = calcLiquidationPrice(newEntry, leverage, side, newSize, newWallet);
   const now = formatTimestamp();
 
   const historyItem: OrderHistoryItem = {
@@ -152,7 +159,7 @@ export function computeSizeIncrease(
   };
 
   return {
-    wallet: wallet - (newMargin - oldMargin),
+    wallet: newWallet,
     position: { ...position, entry: newEntry, size: newSize, liquidationPrice: newLiqPrice },
     ordersHistory: [...ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
   };

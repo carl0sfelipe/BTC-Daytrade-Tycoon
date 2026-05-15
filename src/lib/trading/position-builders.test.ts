@@ -39,6 +39,7 @@ describe("buildNewPosition", () => {
       leverage: 10,
       tpPrice: 55000,
       slPrice: 48000,
+      wallet: 0,
     });
 
     expect(pos.side).toBe("long");

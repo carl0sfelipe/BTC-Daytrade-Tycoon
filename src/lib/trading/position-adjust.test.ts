@@ -27,7 +27,8 @@ function makePosition(overrides: Partial<Position> = {}): Position {
 describe("computeSizeIncrease", () => {
   it("recalculates liqPrice when averaging UP on long", () => {
     const pos = makePosition({ entry: 80000, liquidationPrice: 72000, leverage: 10 });
-    const result = computeSizeIncrease(10000, pos, 2000, 90000, []);
+    const additionalMargin = (2000 - 1000) / 10;
+    const result = computeSizeIncrease(additionalMargin, pos, 2000, 90000, []);
     // newEntry = (1000*80000 + 1000*90000) / 2000 = 85000
     // rawLiqPrice = 85000 * (1 - 1/10) = 76500
     expect(result.position.entry).toBeCloseTo(85000, 0);
@@ -47,9 +48,10 @@ describe("computeSizeIncrease", () => {
       liquidationPrice: 80500 * (1 - 1 / 125), // ~79856
     });
     const addPrice = 79778;
-    const result = computeSizeIncrease(10000, pos, 145483, addPrice, []);
-
     const additionalSize = 145483 - 72783;
+    const additionalMargin = additionalSize / 125;
+    const result = computeSizeIncrease(additionalMargin, pos, 145483, addPrice, []);
+
     const expectedNewEntry = (72783 * 80500 + additionalSize * addPrice) / 145483;
     const expectedLiqPrice = expectedNewEntry * (1 - 1 / 125);
 
@@ -67,7 +69,8 @@ describe("computeSizeIncrease", () => {
       liquidationPrice: 55000,
     });
     // Adding at 60000 (above short entry = averaging against position)
-    const result = computeSizeIncrease(10000, pos, 2000, 60000, []);
+    const additionalMargin = (2000 - 1000) / 10;
+    const result = computeSizeIncrease(additionalMargin, pos, 2000, 60000, []);
     // newEntry = (1000*50000 + 1000*60000) / 2000 = 55000
     // rawLiqPrice = 55000 * (1 + 1/10) = 60500
     expect(result.position.entry).toBeCloseTo(55000, 0);
@@ -83,7 +86,8 @@ describe("computeSizeIncrease", () => {
       liquidationPrice: 55000,
     });
     // Adding at 40000 (below short entry = averaging with position)
-    const result = computeSizeIncrease(10000, pos, 2000, 40000, []);
+    const additionalMargin = (2000 - 1000) / 10;
+    const result = computeSizeIncrease(additionalMargin, pos, 2000, 40000, []);
     // newEntry = 45000, rawLiqPrice = 45000 * 1.1 = 49500
     expect(result.position.entry).toBeCloseTo(45000, 0);
     expect(result.position.liquidationPrice).toBeCloseTo(49500, 0);
@@ -116,7 +120,8 @@ describe("computeAddToPosition", () => {
       leverage: 10,
       liquidationPrice: 72000,
     });
-    const result = computeAddToPosition(5000, pos, 1000, 70000, null, null);
+    const additionalMargin = 1000 / 10;
+    const result = computeAddToPosition(additionalMargin, pos, 1000, 70000, null, null);
     // newEntry = (1000*80000 + 1000*70000) / 2000 = 75000
     // rawLiqPrice = 75000 * (1 - 1/10) = 67500
     expect(result.position.entry).toBeCloseTo(75000, 0);
@@ -131,7 +136,8 @@ describe("computeAddToPosition", () => {
       leverage: 10,
       liquidationPrice: 72000,
     });
-    const result = computeAddToPosition(5000, pos, 1000, 90000, null, null);
+    const additionalMargin = 1000 / 10;
+    const result = computeAddToPosition(additionalMargin, pos, 1000, 90000, null, null);
     // newEntry = 85000, rawLiqPrice = 76500
     expect(result.position.entry).toBeCloseTo(85000, 0);
     expect(result.position.liquidationPrice).toBeCloseTo(76500, 0);
@@ -172,5 +178,16 @@ describe("computePartialReduce", () => {
     const result = computePartialReduce(5000, pos, 1000, 82000, [], [], 0);
     expect(result.closedTrades).toHaveLength(1);
     expect(result.closedTrades[0].reason).toBe("manual");
+  });
+
+  it("recalculates liquidationPrice on partial reduce", () => {
+    // Position: long 1000 @ 80000 x10, wallet=5000
+    // liq = 80000 * (1 - (100 + 5000)/1000) = 0  (total collateral > size)
+    const pos = makePosition({ size: 1000, entry: 80000, leverage: 10, liquidationPrice: 72000 });
+    const result = computePartialReduce(5000, pos, 400, 82000, [], [], 0);
+    // newSize = 600, newWallet = 5000 + 40 + 10 = 5050
+    // margin = 60, total = 5110, ratio = 5110/600 = 8.5167
+    // liq = 80000 * (1 - 8.5167) = 0
+    expect(result.position!.liquidationPrice).toBe(0);
   });
 });

@@ -3,8 +3,9 @@ import {
   computeFreshOpen,
   computeClosePosition,
   computeHedgeFlip,
+  computeReduceOrClose,
 } from "./transitions";
-import { makePosition } from "@/test/factories";
+import { makePosition } from "@/test/helpers";
 
 describe("transitions integration", () => {
   describe("computeFreshOpen", () => {
@@ -111,6 +112,22 @@ describe("transitions integration", () => {
       expect(patch.position.side).toBe("short");
       expect(patch.position.size).toBe(1000);
       expect(patch.wallet).toBe(10040); // 10000 + 100 returned + 40 pnl - 100 excess
+    });
+  });
+
+  describe("computeReduceOrClose", () => {
+    it("recalculates liquidationPrice on partial reduce", () => {
+      const existing = makePosition({ side: "short", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 55000 });
+      const patch = computeReduceOrClose(
+        5000, existing, 51000, 400, "long", 10, [], [], 0, null
+      );
+      // newSize = 600, newWallet = 5000 + 40 + (50000-51000)/50000*400 = 5000 + 40 - 8 = 5032
+      // margin = 60, total = 5092, ratio = 5092/600 = 8.487
+      // liq = 50000 * (1 + 8.487) = 474333
+      expect(patch.position).not.toBeNull();
+      expect(patch.position!.size).toBe(600);
+      expect(patch.position!.liquidationPrice).not.toBe(55000);
+      expect(patch.position!.liquidationPrice).toBeGreaterThan(55000);
     });
   });
 });

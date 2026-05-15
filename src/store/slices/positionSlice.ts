@@ -173,7 +173,13 @@ export const createPositionSlice: StateCreator<
       const marginPerUnit = 1 / state.position.leverage;
       const oldMargin = size * marginPerUnit;
       const newMargin = newSize * marginPerUnit;
-      if (state.wallet < newMargin - oldMargin) return;
+      const additionalMargin = newMargin - oldMargin;
+      const priceDiff = state.position.side === "long"
+        ? price - state.position.entry
+        : state.position.entry - price;
+      const unrealizedPnL = (priceDiff / state.position.entry) * state.position.size;
+      const effectiveWallet = state.wallet + unrealizedPnL;
+      if (effectiveWallet < additionalMargin) return;
       const patch = computeSizeIncrease(state.wallet, state.position, newSize, price, state.ordersHistory, orderSide);
       set(patch);
     } else if (newSize < size) {
@@ -198,7 +204,8 @@ export const createPositionSlice: StateCreator<
 
     if (marginDiff > 0 && state.wallet < marginDiff) return;
 
-    const newLiqPrice = calcLiquidationPrice(state.position.entry, newLeverage, state.position.side);
+    const newWallet = state.wallet - marginDiff;
+    const newLiqPrice = calcLiquidationPrice(state.position.entry, newLeverage, state.position.side, state.position.size, newWallet);
     set({
       wallet: state.wallet - marginDiff,
       position: {

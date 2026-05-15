@@ -150,7 +150,8 @@ export function computeHedgeFlip(
     durationSeconds,
   };
 
-  const newLiqPrice = calcLiquidationPrice(entryPrice, newLeverage, newSide);
+  const newWallet = Math.max(0, wallet + returnedMargin + closePnl - excessMargin);
+  const newLiqPrice = calcLiquidationPrice(entryPrice, newLeverage, newSide, excessSize, newWallet);
   const flippedPosition: Position = {
     side: newSide,
     entry: entryPrice,
@@ -254,7 +255,7 @@ export function computeReduceOrClose(
       durationSeconds,
     };
     return {
-      wallet: wallet + margin + closePnl,
+      wallet: Math.max(0, wallet + margin + closePnl),
       position: null,
       closedTrades: [...closedTrades, trade].slice(-MAX_CLOSED_TRADES),
       ordersHistory: [...ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
@@ -263,9 +264,11 @@ export function computeReduceOrClose(
     };
   }
 
+  const newWallet = Math.max(0, wallet + marginReturned + pnlPartial);
+  const newLiqPrice = calcLiquidationPrice(existing.entry, existing.leverage, existing.side, newSize, newWallet);
   return {
-    wallet: wallet + marginReturned + pnlPartial,
-    position: { ...existing, size: newSize, realizedPnL: existing.realizedPnL + pnlPartial },
+    wallet: newWallet,
+    position: { ...existing, size: newSize, realizedPnL: existing.realizedPnL + pnlPartial, liquidationPrice: newLiqPrice },
     ordersHistory: [...ordersHistory, historyItem].slice(-MAX_ORDERS_HISTORY),
     closedTrades,
     realizedPnL: realizedPnL + pnlPartial,
@@ -293,7 +296,7 @@ export function computeFreshOpen(
   limitPrice: string | null
 ): FreshOpenPatch {
   const margin = size / leverage;
-  const liqPrice = calcLiquidationPrice(entryPrice, leverage, side);
+  const liqPrice = calcLiquidationPrice(entryPrice, leverage, side, size, wallet - margin);
   const now = formatTimestamp();
 
   const newPosition: Position = {

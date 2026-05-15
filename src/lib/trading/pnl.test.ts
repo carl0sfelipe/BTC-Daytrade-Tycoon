@@ -7,12 +7,30 @@ import {
 } from "./pnl";
 
 describe("calcLiquidationPrice", () => {
-  it("calculates long liquidation correctly", () => {
+  it("calculates long liquidation correctly (isolated)", () => {
     expect(calcLiquidationPrice(50000, 10, "long")).toBe(45000);
   });
 
-  it("calculates short liquidation correctly", () => {
+  it("calculates short liquidation correctly (isolated)", () => {
     expect(calcLiquidationPrice(50000, 10, "short")).toBeCloseTo(55000, 0);
+  });
+
+  it("cross margin: large wallet pushes liq far away", () => {
+    // size=1000, leverage=125, wallet=992
+    // totalMargin = 8 + 992 = 1000 => ratio = 1 => liq = 0
+    expect(calcLiquidationPrice(50000, 125, "long", 1000, 992)).toBe(0);
+  });
+
+  it("cross margin: partial wallet gives intermediate liq", () => {
+    // size=1000, leverage=10, wallet=450
+    // totalMargin = 100 + 450 = 550 => ratio = 0.55 => liq = 22500
+    expect(calcLiquidationPrice(50000, 10, "long", 1000, 450)).toBeCloseTo(22500, 0);
+  });
+
+  it("cross margin: short uses wallet as buffer", () => {
+    // size=1000, leverage=10, wallet=450
+    // totalMargin = 100 + 450 = 550 => ratio = 0.55 => liq = 77500
+    expect(calcLiquidationPrice(50000, 10, "short", 1000, 450)).toBe(77500);
   });
 
   it("throws for non-positive leverage", () => {

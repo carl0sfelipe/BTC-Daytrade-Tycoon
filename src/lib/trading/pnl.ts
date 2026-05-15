@@ -1,17 +1,21 @@
 /**
  * Calculates the liquidation price for a position.
  *
- * Simplified model: liquidation occurs when price moves 1/leverage
- * against the position.
+ * Cross-margin model: the entire wallet balance acts as additional margin.
+ * Liquidation occurs when the unrealized loss exceeds the position margin
+ * plus the free wallet balance.
  *
  * @example
- * calcLiquidationPrice(50000, 10, "long") // => 45000
- * calcLiquidationPrice(50000, 10, "short") // => 55000
+ * calcLiquidationPrice(50000, 10, "long", 1000, 0)     // isolated => 45000
+ * calcLiquidationPrice(50000, 10, "long", 1000, 500)   // cross    => 40000
+ * calcLiquidationPrice(50000, 10, "short", 1000, 0)    // isolated => 55000
  */
 export function calcLiquidationPrice(
   entry: number,
   leverage: number,
-  side: "long" | "short"
+  side: "long" | "short",
+  size?: number,
+  wallet?: number
 ): number {
   if (leverage <= 0) {
     throw new Error(
@@ -19,8 +23,20 @@ export function calcLiquidationPrice(
     );
   }
 
-  const multiplier = side === "long" ? 1 - 1 / leverage : 1 + 1 / leverage;
+  // Cross margin: total available margin = position margin + free wallet balance
+  if (size !== undefined && wallet !== undefined) {
+    const positionMargin = size / leverage;
+    const totalMargin = positionMargin + wallet;
+    const ratio = totalMargin / size;
 
+    if (side === "long") {
+      return Math.max(0, entry * (1 - ratio));
+    }
+    return entry * (1 + ratio);
+  }
+
+  // Isolated margin fallback (legacy)
+  const multiplier = side === "long" ? 1 - 1 / leverage : 1 + 1 / leverage;
   return entry * multiplier;
 }
 

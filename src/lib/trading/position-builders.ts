@@ -51,6 +51,7 @@ export interface BuildNewPositionParams {
   leverage: number;
   tpPrice: number | null;
   slPrice: number | null;
+  wallet?: number;
 }
 
 /**
@@ -76,7 +77,9 @@ export function buildNewPosition(
     liquidationPrice: calcLiquidationPrice(
       params.entryPrice,
       params.leverage,
-      params.side
+      params.side,
+      params.size,
+      params.wallet
     ),
     entryTime: now,
     entryTimestamp: Date.now(),

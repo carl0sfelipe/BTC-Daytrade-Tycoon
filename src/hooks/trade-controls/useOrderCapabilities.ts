@@ -45,8 +45,21 @@ export function useOrderCapabilities(
       currentPrice
     );
 
+    // effectiveWallet for increase: unrealized PnL counts as available collateral.
+    // Profit enlarges capacity; loss shrinks it. returnedMargin is NOT added
+    // because we are not closing the position.
+    const unrealizedPnL = position
+      ? ((position.side === "long"
+          ? currentPrice - position.entry
+          : position.entry - currentPrice) /
+          position.entry) *
+        position.size
+      : 0;
+    const effectiveWalletForIncrease = wallet + unrealizedPnL;
     const canIncrease =
-      positionSize > 0 && wallet >= positionSize / safeLeverage;
+      !isReduceMode &&
+      positionSize > 0 &&
+      effectiveWalletForIncrease >= positionSize / safeLeverage;
     const canDecrease = !!(
       position &&
       positionSize > 0 &&

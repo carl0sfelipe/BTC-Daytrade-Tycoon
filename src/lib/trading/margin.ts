@@ -45,7 +45,14 @@ export function calcSliderMax(
     return Math.max(100, Math.floor(position.size + effectiveWallet * safeLeverage));
   }
 
-  return Math.max(100, Math.floor(wallet * safeLeverage));
+  // Same-side increase: unrealized PnL counts as available collateral (mirrors canIncrease logic).
+  const priceDiff =
+    position.side === "long"
+      ? currentPrice - position.entry
+      : position.entry - currentPrice;
+  const unrealizedPnL = (priceDiff / position.entry) * position.size;
+  const effectiveWallet = wallet + unrealizedPnL;
+  return Math.max(100, Math.floor(Math.max(0, effectiveWallet) * safeLeverage));
 }
 
 /**

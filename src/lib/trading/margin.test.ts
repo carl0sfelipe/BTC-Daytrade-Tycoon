@@ -55,9 +55,31 @@ describe("calcSliderMax", () => {
     expect(calcSliderMax(position as any, 1000, 10, "short", false, 50000)).toBe(110000);
   });
 
-  it("returns wallet * leverage for same-side increase", () => {
-    const position = { size: 3000, side: "long" } as const;
-    expect(calcSliderMax(position as any, 10000, 10, "long", true, 50000)).toBe(100000);
+  it("returns effectiveWallet * leverage for same-side increase at break-even", () => {
+    // price = entry → unrealizedPnL = 0 → effectiveWallet = wallet
+    const position = { size: 3000, side: "long" as const, entry: 50000, leverage: 10 };
+    expect(calcSliderMax(position as any, 10000, 10, "long", false, 50000)).toBe(100000);
+  });
+
+  it("same-side increase: profit expands slider max (effectiveWallet > wallet)", () => {
+    // LONG $1000 @ 50000, wallet=0, price=52000 → unrealizedPnL=+40
+    // effectiveWallet = 0 + 40 = 40 → max = 40 * 10 = 400
+    const position = { size: 1000, side: "long" as const, entry: 50000, leverage: 10 };
+    expect(calcSliderMax(position as any, 0, 10, "long", false, 52000)).toBe(400);
+  });
+
+  it("same-side increase: loss shrinks slider max (effectiveWallet < wallet)", () => {
+    // LONG $1000 @ 50000, wallet=200, price=48000 → unrealizedPnL=−40
+    // effectiveWallet = 200 − 40 = 160 → max = 160 * 10 = 1600
+    const position = { size: 1000, side: "long" as const, entry: 50000, leverage: 10 };
+    expect(calcSliderMax(position as any, 200, 10, "long", false, 48000)).toBe(1600);
+  });
+
+  it("same-side increase: loss larger than wallet clamps slider to 100 (effectiveWallet ≤ 0)", () => {
+    // LONG $1000 @ 50000, wallet=10, price=47000 → unrealizedPnL=−60
+    // effectiveWallet = 10 − 60 = −50 → clamp to 0 → max = 100 (minimum)
+    const position = { size: 1000, side: "long" as const, entry: 50000, leverage: 10 };
+    expect(calcSliderMax(position as any, 10, 10, "long", false, 47000)).toBe(100);
   });
 });
 

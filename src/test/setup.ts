@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach } from "vitest";
-import { resetStore } from "./resetStore";
+import { resetStore } from "./helpers";
 
 // Mock localStorage for zustand persist
 const localStorageMock = (() => {

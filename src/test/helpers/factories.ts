@@ -62,3 +62,46 @@ export const makeOrderHistoryItem = (overrides: Partial<OrderHistoryItem> = {}):
   updatedAt: "01/01/2024 00:00:00",
   ...overrides,
 });
+
+// liquidationPrice for cross-margin: entry ± entry/leverage (simplified)
+const calcLiq = (side: "long" | "short", entry: number, leverage: number) =>
+  side === "long" ? entry * (1 - 1 / leverage) : entry * (1 + 1 / leverage);
+
+export const makePositionInProfit = (
+  side: "long" | "short",
+  size: number,
+  entry: number,
+  leverage = 10
+): Position =>
+  makePosition({ side, entry, size, leverage, liquidationPrice: calcLiq(side, entry, leverage) });
+
+export const makePositionInLoss = (
+  side: "long" | "short",
+  size: number,
+  entry: number,
+  leverage = 10
+): Position =>
+  makePosition({ side, entry, size, leverage, liquidationPrice: calcLiq(side, entry, leverage) });
+
+type StorePositionOpts = {
+  side: "long" | "short";
+  entry: number;
+  size: number;
+  leverage: number;
+  currentPrice: number;
+  wallet?: number;
+  skipHighLeverageWarning?: boolean;
+};
+
+export const makeStoreWithPosition = (opts: StorePositionOpts) => ({
+  wallet: opts.wallet ?? opts.size / opts.leverage,
+  currentPrice: opts.currentPrice,
+  skipHighLeverageWarning: opts.skipHighLeverageWarning ?? true,
+  position: makePosition({
+    side: opts.side,
+    entry: opts.entry,
+    size: opts.size,
+    leverage: opts.leverage,
+    liquidationPrice: calcLiq(opts.side, opts.entry, opts.leverage),
+  }),
+});

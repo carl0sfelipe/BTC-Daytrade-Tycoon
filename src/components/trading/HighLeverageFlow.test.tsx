@@ -1,14 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
+import { screen, fireEvent } from "@testing-library/react";
 import TradeControls from "./TradeControls";
 import { useTradingStore } from "@/store/tradingStore";
-import { SentinelProvider } from "@/lib/sentinel/provider";
-import { createFrozenClock } from "@/lib/sentinel/clock";
-
-function renderWithSentinel(ui: React.ReactElement) {
-  return render(<SentinelProvider clock={createFrozenClock()}>{ui}</SentinelProvider>);
-}
+import { renderWithSentinel } from "@/test/helpers";
 
 // No mock of ConfirmHighLeverageModal — tests the full integration flow
 

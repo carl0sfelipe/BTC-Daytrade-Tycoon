@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
-import { renderWithStore } from "@/test/renderWithStore";
+import { renderWithStore, makeTrade, makeOrderHistoryItem } from "@/test/helpers";
 import EventLog from "./EventLog";
 import { buildEventLog } from "@/lib/trading/event-log";
-import { makeTrade, makeOrderHistoryItem } from "@/test/factories";
 
 describe("EventLog", () => {
   it("shows empty state when no events", () => {

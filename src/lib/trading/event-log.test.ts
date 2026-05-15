@@ -4,7 +4,7 @@ import {
   orderToEventLogItem,
   buildEventLog,
 } from "./event-log";
-import { makeTrade, makeOrderHistoryItem } from "@/test/factories";
+import { makeTrade, makeOrderHistoryItem } from "@/test/helpers";
 
 describe("tradeToEventLogItem", () => {
   it("maps manual close", () => {

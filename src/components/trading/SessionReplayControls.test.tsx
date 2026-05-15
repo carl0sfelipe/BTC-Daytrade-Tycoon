@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, act } from "@testing-library/react";
-import { renderWithStore } from "@/test/renderWithStore";
+import { renderWithStore } from "@/test/helpers";
 import SessionReplayControls from "./SessionReplayControls";
 import { saveSnapshotToStorage, clearStoredSnapshot } from "@/lib/engine/session-replay";
 import { captureSessionSnapshot } from "@/lib/engine/session-replay";

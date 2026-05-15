@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 const BINANCE_BASE = "https://api.binance.com";
 const BINANCE_US_BASE = "https://api.binance.us";
 
@@ -11,22 +13,25 @@ export async function GET(
   const endpoint = path.join("/");
   const search = request.nextUrl.search;
 
-  // Try global Binance first
+  // Try global Binance first — no caching, fresh data every time
   const globalUrl = `${BINANCE_BASE}/${endpoint}${search}`;
   const ts = Date.now();
   try {
     const res = await fetch(globalUrl, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 2 },
+      cache: "no-store",
     });
 
     if (res.ok) {
       const data = await res.json();
       const len = Array.isArray(data) ? data.length : "object";
+      // Log first candle raw data to verify high/low integrity
+      if (Array.isArray(data) && data.length > 0) {
+        const first = data[0];
+        console.log(`[diag][proxy] first candle raw: open=${first[1]} high=${first[2]} low=${first[3]} close=${first[4]}`);
+      }
       console.log(`[diag][proxy] OK ${res.status} ${endpoint} → ${len} items (${Date.now() - ts}ms)`);
-      return NextResponse.json(data, {
-        headers: { "Cache-Control": "public, s-maxage=2, stale-while-revalidate=10" },
-      });
+      return NextResponse.json(data);
     }
 
     // If 451 (geo-blocked), try Binance US as fallback
@@ -35,16 +40,14 @@ export async function GET(
       const usUrl = `${BINANCE_US_BASE}/${endpoint}${search}`;
       const usRes = await fetch(usUrl, {
         headers: { Accept: "application/json" },
-        next: { revalidate: 2 },
+        cache: "no-store",
       });
 
       if (usRes.ok) {
         const data = await usRes.json();
         const len = Array.isArray(data) ? data.length : "object";
         console.log(`[diag][proxy] US OK ${usRes.status} ${endpoint} → ${len} items (${Date.now() - ts}ms)`);
-        return NextResponse.json(data, {
-          headers: { "Cache-Control": "public, s-maxage=2, stale-while-revalidate=10" },
-        });
+        return NextResponse.json(data);
       }
 
       console.error(`[diag][proxy] US also failed for ${endpoint}: ${usRes.status}`);

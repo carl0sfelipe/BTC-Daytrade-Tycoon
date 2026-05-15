@@ -262,8 +262,11 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       if (elapsedTime !== "00:00:00") {
         const [h, m, s] = elapsedTime.split(":").map(Number);
         const elapsedSec = h * 3600 + m * 60 + s;
+        // Resume the clock at the elapsed time we had when pausing.
+        // advance(+ms) shifts origin into the past so now() returns +ms
+        // immediately — restoring the simulated position without skipping.
         clockRef.current = createWallClock();
-        clockRef.current.advance(-elapsedSec * 1000);
+        clockRef.current.advance(elapsedSec * 1000);
       } else {
         clockRef.current = createWallClock();
       }

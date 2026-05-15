@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, act } from "@testing-library/react";
-import { renderWithStore } from "@/test/renderWithStore";
+import { renderWithStore } from "@/test/helpers";
 import { useTradingStore } from "@/store/tradingStore";
+import { assertAllInvariants, type TradingSnapshot } from "@/lib/trading/invariants";
+
+function snap(): TradingSnapshot {
+  const s = useTradingStore.getState();
+  return { wallet: s.wallet, position: s.position, pendingOrders: s.pendingOrders, closedTrades: s.closedTrades, ordersHistory: s.ordersHistory };
+}
 import TradeControls from "./TradeControls";
 import PositionPanel from "./PositionPanel";
 import OrdersPanel from "./OrdersPanel";
@@ -27,11 +33,14 @@ describe("Component Integration Tests with Real Store", () => {
       fireEvent.click(screen.getByText("SHORT"));
 
       // effectiveWallet = 500 + 100 - 40 = 560
-      // sliderMax = 560 * 10 = 5600
+      // sliderMax = position.size (1000) + effectiveWallet * leverage (5600) = 6600
       const slider = screen.getByRole("slider") as HTMLInputElement;
-      expect(parseInt(slider.max, 10)).toBeLessThanOrEqual(5600);
+      expect(parseInt(slider.max, 10)).toBeLessThanOrEqual(6600);
 
-      // At any value <= sliderMax, flip should be possible
+      // Set slider above position.size to trigger flip mode
+      fireEvent.change(slider, { target: { value: "2000" } });
+
+      // Flip with excess 1000 → margin 100 <= effectiveWallet 560 → should be possible
       const actionBtn = screen.getByTestId("trade-controls-action-btn");
       expect(actionBtn).not.toBeDisabled();
     });
@@ -64,9 +73,12 @@ describe("Component Integration Tests with Real Store", () => {
         position: { side: "long", entry: 50000, size: 1000, leverage: 10, liquidationPrice: 45000 },
       });
 
+      const before = snap();
       fireEvent.click(screen.getByTestId("position-panel-close-btn"));
-      expect(useTradingStore.getState().position).toBeNull();
-      expect(useTradingStore.getState().closedTrades).toHaveLength(1);
+      const after = snap();
+      expect(after.position).toBeNull();
+      expect(after.closedTrades).toHaveLength(1);
+      expect(assertAllInvariants(before, after)).toEqual([]);
     });
 
     it("displays position side badge", () => {
@@ -116,10 +128,13 @@ describe("Component Integration Tests with Real Store", () => {
         },
       });
 
+      const before = snap();
       act(() => {
         fireEvent.click(screen.getByTestId("orders-panel-cancel-2"));
       });
-      expect(useTradingStore.getState().pendingOrders).toHaveLength(0);
+      const after = snap();
+      expect(after.pendingOrders).toHaveLength(0);
+      expect(assertAllInvariants(before, after)).toEqual([]);
     });
   });
 });

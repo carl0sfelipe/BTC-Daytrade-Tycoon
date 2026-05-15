@@ -22,8 +22,8 @@ export function buildVisibleCandles(
     return {
       time: c.time as Time,
       open: c.open,
-      high: isLast ? Math.max(c.open, currentPrice) : c.high,
-      low: isLast ? Math.min(c.open, currentPrice) : c.low,
+      high: isLast ? Math.max(c.high, currentPrice) : c.high,
+      low: isLast ? Math.min(c.low, currentPrice) : c.low,
       close: isLast ? currentPrice : c.close,
     };
   });

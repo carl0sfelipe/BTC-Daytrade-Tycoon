@@ -22,7 +22,7 @@ describe("buildCandleUpdate", () => {
     expect(result.low).toBe(50000);
   });
 
-  it("uses open as low when current price is below open", () => {
+  it("preserves original high when current price is below open", () => {
     const candle: SimulatedCandle = {
       time: 1000,
       open: 50000,
@@ -34,7 +34,7 @@ describe("buildCandleUpdate", () => {
 
     const result = buildCandleUpdate(candle, 48000);
 
-    expect(result.high).toBe(50000);
-    expect(result.low).toBe(48000);
+    expect(result.high).toBe(51000); // original high preserved
+    expect(result.low).toBe(48000);  // current price extends below low
   });
 });

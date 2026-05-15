@@ -18,8 +18,8 @@ export function buildCandleUpdate(
   return {
     time: candle.time as Time,
     open: candle.open,
-    high: Math.max(candle.open, currentPrice),
-    low: Math.min(candle.open, currentPrice),
+    high: Math.max(candle.high, currentPrice),
+    low: Math.min(candle.low, currentPrice),
     close: currentPrice,
   };
 }

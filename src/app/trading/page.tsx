@@ -26,7 +26,7 @@ import { useTradeNotifications } from "@/hooks/useTradeNotifications";
 import { getCurrentStreak } from "@/utils/streak";
 import { computeTraderScore } from "@/lib/trading/trader-score";
 import { SentinelProvider, useSentinelContext } from "@/lib/sentinel";
-import { SentinelHitlPanel } from "@/components/sentinel/SentinelHitlPanel";
+import type { SentinelEvent } from "@/lib/sentinel";
 
 function SentinelE2EHelper(): null {
   const sentinelCtx = useSentinelContext();
@@ -42,6 +42,15 @@ function SentinelE2EHelper(): null {
     };
   }, [sentinelCtx]);
   return null;
+}
+
+function handleSentinelFlush(events: ReadonlyArray<SentinelEvent>) {
+  if (typeof window !== "undefined") {
+    window.postMessage(
+      { source: "sentinel", type: "events", events: JSON.parse(JSON.stringify(events)) },
+      "*"
+    );
+  }
 }
 
 export default function TradingPage() {
@@ -198,7 +207,7 @@ export default function TradingPage() {
   };
 
   return (
-    <SentinelProvider clock={engine.clock}>
+    <SentinelProvider clock={engine.clock} onEventFlush={handleSentinelFlush}>
       <SentinelE2EHelper />
     <div className="min-h-screen bg-crypto-bg text-crypto-text">
       <Header />
@@ -252,7 +261,7 @@ export default function TradingPage() {
                 <PositionPanel />
                 <TradeControls />
                 <PnLDisplay />
-                <SentinelHitlPanel />
+
               </div>
             </div>
           </main>

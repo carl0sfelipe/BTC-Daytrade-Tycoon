@@ -22,7 +22,8 @@ import {
   ActionButtons,
 } from "./trade-controls";
 import { calcSliderMax } from "@/lib/trading/margin";
-import { useTradeSentinel } from "@/hooks/trade-controls";
+import { calcLiquidationPrice } from "@/lib/trading";
+import { useTradeSentinel, useTradeSentinelBlocked } from "@/hooks/trade-controls";
 
 export default function TradeControls() {
   const store = useTradingStore();
@@ -51,17 +52,71 @@ export default function TradeControls() {
   );
 
   // Handlers
+  const buildPayload = (
+    action: Record<string, unknown>,
+    overrides?: { side?: "long" | "short"; leverage?: number; positionSize?: number }
+  ) => {
+    const effectiveSide = overrides?.side ?? state.side;
+    const effectiveLeverage = overrides?.leverage ?? state.leverage;
+    const effectivePositionSize = overrides?.positionSize ?? state.positionSize;
+    const isReduceMode = !!(position && effectiveSide !== position.side);
+    let estLiqPrice: number | null = null;
+
+    if (!position) {
+      estLiqPrice = calcLiquidationPrice(currentPrice, effectiveLeverage || 1, effectiveSide, effectivePositionSize, wallet);
+    } else if (isReduceMode) {
+      estLiqPrice = calcLiquidationPrice(position.entry, effectiveLeverage || 1, position.side, position.size, wallet);
+    } else {
+      const newTotalSize = position.size + effectivePositionSize;
+      const newEntry = (position.size * position.entry + effectivePositionSize * currentPrice) / newTotalSize;
+      estLiqPrice = calcLiquidationPrice(newEntry, effectiveLeverage || 1, position.side, newTotalSize, wallet);
+    }
+
+    return {
+      ...action,
+      controlState: {
+        side: effectiveSide,
+        leverage: effectiveLeverage,
+        positionSize: effectivePositionSize,
+        orderType: state.orderType,
+        limitPrice: state.limitPrice,
+        tpPrice: state.tpPrice,
+        slPrice: state.slPrice,
+        mode: state.mode,
+        estLiqPrice,
+      },
+    };
+  };
+
   const recordLeverage = useTradeSentinel("trade-controls:leverage-selector", "spinbutton");
   const handleLeverageChange = (newLeverage: number) => {
     recordLeverage(() => {
       state.setLeverage(newLeverage);
-      if (position) store.updateLeverage(newLeverage);
-    }, { type: "change", value: newLeverage });
+      // Do NOT update store leverage here — that would prematurely move the
+      // liquidation line on the chart. Leverage is applied when the order is
+      // actually executed (handleUpdate / handleOpen).
+    }, buildPayload({ type: "change", value: newLeverage }, { leverage: newLeverage }));
   };
 
   const recordOpen = useTradeSentinel("trade-controls:button:Open Position", "button");
+  const recordBlockedOpen = useTradeSentinelBlocked("trade-controls:button:Open Position", "button");
   const handleOpen = () => {
-    if (!caps.canOpen) return;
+    // Guard must match ActionButtons enabled logic to avoid stale-state
+    // mismatch where the button is enabled but the handler silently returns.
+    if (position && state.orderType === "limit") {
+      const isFlip = !reduceOnly && state.positionSize >= position.size;
+      if (caps.isReduceMode) {
+        if (isFlip) {
+          if (!caps.canFlip) return;
+        } else {
+          if (!caps.canDecrease) return;
+        }
+      } else {
+        if (!caps.canOpen) return;
+      }
+    } else if (!caps.canOpen) {
+      return;
+    }
 
     if (
       state.leverage >= 50 &&
@@ -108,7 +163,7 @@ export default function TradeControls() {
         );
         resetInputs();
       }
-    }, { type: "click", side: state.side, orderType: state.orderType, leverage: state.leverage, size: state.positionSize });
+    }, buildPayload({ type: "click", side: state.side, orderType: state.orderType, leverage: state.leverage, size: state.positionSize }));
   };
 
   const handleConfirmHighLeverage = () => {
@@ -145,15 +200,16 @@ export default function TradeControls() {
       }
 
       state.setPendingTrade(null);
-    }, { type: "click", side: state.pendingTrade.side, orderType: li ? "limit" : "market", leverage: state.pendingTrade.leverage, size: state.pendingTrade.size });
+    }, buildPayload({ type: "click", side: state.pendingTrade.side, orderType: li ? "limit" : "market", leverage: state.pendingTrade.leverage, size: state.pendingTrade.size }));
   };
 
   const recordUpdate = useTradeSentinel("trade-controls:button:Update Position", "button");
+  const recordBlockedUpdate = useTradeSentinelBlocked("trade-controls:button:Update Position", "button");
   const recordClose = useTradeSentinel("trade-controls:button:Close Position", "button");
   const handleClose = () => {
     recordClose(() => {
       store.closePosition("manual");
-    }, { type: "click", reason: "manual" });
+    }, buildPayload({ type: "click", reason: "manual" }));
   };
   const handleUpdate = () => {
     if (!position) return;
@@ -162,6 +218,13 @@ export default function TradeControls() {
       if (caps.isReduceMode && !reduceOnly) {
         store.openPosition(state.side, state.leverage, state.positionSize, state.tpPrice, state.slPrice, null);
         return;
+      }
+
+      // Apply leverage change first if it differs from the current position.
+      // This keeps the chart liq-price stable while the user is still adjusting
+      // the slider, and only updates it when the order is actually sent.
+      if (position.leverage !== state.leverage) {
+        store.updateLeverage(state.leverage);
       }
 
       const targetSize = caps.isReduceMode
@@ -173,7 +236,7 @@ export default function TradeControls() {
       } else {
         store.updatePositionSize(targetSize, state.side);
       }
-    }, { type: "click", side: state.side, size: state.positionSize, isReduceMode: caps.isReduceMode });
+    }, buildPayload({ type: "click", side: state.side, size: state.positionSize, isReduceMode: caps.isReduceMode }));
   };
 
   const resetInputs = () => {
@@ -195,7 +258,7 @@ export default function TradeControls() {
 
       const newMax = calcSliderMax(position, wallet, state.leverage, newSide, reduceOnly, currentPrice);
       state.setPositionSize(Math.min(1000, newMax));
-    }, { type: "select", side: newSide });
+    }, buildPayload({ type: "select", side: newSide }, { side: newSide }));
   };
 
   return (
@@ -282,6 +345,7 @@ export default function TradeControls() {
             isReduceMode={caps.isReduceMode}
             reduceOnly={reduceOnly}
             currentPrice={currentPrice}
+            side={state.side}
           />
 
           <ActionButtons
@@ -298,6 +362,8 @@ export default function TradeControls() {
             onOpen={handleOpen}
             onUpdate={handleUpdate}
             onClose={handleClose}
+            onBlockedOpen={recordBlockedOpen}
+            onBlockedUpdate={recordBlockedUpdate}
           />
         </div>
       </div>

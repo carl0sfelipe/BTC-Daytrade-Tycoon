@@ -16,6 +16,8 @@ interface ActionButtonsProps {
   onOpen: () => void;
   onUpdate: () => void;
   onClose: () => void;
+  onBlockedOpen?: (e: React.PointerEvent<HTMLButtonElement>) => void;
+  onBlockedUpdate?: (e: React.PointerEvent<HTMLButtonElement>) => void;
 }
 
 export default function ActionButtons({
@@ -32,6 +34,8 @@ export default function ActionButtons({
   onOpen,
   onUpdate,
   onClose,
+  onBlockedOpen,
+  onBlockedUpdate,
 }: ActionButtonsProps) {
   // Position open + market order
   if (position && orderType === "market") {
@@ -41,6 +45,7 @@ export default function ActionButtons({
           <ActionButton
             testId="trade-controls-action-btn"
             onClick={onUpdate}
+            onPointerDown={onBlockedUpdate}
             disabled={!canIncrease}
             variant={position.side === "long" ? "long" : "short"}
             label="INCREASE POSITION"
@@ -49,6 +54,7 @@ export default function ActionButtons({
           <ActionButton
             testId="trade-controls-action-btn"
             onClick={onUpdate}
+            onPointerDown={onBlockedUpdate}
             disabled={!canDecrease}
             variant="warning"
             label="REDUCE POSITION"
@@ -57,7 +63,10 @@ export default function ActionButtons({
           <ActionButton
             testId="trade-controls-action-btn"
             onClick={onUpdate}
-            disabled={!canFlip}
+            onPointerDown={onBlockedUpdate}
+            disabled={
+              positionSize >= position.size ? !canFlip : !canDecrease
+            }
             variant={side === "long" ? "long" : "short"}
             label={
               positionSize >= position.size
@@ -75,7 +84,9 @@ export default function ActionButtons({
   if (position && orderType === "limit") {
     const enabled = isReduceMode
       ? !reduceOnly
-        ? canFlip
+        ? positionSize >= position.size
+          ? canFlip
+          : canDecrease
         : canDecrease
       : canOpen;
 
@@ -84,6 +95,7 @@ export default function ActionButtons({
         <ActionButton
           testId="trade-controls-action-btn"
           onClick={onOpen}
+          onPointerDown={onBlockedOpen}
           disabled={!enabled}
           variant={side === "long" ? "long" : "short"}
           label={`Place ${side === "long" ? "Long" : "Short"} Limit`}
@@ -103,6 +115,7 @@ export default function ActionButtons({
     <ActionButton
       testId="trade-controls-action-btn"
       onClick={onOpen}
+      onPointerDown={onBlockedOpen}
       disabled={!canOpen}
       variant={side === "long" ? "long" : "short"}
       label={noPositionLabel}
@@ -113,12 +126,14 @@ export default function ActionButtons({
 function ActionButton({
   testId,
   onClick,
+  onPointerDown,
   disabled,
   variant,
   label,
 }: {
   testId: string;
   onClick: () => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void;
   disabled: boolean;
   variant: "long" | "short" | "warning";
   label: string;
@@ -135,6 +150,7 @@ function ActionButton({
       data-testid={testId}
       aria-label={label}
       onClick={onClick}
+      onPointerDown={onPointerDown}
       disabled={disabled}
       className={`w-full font-bold py-2.5 px-4 rounded-lg transition-colors text-sm ${
         disabled

@@ -112,23 +112,45 @@ function SizeSlider({
   currentSize: number | null;
   onChange: (v: number) => void;
 }) {
+  const safeMax = Math.max(100, sliderMax);
+
+  const handleInputChange = (val: string) => {
+    const num = parseInt(val.replace(/[^0-9]/g, ""), 10);
+    if (Number.isNaN(num)) {
+      onChange(100);
+      return;
+    }
+    onChange(Math.min(safeMax, Math.max(100, num)));
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
           {label}
         </span>
-        {currentSize !== null && (
-          <span className="text-[10px] font-mono text-crypto-text-secondary">
-            Current: ${Math.floor(currentSize).toLocaleString()}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {currentSize !== null && (
+            <span className="text-[10px] font-mono text-crypto-text-secondary">
+              Current: ${Math.floor(currentSize).toLocaleString()}
+            </span>
+          )}
+          <input
+            type="text"
+            inputMode="numeric"
+            data-testid="trade-controls-size-input"
+            aria-label="Position size input"
+            value={positionSize.toLocaleString()}
+            onChange={(e) => handleInputChange(e.target.value)}
+            className="w-20 text-right text-xs font-mono bg-crypto-surface-elevated border border-crypto-border rounded px-2 py-0.5 text-crypto-text focus:border-crypto-accent focus:outline-none"
+          />
+        </div>
       </div>
       <input
         data-testid="trade-controls-size-slider"
         type="range"
         min={100}
-        max={Math.max(100, sliderMax)}
+        max={safeMax}
         step={100}
         value={positionSize}
         aria-label="Position size slider"
@@ -137,8 +159,8 @@ function SizeSlider({
       />
       <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
         <span>$100</span>
-        <span>${Math.floor(sliderMax / 2).toLocaleString()}</span>
-        <span>${Math.floor(sliderMax).toLocaleString()}</span>
+        <span>${Math.floor(safeMax / 2).toLocaleString()}</span>
+        <span>${Math.floor(safeMax).toLocaleString()}</span>
       </div>
     </div>
   );

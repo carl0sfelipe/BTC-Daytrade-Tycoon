@@ -23,3 +23,15 @@ export const logger = {
     if (isDev) console.warn(...args);
   },
 };
+
+/**
+ * Production-safe diagnostic logger — always writes to console.
+ * Used for critical infrastructure paths (Binance proxy, candle fetch,
+ * continuity normalization) where we need visibility in production.
+ * Prefix all messages with "[diag]" so they can be filtered.
+ */
+export const diag = {
+  log: (...args: unknown[]) => console.log("[diag]", ...args),
+  warn: (...args: unknown[]) => console.warn("[diag]", ...args),
+  error: (...args: unknown[]) => console.error("[diag]", ...args),
+};

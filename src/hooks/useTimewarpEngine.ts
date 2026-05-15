@@ -15,7 +15,7 @@ import { loadSession } from "@/lib/engine/session-loader";
 import { processTick, detectLiquidation } from "@/lib/engine/tick-processor";
 import { tickEventLog, resetTickEventLog } from "@/lib/engine/tick-events";
 import { useE2EHelpers } from "@/hooks/engine/useE2EHelpers";
-import { logger } from "@/lib/logger";
+import { logger, diag } from "@/lib/logger";
 import type { BinanceCandle } from "@/lib/binance-api";
 import { createWallClock } from "@/lib/sentinel";
 import type { VirtualClock } from "@/lib/sentinel";
@@ -83,13 +83,18 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
     try {
       const lastHist = historicalCandlesRef.current[historicalCandlesRef.current.length - 1];
-      if (!lastHist) return;
+      if (!lastHist) {
+        diag.warn("appendMoreCandles: no historical candles to append from");
+        return;
+      }
 
       const nextStart = new Date(lastHist.closeTime + 1);
+      diag.log(`appendMoreCandles: fetching from ${nextStart.toISOString()}`);
       const newHistorical = await fetchCandles(nextStart);
 
       if (newHistorical.length === 0) {
         logger.log("[useTimewarpEngine] appendMoreCandles — no more data");
+        diag.log("appendMoreCandles: no more data, stopping simulation");
         setIsPlaying(false);
         clearTickInterval();
         setError("No more historical data available for this period.");
@@ -97,16 +102,22 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
       }
 
       logger.log(`[useTimewarpEngine] appendMoreCandles — +${newHistorical.length} candles`);
+      diag.log(`appendMoreCandles: got ${newHistorical.length} raw candles`);
 
       historicalCandlesRef.current = [...historicalCandlesRef.current, ...newHistorical];
       const lastExisting = candlesRef.current[candlesRef.current.length - 1];
       const lastClose = lastExisting?.close ?? candlesRef.current[0]?.open ?? 0;
+      diag.log(`appendMoreCandles: lastExistingClose=${lastClose}, existingCount=${candlesRef.current.length}`);
+
       const newSimulated = normalizeCandlesWithContinuity(newHistorical, lastClose);
       const updated = [...candlesRef.current, ...newSimulated];
       setCandles(updated);
       candlesRef.current = updated;
+      diag.log(`appendMoreCandles: total candles now=${updated.length}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch more data");
+      const msg = err instanceof Error ? err.message : "Failed to fetch more data";
+      diag.error(`appendMoreCandles: ${msg}`);
+      setError(msg);
     } finally {
       isFetchingMoreRef.current = false;
     }
@@ -114,6 +125,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
   const doLoad = useCallback(async () => {
     logger.log("[useTimewarpEngine] loadSession starting...");
+    diag.log("doLoad: starting session load");
     setIsLoading(true);
     const result = await loadSession({
       setLoadingMessage,
@@ -122,6 +134,7 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
     if (result) {
       logger.log(`[useTimewarpEngine] loadSession complete — ${result.simulated.length} candles, start=${result.originalStartDate.toISOString()}`);
+      diag.log(`doLoad: ${result.simulated.length} candles loaded, initialPrice=${result.initialPrice}`);
       historicalCandlesRef.current = result.historicalCandles;
       startDateRef.current = result.startDate;
       originalStartDateRef.current = result.originalStartDate;
@@ -135,11 +148,13 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
 
       autoStartTimeoutRef.current = setTimeout(() => {
         if (candlesRef.current.length > 0 && mountedRef.current) {
+          diag.log("doLoad: auto-starting simulation");
           startSimulationRef.current?.();
         }
       }, 500);
     } else {
       logger.log("[useTimewarpEngine] loadSession failed");
+      diag.error("doLoad: loadSession returned null/undefined");
       setIsLoading(false);
       setLoadingMessage("");
     }

@@ -1,3 +1,5 @@
+import { diag } from "@/lib/logger";
+
 export interface BinanceCandle {
   openTime: number;
   open: number;
@@ -47,6 +49,9 @@ export async function fetchCandles(
   interval = "1m",
   limit = 1000
 ): Promise<BinanceCandle[]> {
+  const ts = Date.now();
+  diag.log(`fetchCandles start: ${startTime.toISOString()} symbol=${symbol}`);
+
   // Fetch 2 batches of 1000 1min candles = ~2000 candles (~33h of data)
   const allCandles: BinanceCandle[] = [];
   let currentStart = startTime.getTime();
@@ -58,11 +63,14 @@ export async function fetchCandles(
     url.searchParams.set("startTime", currentStart.toString());
     url.searchParams.set("limit", limit.toString());
 
+    diag.log(`fetchCandles batch ${batch}: ${url.toString().slice(0, 120)}...`);
     const response = await fetch(url.toString());
 
     if (!response.ok) {
+      diag.warn(`fetchCandles batch ${batch}: HTTP ${response.status} ${response.statusText}`);
       if (response.status === 451 || response.status === 503) {
         console.warn(`[fetchCandles] Binance API unavailable (${response.status}). Using generated fallback data.`);
+        diag.warn(`Using fallback candles for batch ${batch}`);
         return generateFallbackCandles(new Date(currentStart), limit);
       }
       throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
@@ -71,6 +79,7 @@ export async function fetchCandles(
     const data: Array<(string | number)[]> = await response.json();
 
     if (!Array.isArray(data) || data.length === 0) {
+      diag.log(`fetchCandles batch ${batch}: empty response, stopping`);
       break;
     }
 
@@ -85,6 +94,7 @@ export async function fetchCandles(
     }));
 
     allCandles.push(...batchCandles);
+    diag.log(`fetchCandles batch ${batch}: ${batchCandles.length} candles, price range ${batchCandles[0].open}-${batchCandles[batchCandles.length - 1].close}`);
 
     if (batchCandles.length < limit) {
       break; // No more data
@@ -95,9 +105,11 @@ export async function fetchCandles(
   }
 
   if (allCandles.length === 0) {
+    diag.error("fetchCandles: no data returned, throwing");
     throw new Error("No candle data returned from Binance");
   }
 
+  diag.log(`fetchCandles done: ${allCandles.length} total candles in ${Date.now() - ts}ms`);
   return allCandles;
 }
 
@@ -161,10 +173,18 @@ export function normalizeCandlesWithContinuity(
 
   const firstOpen = newHistorical[0].open;
   const firstClose = newHistorical[0].close;
+  const scale = lastExistingClose / firstOpen;
+
+  diag.log(
+    `normalizeCandlesWithContinuity: lastClose=${lastExistingClose}, firstNewOpen=${firstOpen}, firstNewClose=${firstClose}, scale=${scale.toFixed(6)}, count=${newHistorical.length}`
+  );
 
   // Validate that the raw data isn't wildly different (corrupt/mismatched batch)
   const rawGapRatio = Math.abs(firstOpen - firstClose) / firstOpen;
   if (rawGapRatio > MAX_CANDLE_GAP_RATIO) {
+    diag.error(
+      `normalizeCandlesWithContinuity: gap too large ${(rawGapRatio * 100).toFixed(1)}%`
+    );
     throw new Error(
       `Candle gap too large: raw first candle open=${firstOpen} close=${firstClose} ` +
         `(gap ${(rawGapRatio * 100).toFixed(1)}% > max ${(MAX_CANDLE_GAP_RATIO * 100).toFixed(0)}%). ` +
@@ -172,10 +192,7 @@ export function normalizeCandlesWithContinuity(
     );
   }
 
-  // Scale factor: what multiplier makes the first new open equal last existing close?
-  const scale = lastExistingClose / firstOpen;
-
-  return newHistorical.map((c) => ({
+  const result = newHistorical.map((c) => ({
     time: Math.floor(c.openTime / 1000),
     open: c.open * scale,
     high: c.high * scale,
@@ -183,6 +200,12 @@ export function normalizeCandlesWithContinuity(
     close: c.close * scale,
     volume: c.volume,
   }));
+
+  diag.log(
+    `normalizeCandlesWithContinuity: scaled range ${result[0].open.toFixed(2)}-${result[result.length - 1].close.toFixed(2)}, times ${result[0].time}-${result[result.length - 1].time}`
+  );
+
+  return result;
 }
 
 export function interpolatePrice(

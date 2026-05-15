@@ -151,6 +151,12 @@ export function normalizeCandlesToBasePrice(
     `normalizeCandlesToBasePrice: ${historicalCandles.length} candles, basePrice=${basePrice}, firstOpen=${firstOpen}, timeSpan=${timeSpanMin}min`
   );
 
+  // Log first 3 candles to verify high/low preservation
+  for (let i = 0; i < Math.min(3, historicalCandles.length); i++) {
+    const c = historicalCandles[i];
+    diag.log(`  raw[${i}] open=${c.open} high=${c.high} low=${c.low} close=${c.close}`);
+  }
+
   const result = historicalCandles.map((c) => {
     // Escala proporcional ao primeiro candle
     const openPct = c.open / firstOpen;

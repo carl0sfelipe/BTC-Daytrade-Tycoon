@@ -1,5 +1,6 @@
 import type { Time } from "lightweight-charts";
 import type { SimulatedCandle } from "@/lib/binance-api";
+import { diag } from "@/lib/logger";
 
 /**
  * Builds the array of visible candles up to (and including) the current one.
@@ -16,6 +17,11 @@ export function buildVisibleCandles(
   currentIdx: number,
   currentPrice: number
 ) {
+  const last = candles[currentIdx];
+  if (last) {
+    diag.log(`buildVisibleCandles: idx=${currentIdx} total=${candles.length} lastCandle open=${last.open} high=${last.high} low=${last.low} close=${last.close} currentPrice=${currentPrice}`);
+  }
+
   return candles.slice(0, currentIdx + 1).map((c, i) => {
     const isLast = i === currentIdx;
 

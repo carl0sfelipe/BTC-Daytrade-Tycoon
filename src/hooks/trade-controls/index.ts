@@ -7,4 +7,4 @@ export { useOrderCapabilities } from "./useOrderCapabilities";
 export type { OrderCapabilities } from "./useOrderCapabilities";
 
 export { useActionErrorToast } from "./useActionErrorToast";
-export { useTradeSentinel } from "./useTradeSentinel";
+export { useTradeSentinel, useTradeSentinelBlocked } from "./useTradeSentinel";

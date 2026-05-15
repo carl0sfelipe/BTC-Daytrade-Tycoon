@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, act } from "@testing-library/react";
 import TradeControls from "./TradeControls";
 import { useTradingStore } from "@/store/tradingStore";
-import { renderWithSentinel, openLong5k, resetStore, getSlider } from "@/test/helpers";
+import { renderWithSentinel, openLong5k, openShort5k, resetStore, getSlider } from "@/test/helpers";
 
 vi.mock("./ConfirmHighLeverageModal", () => ({
   default: () => null,
@@ -395,6 +395,93 @@ describe("TradeControls — slider and position labels", () => {
         useTradingStore.setState({ currentPrice: 55000 });
       });
       expect(getSlider().value).toBe("1000");
+    });
+
+    // ── SHORT-POSITION equivalents ────────────────────────────────────────
+    // These mirror the LONG tests above but with a SHORT position.
+    // calcSliderMax for short same-side increase uses position.entry - currentPrice
+    // as priceDiff, so profiting (price falling) grows the sliderMax exactly
+    // like rising price grows it for a LONG.
+
+    it("SHORT: slider stays at MAX when capacity grows (unrealized profit increases sliderMax)", () => {
+      openShort5k();
+      renderWithSentinel(<TradeControls />);
+
+      // usePositionSync fires after mount and sets side="short".
+      // Wait for that to settle before interacting.
+      const slider = getSlider();
+      const initialMax = Number(slider.max);
+      // Drag to MAX on the short same-side increase slider.
+      fireEvent.change(slider, { target: { value: slider.max } });
+      expect(slider.value).toBe(String(initialMax));
+
+      // Price falls → SHORT is in profit → sliderMax grows.
+      act(() => {
+        useTradingStore.setState({ currentPrice: 45000 });
+      });
+
+      const newSlider = getSlider();
+      const newMax = Number(newSlider.max);
+      expect(newMax).toBeGreaterThan(initialMax);
+      // Locked at 100% → value must still equal max.
+      expect(newSlider.value).toBe(newSlider.max);
+    });
+
+    it("SHORT: slider stays at 50% when capacity changes", () => {
+      openShort5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      const initialMax = Number(slider.max);
+      const halfTarget = Math.floor(initialMax / 200) * 100;
+      fireEvent.change(slider, { target: { value: String(halfTarget) } });
+      expect(Number(slider.value)).toBe(halfTarget);
+
+      act(() => {
+        useTradingStore.setState({ currentPrice: 45000 });
+      });
+
+      const newSlider = getSlider();
+      const newValue = Number(newSlider.value);
+      const newMax = Number(newSlider.max);
+      // Still ~50% of new max.
+      expect(newValue / newMax).toBeCloseTo(0.5, 1);
+    });
+
+    it("SHORT: manually typed value stays fixed when capacity changes", () => {
+      openShort5k();
+      renderWithSentinel(<TradeControls />);
+
+      const input = screen.getByTestId("trade-controls-size-input") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "3000" } });
+      expect(getSlider().value).toBe("3000");
+
+      act(() => {
+        useTradingStore.setState({ currentPrice: 45000 });
+      });
+
+      // Absolute — should not move.
+      expect(getSlider().value).toBe("3000");
+    });
+
+    it("SHORT: typing clears a previously locked percentage", () => {
+      openShort5k();
+      renderWithSentinel(<TradeControls />);
+
+      const slider = getSlider();
+      // Lock at MAX
+      fireEvent.change(slider, { target: { value: slider.max } });
+
+      const input = screen.getByTestId("trade-controls-size-input") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "2000" } });
+      expect(getSlider().value).toBe("2000");
+
+      act(() => {
+        useTradingStore.setState({ currentPrice: 45000 });
+      });
+
+      // No longer tracking — stays at typed amount.
+      expect(getSlider().value).toBe("2000");
     });
 
     it("simple-mode 100% pill (no position) tracks wallet*leverage when leverage changes", () => {

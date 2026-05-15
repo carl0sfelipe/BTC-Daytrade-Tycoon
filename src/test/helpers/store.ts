@@ -38,6 +38,32 @@ export function resetStore() {
   useTradingStore.setState(fullState, true);
 }
 
+export function openShort5k() {
+  useTradingStore.setState({
+    wallet: 10000,
+    position: {
+      side: "short",
+      entry: 50000,
+      size: 5000,
+      leverage: 10,
+      tpPrice: null,
+      slPrice: null,
+      trailingStopPercent: null,
+      trailingStopPrice: null,
+      liquidationPrice: 55000,
+      entryTime: "2026-05-04T12:00:00Z",
+      entryTimestamp: 0,
+      realizedPnL: 0,
+      maxDrawdown: 0,
+      peakUnrealizedPnl: 0,
+    },
+    currentPrice: 50000,
+    skipHighLeverageWarning: true,
+    pendingOrders: [],
+    closedTrades: [],
+  });
+}
+
 export function openLong5k() {
   useTradingStore.setState({
     wallet: 10000,

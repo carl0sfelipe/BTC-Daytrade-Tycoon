@@ -40,6 +40,86 @@ The foundation. These are shipped and battle-tested.
 
 ---
 
+## Performance & Accessibility Discovery Backlog *(From PageSpeed — 2026-05-16)*
+
+Detailed findings from desktop analysis of `https://btc-daytrade-tycoon.vercel.app/trading` and the resulting execution backlog.
+
+### Current Scores (Desktop)
+
+| Category | Score |
+| :-- | :-- |
+| Performance | 95 |
+| Accessibility | 90 |
+| Best Practices | 100 |
+| SEO | 100 |
+
+### Measured Metrics (Desktop)
+
+| Metric | Value |
+| :-- | :-- |
+| First Contentful Paint (FCP) | 0.2s |
+| Largest Contentful Paint (LCP) | 0.7s |
+| Total Blocking Time (TBT) | 30ms |
+| Cumulative Layout Shift (CLS) | 0.002 |
+| Speed Index | 2.1s |
+
+### Priority A — Main Thread and JS Payload
+
+- [ ] **Eliminate forced reflows from runtime chunks** (`d0709137-ad27c76918338ccb.js` and related chunks)
+  - Audit components/hooks that read layout (`offset*`, `client*`, `getBoundingClientRect`) after style writes in the same frame.
+  - Batch DOM reads before writes; move frame-sensitive writes into `requestAnimationFrame` where needed.
+  - Ensure chart resize and trading panel updates avoid layout thrashing during tick updates.
+  - Add profiling pass in Chrome Performance panel after fixes and capture before/after evidence.
+- [ ] **Reduce unused JavaScript (~79 KiB estimated savings)**
+  - Map heavy chunks (`298-b4850b7a306f7a5f.js`, `d0709137-ad27c76918338ccb.js`) back to source modules.
+  - Apply route/component-level lazy loading for non-critical panels and dialogs in `/trading`.
+  - Defer optional features (secondary overlays, rarely used controls) until user interaction.
+  - Re-run bundle analysis and keep `/trading` initial payload within agreed budget.
+- [ ] **Remove legacy JS (~12 KiB estimated savings)**
+  - Confirm browser targets in `browserslist`/Next.js config match modern support policy.
+  - Remove unnecessary transpilation/polyfills not required for supported browsers.
+  - Re-check compatibility on current stable Chrome, Edge, Safari, and Firefox.
+- [ ] **Resolve long main-thread task (1 long task detected)**
+  - Break startup work into smaller tasks (<50ms) and defer non-critical initialization.
+  - Move expensive derived computations out of initial render path for `/trading`.
+
+### Priority B — Rendering Path and CSS Delivery
+
+- [ ] **Mitigate render-blocking CSS** (`99630bd50e81587c.css`)
+  - Identify critical CSS needed for first viewport in `/trading`.
+  - Split non-critical styles and load them after first paint where possible.
+  - Validate no visual regressions in dark theme tokens and chart layout after split.
+
+### Priority C — Animation Pipeline
+
+- [ ] **Fix non-composited animations (6 elements reported)**
+  - Replace animation of layout/paint-triggering properties with `transform`/`opacity`.
+  - Audit `framer-motion` usage and CSS transitions to avoid `top/left/width/height` animation on hot paths.
+  - Validate smoothness on desktop and mobile breakpoints with DevTools Rendering panel.
+
+### Priority D — Accessibility Compliance
+
+- [ ] **Accessible names for all buttons**
+  - Ensure all icon-only and contextual action buttons have an accessible name (`aria-label` or visible text).
+  - Validate interactive controls in trading toolbar, chart actions, and order management flows.
+  - Add regression checks in E2E for key unlabeled-button risk areas.
+- [ ] **Foreground/background contrast fixes**
+  - Audit token pairs used in trading UI (status chips, muted labels, overlays, disabled states).
+  - Update low-contrast color combinations to meet WCAG AA contrast ratios.
+  - Validate contrast in both normal and hover/focus/disabled states.
+
+### Verification & Release Criteria
+
+- [ ] Re-run PageSpeed Insights (desktop + mobile) after each priority group.
+- [ ] Keep Performance ≥ 95 while raising Accessibility from 90 to ≥ 95.
+- [ ] Confirm no regressions in Core Web Vitals (LCP, CLS, TBT) and no new console accessibility violations.
+
+### Reference
+
+- [PageSpeed Insights report — Desktop analysis (2026-05-16)](https://pagespeed.web.dev/analysis/https-btc-daytrade-tycoon-vercel-app-trading/j6jbr4smfo?form_factor=desktop)
+
+---
+
 ## Phase 2 — Gameplay Depth *(Next 2–4 weeks)*
 
 Make every session feel unique, replayable, and competitive.

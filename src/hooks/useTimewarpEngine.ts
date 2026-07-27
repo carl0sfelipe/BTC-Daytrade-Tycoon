@@ -298,6 +298,29 @@ export function useTimewarpEngine(): UseTimewarpEngineReturn {
     };
   }, [doLoad, clearTickInterval]);
 
+  // Pause the simulation when the browser tab is hidden (mobile switches apps,
+  // locks screen, etc.) and resume when visible again. Without this, the
+  // setInterval accumulates during background throttling and the simulation
+  // jumps forward when the tab is focused again.
+  useEffect(() => {
+    let wasPlayingBeforeHide = false;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        wasPlayingBeforeHide = isPlayingRef.current;
+        if (isPlayingRef.current) {
+          clearTickInterval();
+          isPlayingRef.current = false;
+          setIsPlaying(false);
+        }
+      } else if (wasPlayingBeforeHide) {
+        wasPlayingBeforeHide = false;
+        startSimulationRef.current?.();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [clearTickInterval]);
+
   useE2EHelpers({ pause, start, reset });
 
   const realDateRange = originalStartDateRef.current

@@ -46,9 +46,11 @@ body {
   color: rgb(var(--foreground-rgb));
 }
 
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
+/* Smooth transitions — scoped to interactive UI elements only.
+   Applying to canvas/svg caused paint jank on mobile. */
+button, a, input, select, textarea,
+[role="button"], [role="tab"], [role="switch"] {
+  transition-property: background-color, border-color, color, opacity;
   transition-timing-function: ease-in-out;
   transition-duration: 150ms;
 }

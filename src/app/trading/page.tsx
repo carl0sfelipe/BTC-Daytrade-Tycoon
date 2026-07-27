@@ -104,7 +104,9 @@ export default function TradingPage() {
     }
   }, [mounted, hasSeenOnboarding]);
 
-  if (!mounted) return null;
+  // Wait for both mount and mobile detection to avoid a desktop-layout flash
+  // on mobile browsers (isMobile is undefined until the first effect fires).
+  if (!mounted || isMobile === undefined) return null;
 
   if (engine.isLoading) {
     return (

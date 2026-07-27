@@ -63,7 +63,7 @@ export default function TradingChart({
       )}
 
       <div className="relative">
-        <div ref={containerRef} style={{ height: "320px" }} />
+        <div ref={containerRef} style={{ height: "320px", touchAction: "none" }} />
 
         <ChartOverlays
           position={position}

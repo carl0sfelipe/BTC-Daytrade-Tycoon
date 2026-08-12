@@ -9,6 +9,7 @@ Diretório de registro de todas as reuniões multi-agente do projeto.
 | 2026-05-11 | [party-mode-2026-05-11_21-15-31.md](./party-mode-2026-05-11_21-15-31.md) | Post-mortem da refatoração do `tradingStore.ts` | 🏗️ Winston, 💻 Amelia, 📚 Paige, 📋 John |
 | 2026-05-11 | [party-mode-2026-05-11_21-25-52.md](./party-mode-2026-05-11_21-25-52.md) | Próximos passos — TP/SL extraction, Hedge Mode spike, code standards | 🏗️ Winston, 💻 Amelia, 📚 Paige, 📋 John |
 | 2026-05-11 | [party-mode-2026-05-11_22-53-21.md](./party-mode-2026-05-11_22-53-21.md) | Logs de debug + Telemetria para monetização de dados de traders | 📊 Mary, 📋 John, 🏗️ Winston, 💻 Amelia, 📚 Paige |
+| 2026-08-12 | [party-mode-2026-08-12_04-09.md](./party-mode-2026-08-12_04-09.md) | Fatiamento da Fase R1 do PRD Roguelike PvP (called shots + shell mobile) | 📋 John, 🏗️ Winston, 💻 Amelia, 🎨 Sally, 📊 Mary, 📚 Paige |
 
 ## Formato
 

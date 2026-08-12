@@ -5,6 +5,7 @@
  * transient failure must see a retry, not the signup CTA.
  */
 import type { DailyMissionStatus } from "@/lib/missions/daily-missions";
+import { warnWhenRateLimitedResponse } from "@/lib/rate-limit-warning";
 
 export type DailyMissionBoardResult =
   | { kind: "board"; day: string; missions: DailyMissionStatus[] }
@@ -48,6 +49,7 @@ export async function claimDailyMissionRequest(missionId: string): Promise<Missi
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ missionId }),
     });
+    warnWhenRateLimitedResponse("/api/missions/claim", response);
     if (!response.ok) return null;
     const data = (await response.json()) as Partial<MissionClaimPayout>;
     return typeof data.reward === "number" && typeof data.diamonds === "number"

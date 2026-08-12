@@ -5,10 +5,16 @@ import { signupUser } from "@/lib/server/auth-service";
 import { signupInputSchema, validateSignupInput } from "@/lib/server/auth-validation";
 import { buildAuthCookie } from "@/lib/server/session-cookie";
 import { readJsonBody } from "@/lib/server/request-body";
+import { rejectWhenRateLimited, resolveClientIp } from "@/lib/server/request-rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const rateLimited = rejectWhenRateLimited("authSignup", resolveClientIp(request));
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const body = await readJsonBody(request);
   const validationError = validateSignupInput(body);
   if (validationError) {

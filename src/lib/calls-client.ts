@@ -4,6 +4,7 @@
  * mirror in callsSlice; every helper swallows failures and returns null.
  */
 import type { CallOutcome } from "@/lib/calls/call-transitions";
+import { warnWhenRateLimitedResponse } from "@/lib/rate-limit-warning";
 
 export interface OpenCallPayload {
   runId: string;
@@ -33,6 +34,7 @@ export async function openCallRequest(payload: OpenCallPayload): Promise<string 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    warnWhenRateLimitedResponse("/api/calls", response);
     if (!response.ok) return null;
     const data = (await response.json()) as { call?: { id: string } };
     return data.call?.id ?? null;
@@ -57,6 +59,7 @@ export async function resolveCallRequest(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ outcome }),
     });
+    warnWhenRateLimitedResponse(`/api/calls/${serverId}/resolve`, response);
     if (!response.ok) return null;
     const data = (await response.json()) as { result?: ServerCallResolution };
     return data.result ?? null;

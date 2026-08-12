@@ -5,6 +5,7 @@
 import type { TradingSessionInput } from "@/lib/server/session-record-validation";
 // Type-only import: erased at compile time, so no server code leaks into the bundle.
 import type { RunRankAward } from "@/lib/server/run-rank-service";
+import { warnWhenRateLimitedResponse } from "@/lib/rate-limit-warning";
 
 export type { RunRankAward };
 
@@ -66,6 +67,7 @@ export async function saveTradingSessionRecord(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    warnWhenRateLimitedResponse("/api/sessions", response);
     if (!response.ok) return null;
     const responseBody = (await response.json()) as { runRank?: RunRankAward };
     return responseBody.runRank ?? null;

@@ -68,7 +68,7 @@ export default function CalledShotPicker({
         {CALL_TARGET_PILLS.map((percent) => (
           <CallPill
             key={percent}
-            label={`+${percent}%`}
+            label={`${side === "long" ? "+" : "−"}${percent}%`}
             isSelected={isPillSelected(percent)}
             onClick={() => onTpChange(pillTargetPrice(percent))}
           />

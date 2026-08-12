@@ -121,7 +121,7 @@ If a file exceeds the limit, split by responsibility before merging.
 
 ### Test Baseline
 
-- **746 passed, 5 skipped** (Vitest + React Testing Library)
+- **751 passed, 5 skipped** (Vitest + React Testing Library)
 - **Build:** `npm run build` must pass.
 - **TypeScript:** `npx tsc --noEmit` must pass.
 - Any PR that breaks the baseline is rejected.

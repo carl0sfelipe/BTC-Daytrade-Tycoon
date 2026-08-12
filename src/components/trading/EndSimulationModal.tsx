@@ -2,6 +2,7 @@
 
 import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer, Activity, TrendingDown, Award } from "lucide-react";
 import { getTraderTier } from "@/lib/trading/trader-score";
+import RunCallSummary from "./RunCallSummary";
 
 interface EndSimulationModalProps {
   realDateRange: string;
@@ -136,6 +137,9 @@ export default function EndSimulationModal({
                 {isPositive ? "+" : ""}{stats.returnPercent.toFixed(1)}%
               </span>
             </div>
+
+            {/* Called Shots — roguelike economy recap (product differentiator) */}
+            <RunCallSummary />
 
             {/* Trader Score */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border">

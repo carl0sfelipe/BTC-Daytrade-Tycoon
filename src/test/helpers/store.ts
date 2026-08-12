@@ -24,6 +24,9 @@ export const initialStoreState = {
   difficulty: "normal" as const,
   maxLeverage: 50,
   startingWallet: 10000,
+  // resetStore replaces the whole state (setState(_, true)); without this the
+  // calls run log becomes undefined and RunCallSummary crashes after test #1.
+  runCallLog: [],
 };
 
 export function resetStore() {

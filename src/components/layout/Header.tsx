@@ -6,6 +6,7 @@ import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp, Github } from "lucide
 import { useTradingStore } from "@/store/tradingStore";
 import { getCurrentStreak } from "@/utils/streak";
 import DiamondCounter from "./DiamondCounter";
+import DiamondBurst from "@/components/effects/DiamondBurst";
 
 export default function Header() {
   const pathname = usePathname();
@@ -73,6 +74,9 @@ export default function Header() {
         )}
 
         <DiamondCounter />
+        {/* Fixed full-screen overlay — placement next to the counter is only
+            for ownership; it renders nothing between called-shot hits. */}
+        <DiamondBurst />
 
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <div className="flex flex-col items-end">

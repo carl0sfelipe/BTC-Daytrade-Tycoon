@@ -35,6 +35,8 @@ export interface CallsSlice {
   diamondsThisRun: number;
   lastRewardedCallAt: number | null;
   lastCallResult: ResolvedCallSnapshot | null;
+  /** Every call resolved this run, in order — feeds the end-of-run recap. */
+  runCallLog: ResolvedCallSnapshot[];
   declareCallFromPosition: () => void;
   resolveActiveCall: (reason: Trade["reason"] | "tp_changed") => void;
   voidActiveCallOnTpChange: (newTpPrice: number | null) => void;
@@ -52,6 +54,7 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
   diamondsThisRun: 0,
   lastRewardedCallAt: null,
   lastCallResult: null,
+  runCallLog: [],
 
   declareCallFromPosition: () => {
     const { position, activeCall, callStreak, callRunId } = get();
@@ -63,7 +66,7 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
   },
 
   resolveActiveCall: (reason) => {
-    const { activeCall, callStreak, diamondsThisRun, lastRewardedCallAt, diamonds } = get();
+    const { activeCall, callStreak, diamondsThisRun, lastRewardedCallAt, diamonds, runCallLog } = get();
     if (!activeCall) return;
     const outcome = resolveCallOutcome(reason);
     const now = Date.now();
@@ -71,22 +74,24 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
       activeCall, outcome, callStreak, diamondsThisRun, lastRewardedCallAt, now
     );
     logger.log(`[resolveCall] ${outcome} reward=${res.reward}💎 streak=${res.newStreak}`);
+    const snapshot: ResolvedCallSnapshot = {
+      clientId: activeCall.clientId,
+      serverId: activeCall.serverId,
+      outcome,
+      reward: res.reward,
+      streak: res.newStreak,
+      targetPercent: activeCall.targetPercent,
+      leverage: activeCall.leverage,
+      resolvedAt: now,
+    };
     set({
       activeCall: null,
       diamonds: diamonds + res.reward,
       callStreak: res.newStreak,
       diamondsThisRun: diamondsThisRun + res.reward,
       lastRewardedCallAt: res.reward > 0 ? now : lastRewardedCallAt,
-      lastCallResult: {
-        clientId: activeCall.clientId,
-        serverId: activeCall.serverId,
-        outcome,
-        reward: res.reward,
-        streak: res.newStreak,
-        targetPercent: activeCall.targetPercent,
-        leverage: activeCall.leverage,
-        resolvedAt: now,
-      },
+      lastCallResult: snapshot,
+      runCallLog: [...runCallLog, snapshot],
     });
   },
 
@@ -116,6 +121,7 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
       callRunId: generateId(),
       diamondsThisRun: 0,
       lastCallResult: null,
+      runCallLog: [],
     }),
 
   clearLastCallResult: () => set({ lastCallResult: null }),

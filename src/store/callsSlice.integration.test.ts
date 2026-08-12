@@ -27,6 +27,7 @@ function resetStore(): void {
     diamondsThisRun: 0,
     lastRewardedCallAt: null,
     lastCallResult: null,
+    runCallLog: [],
   });
 }
 
@@ -77,6 +78,8 @@ describe("called shot — golden resolutions", () => {
     expect(s.diamonds).toBe(25);
     expect(s.callStreak).toBe(1);
     expect(s.lastCallResult).toMatchObject({ outcome: "hit", reward: 25, streak: 1 });
+    expect(s.runCallLog).toHaveLength(1);
+    expect(s.runCallLog[0]).toMatchObject({ outcome: "hit", reward: 25 });
   });
 
   it("GOLDEN: SL and target in the same candle — SL wins, call missed", () => {
@@ -181,6 +184,8 @@ describe("called shot — streak and guards", () => {
     useTradingStore.setState({ currentPrice: 110_100 });
     useTradingStore.getState().checkPosition(110_100, 109_000, 110_500);
 
+    expect(useTradingStore.getState().runCallLog).toHaveLength(1);
+
     useTradingStore.getState().resetCallRun();
     const s = useTradingStore.getState();
     expect(s.diamonds).toBe(25);
@@ -188,5 +193,6 @@ describe("called shot — streak and guards", () => {
     expect(s.diamondsThisRun).toBe(0);
     expect(s.callRunId).not.toBe("test-run");
     expect(s.lastCallResult).toBeNull();
+    expect(s.runCallLog).toEqual([]);
   });
 });

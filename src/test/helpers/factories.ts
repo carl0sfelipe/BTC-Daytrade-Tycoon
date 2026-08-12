@@ -1,4 +1,19 @@
 import type { Position, PendingOrder, Trade, OrderHistoryItem } from "@/store/tradingStore";
+import type { ResolvedCallSnapshot } from "@/store/slices/callsSlice";
+
+export const makeResolvedCallHit = (
+  overrides: Partial<ResolvedCallSnapshot> = {}
+): ResolvedCallSnapshot => ({
+  clientId: "call-1",
+  serverId: null,
+  outcome: "hit",
+  reward: 25,
+  streak: 1,
+  targetPercent: 10,
+  leverage: 10,
+  resolvedAt: 1_723_456_789_000,
+  ...overrides,
+});
 
 export const makePosition = (overrides: Partial<Position> = {}): Position => ({
   side: "long",

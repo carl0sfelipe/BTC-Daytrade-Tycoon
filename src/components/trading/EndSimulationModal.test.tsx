@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import EndSimulationModal from "./EndSimulationModal";
+import { useTradingStore } from "@/store/tradingStore";
+import type { ResolvedCallSnapshot } from "@/store/slices/callsSlice";
 
 describe("EndSimulationModal", () => {
   it("splits realDateRange into Start and End dates", () => {
@@ -190,5 +192,75 @@ describe("EndSimulationModal", () => {
       />
     );
     expect(screen.getByText("7 Win Streak!")).toBeInTheDocument();
+  });
+});
+
+function buildResolvedCall(overrides: Partial<ResolvedCallSnapshot>): ResolvedCallSnapshot {
+  return {
+    clientId: "call-1",
+    serverId: null,
+    outcome: "hit",
+    reward: 0,
+    streak: 0,
+    targetPercent: 10,
+    leverage: 10,
+    resolvedAt: 0,
+    ...overrides,
+  };
+}
+
+function renderModalWithNeutralStats(): void {
+  render(
+    <EndSimulationModal
+      realDateRange="01/01/2020 → 01/06/2020"
+      elapsedTime="00:05:03"
+      simulatedHistoricalTime="5h"
+      stats={{ pnl: 0, trades: 0, winRate: 0, returnPercent: 0, bestTrade: 0, worstTrade: 0, avgDurationSeconds: 0, profitFactor: 0, longTrades: 0, shortTrades: 0, maxConsecutiveWins: 0, maxConsecutiveLosses: 0, currentStreak: 0, maxDrawdown: 0, traderScore: 50 }}
+      onClose={vi.fn()}
+      onNewSession={vi.fn()}
+    />
+  );
+}
+
+describe("EndSimulationModal — Called Shots section", () => {
+  beforeEach(() => {
+    useTradingStore.setState({ runCallLog: [] });
+  });
+
+  it("invites the player to declare a call when the run log is empty", () => {
+    renderModalWithNeutralStats();
+    expect(screen.getByText("Called Shots")).toBeInTheDocument();
+    expect(
+      screen.getByText("No called shots this run — declare a target next run to earn 💎")
+    ).toBeInTheDocument();
+  });
+
+  it("renders diamonds, counts, hit rate and best streak from the run log", () => {
+    useTradingStore.setState({
+      runCallLog: [
+        buildResolvedCall({ outcome: "hit", reward: 25, streak: 1 }),
+        buildResolvedCall({ outcome: "hit", reward: 31, streak: 2 }),
+        buildResolvedCall({ outcome: "missed", reward: 0, streak: 0 }),
+        buildResolvedCall({ outcome: "voided", reward: 0, streak: 0 }),
+      ],
+    });
+    renderModalWithNeutralStats();
+
+    expect(screen.getByText("+56 💎")).toBeInTheDocument();
+    expect(screen.getByText("Hits")).toBeInTheDocument();
+    expect(screen.getByText("Misses")).toBeInTheDocument();
+    expect(screen.getByText("Voided")).toBeInTheDocument();
+    expect(screen.getByText("Hit Rate")).toBeInTheDocument();
+    expect(screen.getByText("67%")).toBeInTheDocument();
+    expect(screen.getByText("Best Streak")).toBeInTheDocument();
+    expect(screen.getByText("🔥 2")).toBeInTheDocument();
+  });
+
+  it("shows a null hit rate as an em dash when every call was voided", () => {
+    useTradingStore.setState({
+      runCallLog: [buildResolvedCall({ outcome: "voided" })],
+    });
+    renderModalWithNeutralStats();
+    expect(screen.getByText("—", { selector: ".text-purple-300" })).toBeInTheDocument();
   });
 });

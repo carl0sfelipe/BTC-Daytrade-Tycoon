@@ -92,9 +92,9 @@ Make every session feel unique, replayable, and competitive.
 
 ### Metrics & Telemetry
 
-- [ ] **Max Drawdown tracking** — Track the worst peak-to-trough decline (as a negative %) for every open position. Updated on every tick. Shown in PositionPanel and included in trade history. Critical metric for prop firm partnerships and trader scoring.
+- [x] **Max Drawdown tracking** — Track the worst peak-to-trough decline (as a negative %) for every open position. Updated on every tick. Shown in PositionPanel and included in trade history. Critical metric for prop firm partnerships and trader scoring. *(shipped — `src/lib/trading/drawdown.ts`; checkbox fixed in party 2026-08-12 14:15)*
 - [ ] **Structured telemetry pipeline** — `src/lib/telemetry/` with batch queue, retry logic, and anonymization (hashed IDs, rounded wallets, truncated timestamps). Separate streams for trade events (自建) and product analytics (PostHog).
-- [ ] **Trader Score algorithm** — Composite score based on win rate, Sharpe-like ratio, max drawdown, and consistency. Enables future monetization via prop firm referrals.
+- [x] **Trader Score algorithm** — Composite score based on win rate, Sharpe-like ratio, max drawdown, and consistency. Enables future monetization via prop firm referrals. *(shipped — `src/lib/trading/trader-score.ts`, surfaced in EndSimulationModal; checkbox fixed in party 2026-08-12 14:15)*
 
 > **💡 Insight on Max Drawdown:** This single metric separates hobbyists from professionals. A trader with +50% return and -40% max drawdown is considered high-risk. A trader with +30% return and -5% max drawdown is considered disciplined. Prop firms use this ratio (return / |drawdown|) as their primary hiring signal. For us, it unlocks a data product: "anonymized drawdown patterns of profitable traders" is worth $2k–$5k/month to hedge funds.
 

@@ -6,6 +6,7 @@ import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp, Github } from "lucide
 import { useTradingStore } from "@/store/tradingStore";
 import { getCurrentStreak } from "@/utils/streak";
 import DiamondCounter from "./DiamondCounter";
+import LocaleToggle from "./LocaleToggle";
 import DiamondBurst from "@/components/effects/DiamondBurst";
 
 export default function Header() {
@@ -73,6 +74,7 @@ export default function Header() {
           </div>
         )}
 
+        <LocaleToggle />
         <DiamondCounter />
         {/* Fixed full-screen overlay — placement next to the counter is only
             for ownership; it renders nothing between called-shot hits. */}

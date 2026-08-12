@@ -78,6 +78,8 @@ export const useTradingStore = create<TradingStore>()(
         // of truth for logged-in users (reconciled by useCallServerSync).
         diamonds: state.diamonds,
         callStreak: state.callStreak,
+        // Locale is a user preference — survives reloads like diamonds above.
+        gameLocale: state.gameLocale,
       }),
     }
   )

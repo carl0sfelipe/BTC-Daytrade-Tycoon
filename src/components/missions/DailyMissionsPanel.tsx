@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useTradingStore } from "@/store/tradingStore";
 import type { DailyMissionStatus } from "@/lib/missions/daily-missions";
 import { claimDailyMissionRequest, fetchDailyMissionBoard } from "@/lib/missions-client";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 type MissionBoardState =
   | { phase: "loading" }
@@ -89,46 +90,48 @@ export default function DailyMissionsPanel() {
 }
 
 function MissionBoardLoadingHint() {
-  return <p className="text-sm text-crypto-text-muted py-2">Loading missions…</p>;
+  const messages = useGameMessages();
+  return <p className="text-sm text-crypto-text-muted py-2">{messages.missions.loading}</p>;
 }
 
 function MissionBoardErrorHint({ onRetry }: { onRetry: () => void }) {
+  const messages = useGameMessages();
   return (
     <div className="space-y-3 py-2 text-center">
-      <p className="text-sm text-crypto-text-secondary">Couldn&apos;t load missions</p>
+      <p className="text-sm text-crypto-text-secondary">{messages.missions.loadError}</p>
       <button
         type="button"
         onClick={onRetry}
         className="inline-block px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm font-bold text-crypto-text"
       >
-        Retry
+        {messages.missions.retry}
       </button>
     </div>
   );
 }
 
 function MissionBoardHeader() {
+  const messages = useGameMessages();
   return (
     <div className="space-y-1">
-      <h3 className="text-base font-bold text-crypto-text">Daily Missions</h3>
+      <h3 className="text-base font-bold text-crypto-text">{messages.missions.boardTitle}</h3>
       <p className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
-        Same 3 for everyone — resets at midnight UTC
+        {messages.missions.boardSubtitle}
       </p>
     </div>
   );
 }
 
 function GuestMissionsCta() {
+  const messages = useGameMessages();
   return (
     <div className="space-y-3 py-2 text-center">
-      <p className="text-sm text-crypto-text-secondary">
-        Missions need an account — create one to earn 💎
-      </p>
+      <p className="text-sm text-crypto-text-secondary">{messages.missions.guestCta}</p>
       <Link
         href="/auth/signup"
         className="inline-block px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/40 text-sm font-bold text-purple-300"
       >
-        Create account
+        {messages.missions.createAccount}
       </Link>
     </div>
   );
@@ -192,8 +195,9 @@ function MissionClaimAction({
   claimFailed: boolean;
   onClaim: () => void;
 }) {
+  const messages = useGameMessages();
   if (mission.claimed) {
-    return <p className="text-xs font-semibold text-crypto-long text-center py-1">Claimed ✓</p>;
+    return <p className="text-xs font-semibold text-crypto-long text-center py-1">{messages.missions.claimed}</p>;
   }
   return (
     <div className="space-y-1">
@@ -203,11 +207,11 @@ function MissionClaimAction({
         disabled={!mission.completed || claiming}
         className="w-full py-1.5 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {claiming ? "Claiming…" : "Claim"}
+        {claiming ? messages.missions.claiming : messages.missions.claim}
       </button>
       {claimFailed && (
         <p className="text-[10px] font-semibold text-crypto-short text-center">
-          Claim failed — try again
+          {messages.missions.claimFailed}
         </p>
       )}
     </div>

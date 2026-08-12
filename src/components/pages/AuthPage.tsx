@@ -6,6 +6,8 @@ import { Zap, ArrowLeft, Eye, EyeOff, Mail, Lock, User, ChevronRight } from "luc
 import { loginRequest, signupRequest } from "@/lib/auth-client";
 import { useTradingStore } from "@/store/tradingStore";
 import { useToast } from "@/hooks/use-toast";
+import { useGameMessages } from "@/hooks/useGameMessages";
+import type { GameMessages } from "@/lib/i18n/game-locale";
 
 type AuthMode = "login" | "signup";
 
@@ -18,24 +20,26 @@ interface DiamondAuthToast {
  * The diamond moment at conversion (Boss decision, 2026-08-12): signup
  * "secures" the guest loot — never silently zeroes it — and login explains
  * why the balance changed to the server one. Loss framed as safety.
+ * Stays pure: the caller injects the locale catalog.
  *
- * @example buildDiamondAuthToast("signup", 87, 87) // { title: "💎 87 diamonds secured", … }
+ * @example buildDiamondAuthToast("signup", 87, 87, enGameMessages) // { title: "💎 87 diamonds secured", … }
  */
 export function buildDiamondAuthToast(
   authMode: AuthMode,
   guestDiamonds: number,
-  serverDiamonds: number
+  serverDiamonds: number,
+  messages: GameMessages
 ): DiamondAuthToast | null {
   if (authMode === "signup" && serverDiamonds > 0) {
     return {
-      title: `💎 ${serverDiamonds} diamonds secured`,
-      description: "Your guest loot is now saved to your account — safe on any device.",
+      title: messages.diamonds.securedTitle(serverDiamonds),
+      description: messages.diamonds.securedDescription,
     };
   }
   if (authMode === "login" && guestDiamonds !== serverDiamonds) {
     return {
-      title: `💎 Account balance restored: ${serverDiamonds}`,
-      description: "Your account keeps the server-verified balance across devices.",
+      title: messages.diamonds.restoredTitle(serverDiamonds),
+      description: messages.diamonds.restoredDescription,
     };
   }
   return null;
@@ -69,6 +73,7 @@ function validateAuthForm(args: {
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const messages = useGameMessages();
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(mode);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,10 +102,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setIsLoading(false);
 
     if (!result.user) {
-      setFormError(result.error ?? "Authentication failed");
+      setFormError(result.error ?? messages.auth.genericFailure);
       return;
     }
-    const diamondToast = buildDiamondAuthToast(authMode, guestDiamonds, result.user.diamonds);
+    const diamondToast = buildDiamondAuthToast(authMode, guestDiamonds, result.user.diamonds, messages);
     if (diamondToast) toast(diamondToast);
     router.push("/trading");
   };

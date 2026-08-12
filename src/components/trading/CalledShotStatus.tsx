@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useTradingStore } from "@/store/tradingStore";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 /**
  * Persistent chip while a called shot is live — the player must always know
@@ -9,6 +10,7 @@ import { useTradingStore } from "@/store/tradingStore";
  */
 export default function CalledShotStatus() {
   const activeCall = useTradingStore((s) => s.activeCall);
+  const messages = useGameMessages();
   if (!activeCall) return null;
 
   return (
@@ -19,8 +21,10 @@ export default function CalledShotStatus() {
       className="flex items-center justify-between px-3 py-2 rounded-lg bg-crypto-accent-dim border border-crypto-accent/40"
     >
       <span className="text-xs font-semibold text-crypto-accent">
-        🎯 Called shot live: {activeCall.side === "long" ? "+" : "−"}
-        {activeCall.targetPercent.toFixed(1)}% @ {activeCall.leverage}x
+        {messages.calledShot.liveChip(
+          `${activeCall.side === "long" ? "+" : "−"}${activeCall.targetPercent.toFixed(1)}%`,
+          activeCall.leverage
+        )}
       </span>
       <span className="text-xs font-bold font-mono text-crypto-accent">
         {activeCall.potentialReward} 💎

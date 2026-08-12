@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Backpack, ListChecks, BarChart3, Trophy, ShoppingBag, X } from "lucide-react";
 import DailyMissionsPanel from "@/components/missions/DailyMissionsPanel";
+import { useGameMessages } from "@/hooks/useGameMessages";
+import type { GameMessages } from "@/lib/i18n/game-locale";
 
 /**
  * Mobile game shell bottom nav (PRD_ROGUELIKE_PVP.md — mobile-first shell,
@@ -22,30 +24,35 @@ const SHEET_EMOJI: Record<GameNavSheetTab, string> = {
   shop: "🛒",
 };
 
-const COMING_SOON_COPY: Record<ComingSoonTab, { title: string; body: string }> = {
-  inventory: {
-    title: "Inventory",
-    body: "Sabotages and consumables you own will live here. Earn diamonds with called shots — spending them arrives in a future update.",
-  },
-  shop: {
-    title: "Shop",
-    body: "The sabotage shop (fake spikes, liquidity drains…) unlocks with PvP. Stack diamonds now, spend them on rivals later.",
-  },
-};
+/**
+ * Locale-resolved title/body for a "coming soon" tab.
+ *
+ * @example comingSoonCopyFor(enGameMessages, "shop").title // "Shop"
+ */
+function comingSoonCopyFor(
+  messages: GameMessages,
+  tab: ComingSoonTab
+): { title: string; body: string } {
+  if (tab === "inventory") {
+    return { title: messages.nav.inventory, body: messages.nav.inventoryComingSoonBody };
+  }
+  return { title: messages.nav.shop, body: messages.nav.shopComingSoonBody };
+}
 
 export default function MobileGameNav() {
   const [openSheet, setOpenSheet] = useState<GameNavSheetTab | null>(null);
+  const messages = useGameMessages();
 
   return (
     <>
       <div className="card-surface border border-crypto-border p-1.5 flex items-center justify-around">
-        <SheetTabButton icon={Backpack} label="Inventory" onClick={() => setOpenSheet("inventory")} />
-        <SheetTabButton icon={ListChecks} label="Missions" onClick={() => setOpenSheet("missions")} />
+        <SheetTabButton icon={Backpack} label={messages.nav.inventory} onClick={() => setOpenSheet("inventory")} />
+        <SheetTabButton icon={ListChecks} label={messages.nav.missions} onClick={() => setOpenSheet("missions")} />
 
         {/* Active tab — trading is the center of the shell */}
         <div className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-crypto-surface-elevated">
           <BarChart3 className="w-4 h-4 text-crypto-accent" />
-          <span className="text-[9px] text-crypto-text-secondary font-medium">Trade</span>
+          <span className="text-[9px] text-crypto-text-secondary font-medium">{messages.nav.trade}</span>
         </div>
 
         <Link
@@ -53,10 +60,10 @@ export default function MobileGameNav() {
           className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg hover:bg-crypto-surface-elevated"
         >
           <Trophy className="w-4 h-4 text-crypto-text-muted" />
-          <span className="text-[9px] text-crypto-text-muted font-medium">Ranking</span>
+          <span className="text-[9px] text-crypto-text-muted font-medium">{messages.nav.ranking}</span>
         </Link>
 
-        <SheetTabButton icon={ShoppingBag} label="Shop" onClick={() => setOpenSheet("shop")} />
+        <SheetTabButton icon={ShoppingBag} label={messages.nav.shop} onClick={() => setOpenSheet("shop")} />
       </div>
 
       <AnimatePresence>
@@ -105,6 +112,8 @@ function GameNavSheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const messages = useGameMessages();
+
   return (
     <>
       <motion.div
@@ -127,7 +136,7 @@ function GameNavSheet({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={messages.nav.closeSheet}
               className="p-1.5 rounded-lg text-crypto-text-muted hover:text-crypto-text hover:bg-crypto-surface-elevated"
             >
               <X className="w-4 h-4" />
@@ -141,14 +150,15 @@ function GameNavSheet({
 }
 
 function ComingSoonCopy({ tab }: { tab: ComingSoonTab }) {
-  const copy = COMING_SOON_COPY[tab];
+  const messages = useGameMessages();
+  const copy = comingSoonCopyFor(messages, tab);
 
   return (
     <>
       <div className="space-y-1">
         <h3 className="text-base font-bold text-crypto-text">{copy.title}</h3>
         <span className="inline-block px-2 py-0.5 rounded-full bg-crypto-accent-dim text-[10px] font-bold text-crypto-accent uppercase tracking-wider">
-          Coming soon
+          {messages.nav.comingSoonBadge}
         </span>
       </div>
       <p className="text-sm text-crypto-text-secondary leading-relaxed">{copy.body}</p>

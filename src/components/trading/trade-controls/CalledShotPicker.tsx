@@ -8,6 +8,7 @@ import {
   computeDiamondReward,
 } from "@/lib/calls/diamond-reward";
 import { computeTargetPercent } from "@/lib/calls/call-transitions";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface CalledShotPickerProps {
   side: "long" | "short";
@@ -30,6 +31,7 @@ export default function CalledShotPicker({
   onTpChange,
 }: CalledShotPickerProps) {
   const callStreak = useTradingStore((s) => s.callStreak);
+  const messages = useGameMessages();
 
   const parsedTp = parseFloat(tpPrice);
   const selectedPercent =
@@ -56,15 +58,15 @@ export default function CalledShotPicker({
     <div className="space-y-2 p-2.5 rounded-lg bg-crypto-surface-elevated/50 border border-crypto-border">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-crypto-text-secondary uppercase tracking-wider">
-          🎯 Called Shot
+          {messages.calledShot.pickerTitle}
         </span>
         <span className="text-[9px] text-crypto-text-muted">
-          predict the move, earn 💎
+          {messages.calledShot.pickerHint}
         </span>
       </div>
 
       <div className="flex items-center gap-1.5">
-        <CallPill label="No call" isSelected={!isArmed} onClick={() => onTpChange("")} />
+        <CallPill label={messages.calledShot.noCallPill} isSelected={!isArmed} onClick={() => onTpChange("")} />
         {CALL_TARGET_PILLS.map((percent) => (
           <CallPill
             key={percent}
@@ -78,10 +80,13 @@ export default function CalledShotPicker({
       {isArmed && (
         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-crypto-accent-dim border border-crypto-accent/40">
           <span className="text-[11px] font-semibold text-crypto-accent">
-            🎯 {side === "long" ? "+" : "−"}{selectedPercent.toFixed(1)}% @ {leverage}x
+            {messages.calledShot.armedTarget(
+              `${side === "long" ? "+" : "−"}${selectedPercent.toFixed(1)}%`,
+              leverage
+            )}
           </span>
           <span className="text-[11px] font-bold font-mono text-crypto-accent">
-            → {previewReward} 💎 if it hits
+            {messages.calledShot.rewardPreview(previewReward)}
           </span>
         </div>
       )}

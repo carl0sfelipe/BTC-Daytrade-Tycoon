@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { useTradingStore } from "@/store/tradingStore";
 import RunCallSummary from "./RunCallSummary";
@@ -24,5 +24,22 @@ describe("RunCallSummary run rank line", () => {
   it("hides the rank line for guests (no award recorded)", () => {
     render(<RunCallSummary />);
     expect(screen.queryByText("Run Rank")).not.toBeInTheDocument();
+  });
+});
+
+describe("RunCallSummary pt-BR", () => {
+  beforeEach(resetSummaryStore);
+
+  afterEach(() => {
+    useTradingStore.setState({ gameLocale: "en" });
+  });
+
+  it("shows the empty-state invite in Portuguese", () => {
+    useTradingStore.setState({ gameLocale: "pt-BR" });
+    render(<RunCallSummary />);
+
+    expect(
+      screen.getByText("Nenhum called shot nesta run — declare um alvo na próxima para ganhar 💎")
+    ).toBeInTheDocument();
   });
 });

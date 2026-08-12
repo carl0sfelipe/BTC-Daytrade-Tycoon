@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useTradingStore } from "@/store/tradingStore";
 import { useCelebratedCallHit } from "@/hooks/useCelebratedCallHit";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 // Glow window tracks the DiamondBurst banner (~1.2s) so header and overlay
 // peak together instead of flashing out of sync.
@@ -29,10 +30,11 @@ export default function DiamondCounter() {
   const diamonds = useTradingStore((s) => s.diamonds);
   const callStreak = useTradingStore((s) => s.callStreak);
   const rewardedHit = useCelebratedCallHit(HIT_GLOW_DURATION_MS);
+  const messages = useGameMessages();
 
   return (
     <div
-      title="Diamonds — earn them by hitting called shots"
+      title={messages.diamonds.counterTitle}
       data-testid="diamond-counter"
       className={computeDiamondPillClass(rewardedHit !== null)}
     >
@@ -48,7 +50,7 @@ export default function DiamondCounter() {
         {diamonds}
       </motion.span>
       {callStreak > 1 && (
-        <span className="text-[10px] font-bold text-crypto-warning" title={`Called-shot streak ×${callStreak}`}>
+        <span className="text-[10px] font-bold text-crypto-warning" title={messages.diamonds.streakTitle(callStreak)}>
           🎯×{callStreak}
         </span>
       )}

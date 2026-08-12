@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { useTradingStore } from "@/store/tradingStore";
 import CalledShotPicker from "./CalledShotPicker";
 
 function renderPicker(side: "long" | "short", tpPrice = "", onTpChange = vi.fn()) {
@@ -48,5 +49,20 @@ describe("CalledShotPicker", () => {
     renderPicker("short", "95000");
     expect(screen.getByText(/−5\.0% @ 10x/)).toBeInTheDocument();
     expect(screen.getByText(/💎 if it hits/)).toBeInTheDocument();
+  });
+});
+
+describe("CalledShotPicker pt-BR", () => {
+  afterEach(() => {
+    useTradingStore.setState({ gameLocale: "en" });
+  });
+
+  it("renders the hint, the No-call pill and the preview in Portuguese", () => {
+    useTradingStore.setState({ gameLocale: "pt-BR" });
+    renderPicker("short", "95000");
+
+    expect(screen.getByText("preveja o movimento, ganhe 💎")).toBeInTheDocument();
+    expect(screen.getByText("Sem call")).toBeInTheDocument();
+    expect(screen.getByText(/💎 se acertar/)).toBeInTheDocument();
   });
 });

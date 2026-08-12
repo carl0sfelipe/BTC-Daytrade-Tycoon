@@ -29,6 +29,8 @@ export const initialStoreState = {
   // after test #1.
   runCallLog: [],
   runRankAward: null,
+  // Same reason: keep the locale defined (EN default) after a full reset.
+  gameLocale: "en" as const,
 };
 
 export function resetStore() {

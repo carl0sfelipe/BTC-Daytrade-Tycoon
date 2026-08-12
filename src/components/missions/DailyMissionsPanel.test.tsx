@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useTradingStore } from "@/store/tradingStore";
 import { DAILY_MISSIONS, buildMissionStatus } from "@/lib/missions/daily-missions";
@@ -140,5 +140,30 @@ describe("DailyMissionsPanel", () => {
     // The resynced board says claimed — the claimed state wins over the error.
     expect(await screen.findByText("Claimed ✓")).toBeInTheDocument();
     expect(screen.queryByText("Claim failed — try again")).not.toBeInTheDocument();
+  });
+});
+
+describe("DailyMissionsPanel pt-BR", () => {
+  beforeEach(() => {
+    fetchBoardMock.mockReset();
+    claimMock.mockReset();
+    useTradingStore.setState({ diamonds: 0, gameLocale: "pt-BR" });
+  });
+
+  afterEach(() => {
+    useTradingStore.setState({ gameLocale: "en" });
+  });
+
+  it("shows the signup CTA in Portuguese for guests", async () => {
+    fetchBoardMock.mockResolvedValue({ kind: "guest" });
+    render(<DailyMissionsPanel />);
+
+    expect(
+      await screen.findByText("Missões precisam de uma conta — crie a sua para ganhar 💎")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Criar conta" })).toHaveAttribute(
+      "href",
+      "/auth/signup"
+    );
   });
 });

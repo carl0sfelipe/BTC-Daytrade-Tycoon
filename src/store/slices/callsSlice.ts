@@ -10,6 +10,7 @@ import {
 } from "@/lib/calls/call-transitions";
 import { generateId } from "@/lib/trading";
 import { logger } from "@/lib/logger";
+import type { RunRankAward } from "@/lib/session-record-client";
 
 export interface ResolvedCallSnapshot {
   clientId: string;
@@ -37,11 +38,14 @@ export interface CallsSlice {
   lastCallResult: ResolvedCallSnapshot | null;
   /** Every call resolved this run, in order — feeds the end-of-run recap. */
   runCallLog: ResolvedCallSnapshot[];
+  /** Server-computed daily-ranking award for the run just saved (null for guests). */
+  runRankAward: RunRankAward | null;
   declareCallFromPosition: () => void;
   resolveActiveCall: (reason: Trade["reason"] | "tp_changed") => void;
   voidActiveCallOnTpChange: (newTpPrice: number | null) => void;
   attachServerCallId: (clientId: string, serverId: string) => void;
   reconcileCallStateFromServer: (diamonds: number, streak: number) => void;
+  recordRunRankAward: (award: RunRankAward) => void;
   resetCallRun: () => void;
   clearLastCallResult: () => void;
 }
@@ -55,6 +59,7 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
   lastRewardedCallAt: null,
   lastCallResult: null,
   runCallLog: [],
+  runRankAward: null,
 
   declareCallFromPosition: () => {
     const { position, activeCall, callStreak, callRunId } = get();
@@ -115,6 +120,13 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
   reconcileCallStateFromServer: (diamonds, streak) =>
     set({ diamonds, callStreak: streak }),
 
+  // Same server-mirror contract as reconcileCallStateFromServer, but guarded
+  // with max(): within a run the balance only grows, so a call resolve in
+  // flight (useCallServerSync) carrying a pre-award balance must not downgrade
+  // the mirror. The /api/auth/me fetch on next mount corrects any residue.
+  recordRunRankAward: (award) =>
+    set({ runRankAward: award, diamonds: Math.max(get().diamonds, award.diamonds) }),
+
   resetCallRun: () =>
     set({
       activeCall: null,
@@ -122,6 +134,7 @@ export const createCallsSlice: StateCreator<TradingStore, [], [], CallsSlice> = 
       diamondsThisRun: 0,
       lastCallResult: null,
       runCallLog: [],
+      runRankAward: null,
     }),
 
   clearLastCallResult: () => set({ lastCallResult: null }),

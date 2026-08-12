@@ -14,7 +14,12 @@ export const tradingSessionInputSchema = z.object({
   startingWallet: finiteNumber.positive("startingWallet must be > 0"),
   finalWallet: finiteNumber.min(0, "finalWallet must be >= 0"),
   pnl: finiteNumber,
-  returnPercent: finiteNumber,
+  // Sanity bounds: returnPercent feeds the run-rank diamond reward, so absurd
+  // forged values must be rejected at the boundary (full replay check is R2).
+  returnPercent: finiteNumber.refine(
+    (value) => value >= -100 && value <= 10000,
+    (value) => ({ message: `returnPercent ${value} out of range — expected a percent between -100 and 10000` })
+  ),
   trades: z.number().int().min(1, "a session record needs at least 1 trade"),
   winRate: finiteNumber.min(0).max(100, "winRate must be between 0 and 100"),
   bestTrade: finiteNumber,

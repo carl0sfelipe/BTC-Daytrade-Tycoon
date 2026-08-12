@@ -28,6 +28,7 @@ function resetStore(): void {
     lastRewardedCallAt: null,
     lastCallResult: null,
     runCallLog: [],
+    runRankAward: null,
   });
 }
 
@@ -194,5 +195,36 @@ describe("called shot — streak and guards", () => {
     expect(s.callRunId).not.toBe("test-run");
     expect(s.lastCallResult).toBeNull();
     expect(s.runCallLog).toEqual([]);
+  });
+});
+
+describe("run rank award", () => {
+  beforeEach(resetStore);
+
+  it("recordRunRankAward stores the award and reconciles diamonds with the server balance", () => {
+    useTradingStore.setState({ diamonds: 5 });
+    useTradingStore.getState().recordRunRankAward({ rank: 1, totalRuns: 4, reward: 30, diamonds: 35 });
+
+    const s = useTradingStore.getState();
+    expect(s.runRankAward).toEqual({ rank: 1, totalRuns: 4, reward: 30, diamonds: 35 });
+    // Server is authoritative: local mirror replaced, not incremented.
+    expect(s.diamonds).toBe(35);
+  });
+
+  it("does not downgrade the diamond mirror when the award balance is stale", () => {
+    // A call resolve landed after the award was computed: local mirror (60)
+    // is already ahead of the award snapshot (48) — max() must keep 60.
+    useTradingStore.setState({ diamonds: 60 });
+    useTradingStore.getState().recordRunRankAward({ rank: 5, totalRuns: 10, reward: 8, diamonds: 48 });
+
+    const s = useTradingStore.getState();
+    expect(s.diamonds).toBe(60);
+    expect(s.runRankAward).toMatchObject({ reward: 8 });
+  });
+
+  it("resetCallRun clears the award for the next run", () => {
+    useTradingStore.getState().recordRunRankAward({ rank: 2, totalRuns: 8, reward: 20, diamonds: 20 });
+    useTradingStore.getState().resetCallRun();
+    expect(useTradingStore.getState().runRankAward).toBeNull();
   });
 });

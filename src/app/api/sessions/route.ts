@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/server/db";
 import { getRequestUser } from "@/lib/server/request-auth";
 import { PrismaTradingSessionRepository } from "@/lib/server/trading-session-repository";
+import { PrismaCallRepository } from "@/lib/server/call-repository";
+import { awardRunRankReward, type RunRankAward } from "@/lib/server/run-rank-service";
 import {
   tradingSessionInputSchema,
   validateTradingSessionInput,
@@ -11,6 +13,21 @@ import { readJsonBody } from "@/lib/server/request-body";
 export const runtime = "nodejs";
 
 const MAX_LISTED_SESSIONS = 50;
+
+// The session insert already succeeded when the award runs — a reward failure
+// must degrade to runRank: null, never turn the 201 into a 500.
+async function computeRunRankOrNull(
+  repository: PrismaTradingSessionRepository,
+  userId: string,
+  returnPercent: number
+): Promise<RunRankAward | null> {
+  try {
+    return await awardRunRankReward(repository, new PrismaCallRepository(prisma), userId, returnPercent);
+  } catch (error) {
+    console.error({ event: "run_rank_award_failed", userId, returnPercent, error: String(error) });
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const user = await getRequestUser(request);
@@ -26,7 +43,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const repository = new PrismaTradingSessionRepository(prisma);
   const session = await repository.insertSession(user.id, tradingSessionInputSchema.parse(body));
-  return NextResponse.json({ session }, { status: 201 });
+  // Rank must be computed after the insert so the run counts itself.
+  const runRank = await computeRunRankOrNull(repository, user.id, session.returnPercent);
+  return NextResponse.json({ session, runRank }, { status: 201 });
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

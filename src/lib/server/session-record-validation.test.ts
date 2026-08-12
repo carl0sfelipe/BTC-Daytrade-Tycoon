@@ -36,6 +36,20 @@ describe("validateTradingSessionInput", () => {
     expect(validateTradingSessionInput({ ...validPayload, winRate: 150 })).toMatch(/0 and 100/);
   });
 
+  it("rejects a forged returnPercent outside the sanity bounds, naming the value", () => {
+    expect(validateTradingSessionInput({ ...validPayload, returnPercent: 10001 })).toMatch(
+      /returnPercent 10001.*between -100 and 10000/
+    );
+    expect(validateTradingSessionInput({ ...validPayload, returnPercent: -150 })).toMatch(
+      /returnPercent -150/
+    );
+  });
+
+  it("accepts returnPercent exactly on the sanity bounds", () => {
+    expect(validateTradingSessionInput({ ...validPayload, returnPercent: -100 })).toBeNull();
+    expect(validateTradingSessionInput({ ...validPayload, returnPercent: 10000 })).toBeNull();
+  });
+
   it("rejects a non-positive startingWallet", () => {
     expect(validateTradingSessionInput({ ...validPayload, startingWallet: 0 })).not.toBeNull();
   });

@@ -81,18 +81,28 @@ describe("saveTradingSessionRecord", () => {
     endReason: "manual",
   });
 
-  it("resolves true when the API accepts the record", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
-    await expect(saveTradingSessionRecord(payload)).resolves.toBe(true);
+  const runRank = { rank: 2, totalRuns: 7, reward: 20, diamonds: 42 };
+
+  it("resolves the run-rank award when the API accepts the record", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ session: {}, runRank }) })
+    );
+    await expect(saveTradingSessionRecord(payload)).resolves.toEqual(runRank);
   });
 
-  it("resolves false when the API rejects (e.g. logged out, 401)", async () => {
+  it("resolves null when the response carries no award", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    await expect(saveTradingSessionRecord(payload)).resolves.toBeNull();
+  });
+
+  it("resolves null when the API rejects (e.g. logged out, 401)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
-    await expect(saveTradingSessionRecord(payload)).resolves.toBe(false);
+    await expect(saveTradingSessionRecord(payload)).resolves.toBeNull();
   });
 
-  it("resolves false instead of throwing on network errors", async () => {
+  it("resolves null instead of throwing on network errors", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    await expect(saveTradingSessionRecord(payload)).resolves.toBe(false);
+    await expect(saveTradingSessionRecord(payload)).resolves.toBeNull();
   });
 });

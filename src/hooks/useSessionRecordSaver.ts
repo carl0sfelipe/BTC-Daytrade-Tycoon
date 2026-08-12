@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useTradingStore } from "@/store/tradingStore";
 import {
   buildSessionRecordPayload,
   saveTradingSessionRecord,
@@ -32,6 +33,9 @@ export function useSessionRecordSaver(args: SessionRecordSaverArgs): {
   resetSessionSaver: () => void;
 } {
   const savedRef = useRef(false);
+  // Staleness token: a slow /api/sessions response must not paint a previous
+  // run's rank award onto the run the player already started.
+  const runTokenRef = useRef(0);
   // Ref keeps the callback stable while always reading fresh stats at call time.
   const argsRef = useRef(args);
   argsRef.current = args;
@@ -40,6 +44,7 @@ export function useSessionRecordSaver(args: SessionRecordSaverArgs): {
     const current = argsRef.current;
     if (savedRef.current || current.stats.trades === 0) return;
     savedRef.current = true;
+    const runToken = runTokenRef.current;
     void saveTradingSessionRecord(
       buildSessionRecordPayload({
         stats: current.stats,
@@ -47,7 +52,12 @@ export function useSessionRecordSaver(args: SessionRecordSaverArgs): {
         finalWallet: current.finalWallet,
         endReason,
       })
-    );
+    ).then((award) => {
+      // Server-authoritative rank reward — feeds the end-of-run recap.
+      if (award && runTokenRef.current === runToken) {
+        useTradingStore.getState().recordRunRankAward(award);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -56,6 +66,8 @@ export function useSessionRecordSaver(args: SessionRecordSaverArgs): {
 
   const resetSessionSaver = useCallback(() => {
     savedRef.current = false;
+    // Invalidates any in-flight award from the run that just ended.
+    runTokenRef.current += 1;
   }, []);
 
   return { saveSessionRecord, resetSessionSaver };

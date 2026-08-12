@@ -2,6 +2,7 @@
 
 import { useTradingStore } from "@/store/tradingStore";
 import { computeRunCallStats, type RunCallStats } from "@/lib/calls/run-call-stats";
+import type { RunRankAward } from "@/lib/session-record-client";
 
 function formatRunCallHitRate(hitRate: number | null): string {
   if (hitRate === null) return "—";
@@ -48,14 +49,29 @@ function RunCallStatsRecap({ stats }: { stats: RunCallStats }) {
   );
 }
 
+/** Daily-ranking standing of the saved run — only rendered for logged-in users. */
+function RunRankRecapRow({ award }: { award: RunRankAward }) {
+  return (
+    <div className="flex items-center justify-between pt-2 border-t border-purple-500/20">
+      <span className="text-[10px] text-crypto-text-muted uppercase">Run Rank</span>
+      <span className="text-sm font-bold font-mono">
+        <span className="text-crypto-text-secondary">#{award.rank} of {award.totalRuns} — last 24h</span>{" "}
+        <span className="text-purple-300">+{award.reward} 💎</span>
+      </span>
+    </div>
+  );
+}
+
 /**
  * End-of-run "Called Shots" recap: diamonds earned, hit/miss/void counts,
- * hit rate and best streak — the roguelike hook surfaced in EndSimulationModal.
+ * hit rate, best streak and daily run rank — the roguelike hook surfaced in
+ * EndSimulationModal.
  *
  * @example <RunCallSummary />  // reads runCallLog from the trading store
  */
 export default function RunCallSummary() {
   const runCallLog = useTradingStore((s) => s.runCallLog);
+  const runRankAward = useTradingStore((s) => s.runRankAward);
   const stats = computeRunCallStats(runCallLog);
   return (
     <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 space-y-3">
@@ -64,6 +80,7 @@ export default function RunCallSummary() {
         <span className="text-[10px] text-purple-300 uppercase tracking-wider font-semibold">Called Shots</span>
       </div>
       {stats.callsMade === 0 ? <RunCallEmptyInvite /> : <RunCallStatsRecap stats={stats} />}
+      {runRankAward !== null && <RunRankRecapRow award={runRankAward} />}
     </div>
   );
 }

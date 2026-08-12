@@ -3,6 +3,10 @@
  * simulation run for logged-in users.
  */
 import type { TradingSessionInput } from "@/lib/server/session-record-validation";
+// Type-only import: erased at compile time, so no server code leaks into the bundle.
+import type { RunRankAward } from "@/lib/server/run-rank-service";
+
+export type { RunRankAward };
 
 export interface EndSessionStatsSnapshot {
   pnl: number;
@@ -47,20 +51,25 @@ export function buildSessionRecordPayload(args: {
 }
 
 /**
- * Sends the record to the backend. Resolves false (never throws) when the
- * user is logged out or the request fails — saving is best-effort.
+ * Sends the record to the backend and returns the server-computed run-rank
+ * award. Resolves null (never throws) when the user is logged out or the
+ * request fails — saving is best-effort.
  *
- * @example void saveTradingSessionRecord(payload);
+ * @example const award = await saveTradingSessionRecord(payload);
  */
-export async function saveTradingSessionRecord(payload: TradingSessionInput): Promise<boolean> {
+export async function saveTradingSessionRecord(
+  payload: TradingSessionInput
+): Promise<RunRankAward | null> {
   try {
     const response = await fetch("/api/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    return response.ok;
+    if (!response.ok) return null;
+    const responseBody = (await response.json()) as { runRank?: RunRankAward };
+    return responseBody.runRank ?? null;
   } catch {
-    return false;
+    return null;
   }
 }

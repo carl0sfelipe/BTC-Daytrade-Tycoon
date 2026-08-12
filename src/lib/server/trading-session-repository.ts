@@ -26,6 +26,12 @@ export interface TradingSessionRepository {
   insertSession(userId: string, stats: TradingSessionInput): Promise<StoredTradingSession>;
   listSessionsByUser(userId: string, limit: number): Promise<StoredTradingSession[]>;
   listRankableSessions(since: Date | null): Promise<RankableSessionRow[]>;
+  /** Sessions saved (all users) since a date — run-rank window size. */
+  countSessionsSince(since: Date): Promise<number>;
+  /** Sessions since a date beating the given return — run-rank position. */
+  countSessionsWithHigherReturnSince(since: Date, returnPercent: number): Promise<number>;
+  /** One user's sessions since a date — run-reward replay cooldown guard. */
+  countUserSessionsSince(userId: string, since: Date): Promise<number>;
 }
 
 // SQLite has no enum columns, so endReason round-trips as a plain string and
@@ -49,6 +55,20 @@ export class PrismaTradingSessionRepository implements TradingSessionRepository 
       take: limit,
     });
     return rows.map(toStoredSession);
+  }
+
+  async countSessionsSince(since: Date): Promise<number> {
+    return this.db.tradingSessionRecord.count({ where: { createdAt: { gte: since } } });
+  }
+
+  async countSessionsWithHigherReturnSince(since: Date, returnPercent: number): Promise<number> {
+    return this.db.tradingSessionRecord.count({
+      where: { createdAt: { gte: since }, returnPercent: { gt: returnPercent } },
+    });
+  }
+
+  async countUserSessionsSince(userId: string, since: Date): Promise<number> {
+    return this.db.tradingSessionRecord.count({ where: { userId, createdAt: { gte: since } } });
   }
 
   async listRankableSessions(since: Date | null): Promise<RankableSessionRow[]> {

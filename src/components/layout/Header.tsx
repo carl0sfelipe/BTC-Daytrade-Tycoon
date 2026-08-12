@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp, Github } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { getCurrentStreak } from "@/utils/streak";
+import DiamondCounter from "./DiamondCounter";
 
 export default function Header() {
   const pathname = usePathname();
@@ -70,6 +71,8 @@ export default function Header() {
             <span className="text-sm font-bold text-crypto-warning font-mono">{streak}W</span>
           </div>
         )}
+
+        <DiamondCounter />
 
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <div className="flex flex-col items-end">

@@ -17,7 +17,9 @@ sabotage between players — never touching the shared market data.
 Prioritization now follows the PRD phases:
 
 1. **Phase R1 — Solo roguelike** — timed runs + permadeath, called shots + diamonds, run events, missions, new mobile shell.
-2. **Phase R2 — Async PvP** — shared daily seed, live run ranking (polling), rival ghosts.
+   - [x] **R1.0 (Aug 2026)** — called shots end-to-end (declare at market entry → wick-aware resolution → server-authoritative diamond payout with streak/cooldown/run-cap), `User.diamonds` + `TradeCall` on the server, 10-min run timer with auto-end, 💎 counter + hit celebration, mobile game-shell bottom nav (Inventory/Missions/Trade/Ranking/Shop). Decisions: party 2026-08-12.
+   - [ ] **R1.1** — run events (Extreme Volatility — needs data curation), missions, hit-rate instrumentation per difficulty.
+2. **Phase R2 — Async PvP** — shared daily seed, live run ranking (polling), rival ghosts. Debt to collect: call verification by deterministic replay, real `Run` model server-side.
 3. **Phase R3 — Real-time PvP** — matchmaking, WebSocket, live sabotage, fully authoritative server.
 
 The phases below remain valid as the technical backlog; items get pulled

@@ -10,6 +10,7 @@ export interface AuthUserRecord {
   username: string;
   email: string;
   passwordHash: string;
+  diamonds: number;
 }
 
 export interface NewUserData {

@@ -11,6 +11,8 @@ export interface PublicUser {
   id: string;
   username: string;
   email: string;
+  /** Server-authoritative called-shot currency (see PRD_ROGUELIKE_PVP.md). */
+  diamonds: number;
 }
 
 export type AuthResult =
@@ -27,7 +29,7 @@ const INVALID_CREDENTIALS: AuthResult = {
 };
 
 function toPublicUser(user: AuthUserRecord): PublicUser {
-  return { id: user.id, username: user.username, email: user.email };
+  return { id: user.id, username: user.username, email: user.email, diamonds: user.diamonds };
 }
 
 async function openAuthSession(repo: AuthRepository, user: AuthUserRecord): Promise<AuthResult> {

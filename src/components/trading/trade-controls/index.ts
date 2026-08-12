@@ -4,6 +4,7 @@ export { default as ReduceOnlyToggle } from "./ReduceOnlyToggle";
 export { default as LeverageSelector } from "./LeverageSelector";
 export { default as SizeSelector } from "./SizeSelector";
 export { default as TpSlPanel } from "./TpSlPanel";
+export { default as CalledShotPicker } from "./CalledShotPicker";
 export { default as LimitPriceInput } from "./LimitPriceInput";
 export { default as OrderSummary } from "./OrderSummary";
 export { default as ActionButtons } from "./ActionButtons";

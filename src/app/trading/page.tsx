@@ -18,12 +18,16 @@ import EndSimulationModal from "@/components/trading/EndSimulationModal";
 import OnboardingModal from "@/components/trading/OnboardingModal";
 import MobileTradingView from "@/components/trading/MobileTradingView";
 import DifficultySelector from "@/components/trading/DifficultySelector";
+import CalledShotStatus from "@/components/trading/CalledShotStatus";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useSessionRecordSaver } from "@/hooks/useSessionRecordSaver";
 import { useTradingStore } from "@/store/tradingStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTradeNotifications } from "@/hooks/useTradeNotifications";
+import { useCallServerSync } from "@/hooks/useCallServerSync";
+import { useCallCelebration } from "@/hooks/useCallCelebration";
+import { useRunCountdown } from "@/hooks/useRunCountdown";
 import { getCurrentStreak } from "@/utils/streak";
 import { computeTraderScore } from "@/lib/trading/trader-score";
 import { SentinelProvider, useSentinelContext } from "@/lib/sentinel";
@@ -62,6 +66,8 @@ export default function TradingPage() {
   const engine = useTimewarpEngine();
   const isMobile = useIsMobile();
   useTradeNotifications();
+  useCallServerSync();
+  useCallCelebration();
 
   const isLiquidated = useTradingStore((s) => s.isLiquidated);
   const simulationRealDate = useTradingStore((s) => s.simulationRealDate);
@@ -74,6 +80,7 @@ export default function TradingPage() {
   const position = useTradingStore((s) => s.position);
   const openPosition = useTradingStore((s) => s.openPosition);
   const closePosition = useTradingStore((s) => s.closePosition);
+  const resetCallRun = useTradingStore((s) => s.resetCallRun);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -164,6 +171,16 @@ export default function TradingPage() {
     finalWallet: wallet,
   });
 
+  const handleEndRun = () => {
+    engine.pause();
+    setCapturedRealDateRange(engine.realDateRange);
+    saveSessionRecord("manual");
+    setShowEndModal(true);
+  };
+
+  // Runs are timed (PRD Roguelike PvP): countdown + automatic end.
+  const runCountdown = useRunCountdown(engine.elapsedTime, handleEndRun);
+
   if (!mounted) return null;
 
   if (engine.isLoading) {
@@ -199,6 +216,7 @@ export default function TradingPage() {
     setShowEndModal(false);
     setShowDifficulty(true);
     resetSessionSaver();
+    resetCallRun();
   };
 
   const handleDifficultyConfirm = () => {
@@ -223,12 +241,7 @@ export default function TradingPage() {
       <Header />
 
       {isMobile ? (
-        <MobileTradingView engine={engine} onEnd={() => {
-          engine.pause();
-          setCapturedRealDateRange(engine.realDateRange);
-          saveSessionRecord("manual");
-          setShowEndModal(true);
-        }} />
+        <MobileTradingView engine={engine} onEnd={handleEndRun} runCountdown={runCountdown} />
       ) : (
         <>
           <div className="container mx-auto px-4 py-3">
@@ -240,12 +253,8 @@ export default function TradingPage() {
                 onPause={engine.pause}
                 onResume={engine.start}
                 onReset={engine.reset}
-                onEnd={() => {
-                  engine.pause();
-                  setCapturedRealDateRange(engine.realDateRange);
-                  saveSessionRecord("manual");
-                  setShowEndModal(true);
-                }}
+                onEnd={handleEndRun}
+                runCountdown={runCountdown}
               />
               <SessionReplayControls onLoad={() => engine.reset()} />
             </div>
@@ -270,6 +279,7 @@ export default function TradingPage() {
 
               {/* Side column */}
               <div className="col-span-12 lg:col-span-4 space-y-4">
+                <CalledShotStatus />
                 <PositionPanel />
                 <TradeControls />
                 <PnLDisplay />

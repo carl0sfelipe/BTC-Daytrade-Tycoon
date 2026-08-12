@@ -7,6 +7,8 @@ export interface SessionUser {
   id: string;
   username: string;
   email: string;
+  /** Server-authoritative called-shot balance. */
+  diamonds: number;
 }
 
 export interface AuthRequestResult {

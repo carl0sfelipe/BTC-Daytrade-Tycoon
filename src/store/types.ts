@@ -4,6 +4,7 @@ import type { HistorySlice } from "./slices/historySlice";
 import type { UISlice } from "./slices/uiSlice";
 import type { OrdersSlice } from "./slices/ordersSlice";
 import type { PositionSlice } from "./slices/positionSlice";
+import type { CallsSlice } from "./slices/callsSlice";
 
 export type TradingStore =
   MarketSlice &
@@ -11,7 +12,8 @@ export type TradingStore =
   HistorySlice &
   UISlice &
   OrdersSlice &
-  PositionSlice;
+  PositionSlice &
+  CallsSlice;
 
 export type {
   Trade,

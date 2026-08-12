@@ -97,6 +97,8 @@ export const createPositionSlice: StateCreator<
           set({ lastActionError: "Insufficient funds for hedge flip" });
           return;
         }
+        // Flip closes the old position — settle its called shot first.
+        get().resolveActiveCall("manual");
         const patch = computeHedgeFlip(
           state.wallet, existing, entryPrice, side, leverage, positionSize,
           tpPrice, slPrice, state.closedTrades, state.realizedPnL, state.ordersHistory, limitPrice
@@ -105,6 +107,7 @@ export const createPositionSlice: StateCreator<
         if ((tpPrice && tpPrice > 0) || (slPrice && slPrice > 0)) {
           get().setPositionTpSl(tpPriceStr, slPriceStr);
         }
+        get().declareCallFromPosition();
         return;
       }
 
@@ -113,6 +116,8 @@ export const createPositionSlice: StateCreator<
         state.ordersHistory, state.closedTrades, state.realizedPnL, limitPrice
       );
       set(patch);
+      // An opposite-side order can fully close the position (manual exit).
+      if (!get().position) get().resolveActiveCall("manual");
       return;
     }
 
@@ -124,6 +129,8 @@ export const createPositionSlice: StateCreator<
     if ((tpPrice && tpPrice > 0) || (slPrice && slPrice > 0)) {
       get().setPositionTpSl(tpPriceStr, slPriceStr);
     }
+    // Market entry with a TP is a called shot (see PRD_ROGUELIKE_PVP.md).
+    if (!limitPrice) get().declareCallFromPosition();
   },
 
   addToPosition: (additionalSize, price, tpPriceStr, slPriceStr) => {
@@ -160,6 +167,7 @@ export const createPositionSlice: StateCreator<
       state.pendingOrders, state.simulationRealDate
     );
     set(patch);
+    get().resolveActiveCall(reason);
   },
 
   updatePositionSize: (newSize, orderSide) => {
@@ -340,6 +348,8 @@ export const createPositionSlice: StateCreator<
       pendingOrders: newPendingOrders,
       ordersHistory: newOrdersHistory.slice(-MAX_ORDERS_HISTORY),
     });
+    // Moving the TP after declaring breaks the called-shot commitment.
+    get().voidActiveCallOnTpChange(tpPrice && tpPrice > 0 ? tpPrice : null);
   },
 
   checkPosition: (currentPrice, candleLow, candleHigh) => {

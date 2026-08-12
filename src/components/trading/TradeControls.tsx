@@ -18,6 +18,7 @@ import {
   LeverageSelector,
   SizeSelector,
   TpSlPanel,
+  CalledShotPicker,
   LimitPriceInput,
   OrderSummary,
   ActionButtons,
@@ -340,6 +341,17 @@ export default function TradeControls() {
             maxLeverage={maxLeverage}
             onChange={handleLeverageChange}
           />
+
+          {/* Called shots are declared at market entry (PRD_ROGUELIKE_PVP.md) */}
+          {!position && state.orderType === "market" && (
+            <CalledShotPicker
+              side={state.side}
+              leverage={state.leverage}
+              currentPrice={currentPrice}
+              tpPrice={state.tpPrice}
+              onTpChange={state.setTpPrice}
+            />
+          )}
 
           {(!position || state.orderType === "limit") && (
             <TpSlPanel

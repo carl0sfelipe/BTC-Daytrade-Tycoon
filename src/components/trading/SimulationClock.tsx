@@ -10,6 +10,7 @@ interface SimulationClockProps {
   onResume: () => void;
   onReset: () => void;
   onEnd: () => void;
+  runCountdown?: { display: string; isCritical: boolean };
 }
 
 export default function SimulationClock({
@@ -20,6 +21,7 @@ export default function SimulationClock({
   onResume,
   onReset,
   onEnd,
+  runCountdown,
 }: SimulationClockProps) {
   return (
     <div className="flex flex-wrap items-center justify-between px-4 md:px-5 py-3 card-surface gap-y-3">
@@ -38,7 +40,18 @@ export default function SimulationClock({
         {/* Divider */}
         <div className="w-px h-8 bg-crypto-border" />
 
-
+        {runCountdown && (
+          <div className="flex flex-col">
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Run Ends In</span>
+            <span
+              className={`text-base md:text-lg font-bold font-mono tabular-nums leading-none mt-0.5 ${
+                runCountdown.isCritical ? "text-crypto-short animate-pulse" : "text-crypto-warning"
+              }`}
+            >
+              ⏳ {runCountdown.display}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Controls */}

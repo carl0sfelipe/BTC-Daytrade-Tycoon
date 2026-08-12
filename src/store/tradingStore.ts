@@ -7,6 +7,7 @@ import { createHistorySlice } from "./slices/historySlice";
 import { createUISlice } from "./slices/uiSlice";
 import { createOrdersSlice } from "./slices/ordersSlice";
 import { createPositionSlice } from "./slices/positionSlice";
+import { createCallsSlice } from "./slices/callsSlice";
 
 export type {
   Trade,
@@ -37,6 +38,7 @@ export const useTradingStore = create<TradingStore>()(
       ...createUISlice(set, get, store),
       ...createOrdersSlice(set, get, store),
       ...createPositionSlice(set, get, store),
+      ...createCallsSlice(set, get, store),
     }),
     {
       name: "trading-storage",
@@ -57,6 +59,8 @@ export const useTradingStore = create<TradingStore>()(
           simulationRealDate: null,
           isLoading: false,
           lastActionError: null,
+          activeCall: null,
+          lastCallResult: null,
         } as TradingStore;
       },
       partialize: (state) => ({
@@ -70,6 +74,10 @@ export const useTradingStore = create<TradingStore>()(
         difficulty: state.difficulty,
         maxLeverage: state.maxLeverage,
         startingWallet: state.startingWallet,
+        // Guest diamond balance/streak survive reloads; server is the source
+        // of truth for logged-in users (reconciled by useCallServerSync).
+        diamonds: state.diamonds,
+        callStreak: state.callStreak,
       }),
     }
   )

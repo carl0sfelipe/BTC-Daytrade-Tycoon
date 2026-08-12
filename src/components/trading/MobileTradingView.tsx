@@ -1,25 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronUp, BarChart3, Trophy, Award } from "lucide-react";
-import Link from "next/link";
+import { ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTradingStore } from "@/store/tradingStore";
 import type { ReturnTypeUseTimewarpEngine } from "@/hooks/useTimewarpEngine";
+import type { RunCountdown } from "@/hooks/useRunCountdown";
 import TradingChart from "./TradingChart";
 import TradeControls from "./TradeControls";
 import TradeHistory from "./TradeHistory";
 import PositionPanel from "./PositionPanel";
+import CalledShotStatus from "./CalledShotStatus";
 import MarketStatus from "../layout/MarketStatus";
+import MobileGameNav from "../layout/MobileGameNav";
 import SimulationClock from "./SimulationClock";
 import OrdersPanel from "./OrdersPanel";
 
 interface MobileTradingViewProps {
   engine: ReturnTypeUseTimewarpEngine;
   onEnd: () => void;
+  runCountdown?: RunCountdown;
 }
 
-export default function MobileTradingView({ engine, onEnd }: MobileTradingViewProps) {
+export default function MobileTradingView({ engine, onEnd, runCountdown }: MobileTradingViewProps) {
   const position = useTradingStore((s) => s.position);
   const [showControls, setShowControls] = useState(false);
   const [activeTab, setActiveTab] = useState<"chart" | "history">("chart");
@@ -54,6 +57,7 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
           onResume={engine.start}
           onReset={engine.reset}
           onEnd={onEnd}
+          runCountdown={runCountdown}
         />
       </div>
 
@@ -105,6 +109,11 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
         )}
       </div>
 
+      {/* Live called shot */}
+      <div className="mx-3 mt-2 empty:hidden">
+        <CalledShotStatus />
+      </div>
+
       {/* Floating Position Panel */}
       {position && (
         <div className="mx-3 mt-2">
@@ -151,31 +160,9 @@ export default function MobileTradingView({ engine, onEnd }: MobileTradingViewPr
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation — game shell (PRD Roguelike PvP) */}
       <div className="px-3 pb-3 pt-1">
-        <div className="card-surface border border-crypto-border p-1.5 flex items-center justify-around">
-          <Link
-            href="/trading"
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-crypto-surface-elevated"
-          >
-            <BarChart3 className="w-4 h-4 text-crypto-accent" />
-            <span className="text-[9px] text-crypto-text-secondary font-medium">Terminal</span>
-          </Link>
-          <Link
-            href="/leaderboard"
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg hover:bg-crypto-surface-elevated"
-          >
-            <Trophy className="w-4 h-4 text-crypto-text-muted" />
-            <span className="text-[9px] text-crypto-text-muted font-medium">Ranking</span>
-          </Link>
-          <Link
-            href="/achievements"
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg hover:bg-crypto-surface-elevated"
-          >
-            <Award className="w-4 h-4 text-crypto-text-muted" />
-            <span className="text-[9px] text-crypto-text-muted font-medium">Achievements</span>
-          </Link>
-        </div>
+        <MobileGameNav />
       </div>
 
       {/* Bottom Sheet Backdrop */}

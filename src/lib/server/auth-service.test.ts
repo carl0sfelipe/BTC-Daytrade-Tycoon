@@ -23,7 +23,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   async createUser(data: NewUserData): Promise<AuthUserRecord> {
-    const user: AuthUserRecord = { id: `user-${this.nextId++}`, ...data };
+    const user: AuthUserRecord = { id: `user-${this.nextId++}`, diamonds: 0, ...data };
     this.users.push(user);
     return user;
   }
@@ -79,6 +79,7 @@ describe("signupUser", () => {
       id: expect.any(String),
       username: "satoshi_21",
       email: "satoshi@example.com",
+      diamonds: 0,
     });
     expect(result.token).toMatch(/^[0-9a-f]{64}$/);
     expect(repo.sessionCount()).toBe(1);

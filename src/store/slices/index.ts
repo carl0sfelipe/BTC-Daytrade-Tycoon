@@ -4,3 +4,4 @@ export { createHistorySlice, type HistorySlice } from "./historySlice";
 export { createUISlice, type UISlice } from "./uiSlice";
 export { createOrdersSlice, type OrdersSlice } from "./ordersSlice";
 export { createPositionSlice, type PositionSlice } from "./positionSlice";
+export { createCallsSlice, type CallsSlice } from "./callsSlice";

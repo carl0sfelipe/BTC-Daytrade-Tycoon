@@ -181,10 +181,18 @@ describe("MobileTradingView", () => {
     expect(screen.getByTestId("sim-clock")).toBeInTheDocument();
   });
 
-  it("renders navigation links to leaderboard and achievements", () => {
+  it("renders the game shell bottom nav (PRD Roguelike PvP)", () => {
     render(<MobileTradingView engine={mockEngine} onEnd={vi.fn()} />);
+    expect(screen.getByText("Trade")).toBeInTheDocument();
     expect(screen.getByText("Ranking")).toBeInTheDocument();
-    expect(screen.getByText("Achievements")).toBeInTheDocument();
-    expect(screen.getByText("Terminal")).toBeInTheDocument();
+    expect(screen.getByText("Inventory")).toBeInTheDocument();
+    expect(screen.getByText("Missions")).toBeInTheDocument();
+    expect(screen.getByText("Shop")).toBeInTheDocument();
+  });
+
+  it("opens a coming-soon sheet for tabs that ship in later slices", async () => {
+    render(<MobileTradingView engine={mockEngine} onEnd={vi.fn()} />);
+    fireEvent.click(screen.getByText("Shop"));
+    expect(await screen.findByText("Coming soon")).toBeInTheDocument();
   });
 });

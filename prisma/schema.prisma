@@ -16,9 +16,11 @@ model User {
   username        String                 @unique
   email           String                 @unique
   passwordHash    String
+  diamonds        Int                    @default(0)
   createdAt       DateTime               @default(now())
   authSessions    AuthSession[]
   tradingSessions TradingSessionRecord[]
+  tradeCalls      TradeCall[]
 }
 
 // Opaque server-side auth session. Token is a random 256-bit hex string
@@ -35,6 +37,30 @@ model AuthSession {
 
 // One completed simulation run (manual end or liquidation).
 // Mirrors the endStats computed in src/app/trading/page.tsx.
+// A "called shot": a declared take-profit target the player commits to at
+// position open. The server is authoritative for diamond payouts — the reward
+// is computed here (streak, cooldown, per-run cap), never trusted from the
+// client. Verification of hit/miss by deterministic replay is R2 debt
+// (see PRD_ROGUELIKE_PVP.md).
+model TradeCall {
+  id            String    @id @default(cuid())
+  userId        String
+  runId         String // client-generated per run; a real Run model is R2 debt
+  side          String // "long" | "short"
+  entryPrice    Float
+  targetPrice   Float
+  targetPercent Float
+  leverage      Float
+  status        String    @default("pending") // "pending" | "hit" | "missed" | "voided"
+  reward        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, runId])
+}
+
 model TradingSessionRecord {
   id             String   @id @default(cuid())
   userId         String

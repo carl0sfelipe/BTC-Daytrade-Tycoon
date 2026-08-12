@@ -1,0 +1,57 @@
+// Database schema for the real backend (auth + persisted sessions + leaderboard).
+// Provider is SQLite for local/self-hosted use; swap to "postgresql" when
+// migrating to a hosted DB (see ROADMAP Phase 3).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id              String                 @id @default(cuid())
+  username        String                 @unique
+  email           String                 @unique
+  passwordHash    String
+  createdAt       DateTime               @default(now())
+  authSessions    AuthSession[]
+  tradingSessions TradingSessionRecord[]
+}
+
+// Opaque server-side auth session. Token is a random 256-bit hex string
+// stored in an httpOnly cookie — revocable, no JWT secret to leak.
+model AuthSession {
+  token     String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// One completed simulation run (manual end or liquidation).
+// Mirrors the endStats computed in src/app/trading/page.tsx.
+model TradingSessionRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  endReason      String // "manual" | "liquidated"
+  startingWallet Float
+  finalWallet    Float
+  pnl            Float
+  returnPercent  Float
+  trades         Int
+  winRate        Float
+  bestTrade      Float
+  worstTrade     Float
+  maxDrawdown    Float
+  traderScore    Int
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}

@@ -73,8 +73,9 @@ _________________________________________________________________
 - 🎓 **Onboarding Modal** — 3-step interactive tutorial for first-time traders.
 - 📱 **Responsive Mobile Trading View** — Fully responsive layout with bottom sheet + tabs for trading on the go.
 - 🏠 **Landing Page** — Polished marketing page with feature highlights.
-- 🔐 **Auth Pages** — Login and signup flows with simulated authentication.
-- 🏆 **Leaderboard & Achievements** — Compete and unlock milestones.
+- 🔐 **Real Authentication** — Signup/login backed by a real database: scrypt-hashed passwords, revocable server-side sessions in httpOnly cookies.
+- 🗄️ **Persistent Backend** — Next.js Route Handlers + Prisma 7 + SQLite. Finished sessions (manual end or liquidation) are saved per user.
+- 🏆 **Global Leaderboard with real player data** — Rankings by cumulative session return (week / month / all-time), with your own live rank. Plus achievements to unlock.
 - ⚠️ **High-Leverage Confirmation** — Safety modal for trades ≥50x leverage.
 - 🔥 **Streak Tracking** — Utility to monitor consecutive wins/losses.
 - 🧪 **Unit Test Suite** — 65+ Vitest tests across store logic, limit orders, position mechanics, component rendering, engine behavior, order history side tracking, and Reduce Only / Hedge Mode.
@@ -90,6 +91,8 @@ _________________________________________________________________
 | **Language** | [TypeScript](https://www.typescriptlang.org/) |
 | **Styling** | [Tailwind CSS v3](https://tailwindcss.com/) |
 | **State Management** | [Zustand](https://github.com/pmndrs/zustand) (with persist middleware) |
+| **Backend** | Next.js Route Handlers (`src/app/api/`) |
+| **Database** | SQLite via [Prisma 7](https://www.prisma.io/) (better-sqlite3 driver adapter) |
 | **Charts** | [lightweight-charts](https://tradingview.github.io/lightweight-charts/) v5 |
 | **Icons** | [Lucide React](https://lucide.dev/) |
 | **UI Components** | [Radix UI](https://www.radix-ui.com/) primitives + [shadcn/ui](https://ui.shadcn.com/) |
@@ -115,8 +118,12 @@ _________________________________________________________________
 git clone https://github.com/your-username/btc-daytrade-tycoon.git
 cd btc-daytrade-tycoon
 
-# Install dependencies
+# Install dependencies (postinstall generates the Prisma client)
 npm install
+
+# Set up the local database (SQLite)
+cp .env.example .env
+npx prisma migrate dev
 ```
 
 ### Development
@@ -173,11 +180,36 @@ npx playwright test --headed
 
 ---
 
+## 🔌 Backend API
+
+The backend lives in the same Next.js app as Route Handlers, backed by Prisma + SQLite (swap the datasource provider to Postgres for hosted deploys).
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/signup` | POST | — | Create account, opens session (httpOnly cookie) |
+| `/api/auth/login` | POST | — | Login with email + password |
+| `/api/auth/logout` | POST | cookie | Revoke the current session |
+| `/api/auth/me` | GET | cookie | Current user (`{ user: null }` when logged out) |
+| `/api/sessions` | POST | required | Save a finished simulation run |
+| `/api/sessions` | GET | required | List your last 50 saved sessions |
+| `/api/leaderboard?period=week\|month\|all` | GET | optional | Global rankings + your own rank when logged in |
+
+Key design points:
+
+- **Passwords** hashed with Node's built-in scrypt (salted, timing-safe compare) — no external crypto dependency.
+- **Sessions** are opaque random tokens stored server-side (revocable, no JWT secret to leak), delivered as an httpOnly `SameSite=Lax` cookie.
+- **Services are repository-injected** (`src/lib/server/`), so all business logic is unit-tested against named in-memory fakes — no DB needed in tests.
+- **Known limitation:** session stats are client-reported; server-side replay verification is future work.
+
+---
+
 ## 🏗️ Architecture Overview
 
 BTC Daytrade Tycoon follows a **feature-based modular architecture** inside the Next.js 14 App Router.
 
 - **App Router (`src/app/`)** — Route segments for landing, trading, auth, leaderboard, and achievements.
+- **API Routes (`src/app/api/`)** — Auth, session persistence, leaderboard, and the Binance proxy.
+- **Server Layer (`src/lib/server/`)** — Auth/leaderboard services and Prisma repositories behind interfaces (unit-testable with fakes).
 - **State Management (`src/store/`)** — Zustand stores with persist middleware handle simulation state, wallet, positions, and UI modals.
 - **Data Layer (`src/lib/`)** — Binance API integration fetches historical 1-minute candles and normalizes them to the current BTC price context.
 - **Components (`src/components/`)** — Organized by domain: `trading/`, `pages/`, `layout/`, and reusable `ui/` (Radix-based).

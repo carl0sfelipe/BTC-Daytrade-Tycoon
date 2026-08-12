@@ -3,12 +3,33 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, ArrowLeft, Eye, EyeOff, Mail, Lock, User, ChevronRight } from "lucide-react";
-import { setFakeUser } from "@/lib/fake-auth";
+import { loginRequest, signupRequest } from "@/lib/auth-client";
 
 type AuthMode = "login" | "signup";
 
 interface AuthPageProps {
   mode: AuthMode;
+}
+
+/** Mirrors the server-side rules so most mistakes fail fast, before the request. */
+function validateAuthForm(args: {
+  authMode: AuthMode;
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}): string | null {
+  const { authMode, username, email, password, confirmPassword } = args;
+  if (authMode === "signup" && username.trim().length < 3) {
+    return "Username must be at least 3 characters";
+  }
+  if (!email.trim() || !email.includes("@")) return "Please enter a valid email";
+  if (authMode === "signup" && password.length < 8) {
+    return "Password must be at least 8 characters";
+  }
+  if (authMode === "login" && !password) return "Password is required";
+  if (authMode === "signup" && password !== confirmPassword) return "Passwords don't match";
+  return null;
 }
 
 export default function AuthPage({ mode }: AuthPageProps) {
@@ -18,28 +39,32 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  // NOTE: This is a demo-only authentication flow. No real auth backend is used.
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    if (authMode === "signup" && !username.trim()) {
-      setFormError("Username is required");
-      return;
-    }
-    if (!email.trim() || !email.includes("@")) {
-      setFormError("Please enter a valid email");
+    const localError = validateAuthForm({ authMode, username, email, password, confirmPassword });
+    if (localError) {
+      setFormError(localError);
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setFakeUser({ username: username || "Trader", email: email || "demo@example.com" });
-      router.push("/trading");
-    }, 1500);
+    const result =
+      authMode === "signup"
+        ? await signupRequest({ username: username.trim(), email: email.trim(), password })
+        : await loginRequest({ email: email.trim(), password });
+    setIsLoading(false);
+
+    if (!result.user) {
+      setFormError(result.error ?? "Authentication failed");
+      return;
+    }
+    router.push("/trading");
   };
 
   return (
@@ -136,6 +161,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
                 />
                 <button
@@ -156,6 +183,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
                   />
                 </div>

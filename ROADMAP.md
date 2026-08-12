@@ -94,8 +94,8 @@ Make every session feel unique, replayable, and competitive.
 
 Turn solitary trading into a shared experience.
 
-- [ ] **Real backend + database** — Migrate from localStorage to Supabase or Firebase for persistent data.
-- [ ] **Global leaderboard with real player data** — Rankings by total return, win rate, and streak length.
+- [x] **Real backend + database** — Next.js Route Handlers + Prisma 7 + SQLite (real auth, saved sessions). Swap the datasource provider to Postgres/Supabase for hosted deploys.
+- [x] **Global leaderboard with real player data** — Rankings by cumulative session return with trades, sessions, and streak; week / month / all-time filters; shows your own rank.
 - [ ] **Share session results** — Generate Twitter/X cards with session stats and a screenshot of the final chart.
 - [ ] **Challenge friends** — Generate a shareable link to a specific historical day and invite others to beat your score.
 - [ ] **Player profiles with stats** — Total sessions, average return, favorite leverage, best/worst trades.
@@ -137,7 +137,7 @@ Ongoing housekeeping to keep the codebase fast and maintainable.
 
 - [ ] **Unify `price` / `currentPrice` in store** — Eliminate dual price sources causing subtle sync bugs.
 - [ ] **Add proper error boundaries** — Graceful crash recovery instead of blank screens.
-- [ ] **Migrate fake auth to real auth** — OAuth2 / JWT integration (GitHub, Google, X login).
+- [x] **Migrate fake auth to real auth** — email + password with scrypt hashing and revocable server-side sessions (httpOnly cookie). OAuth providers (GitHub, Google, X) still open.
 - [ ] **Add Sentry for error tracking** — Real-time production error monitoring and alerting.
 - [ ] **Performance: virtualize trade history list** — React Window or similar for long trade logs.
 - [ ] **Add React Query for API caching** — Deduplicate Binance requests and add stale-while-revalidate logic.

@@ -20,6 +20,7 @@ import MobileTradingView from "@/components/trading/MobileTradingView";
 import DifficultySelector from "@/components/trading/DifficultySelector";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import { useHotkeys } from "@/hooks/useHotkeys";
+import { useSessionRecordSaver } from "@/hooks/useSessionRecordSaver";
 import { useTradingStore } from "@/store/tradingStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTradeNotifications } from "@/hooks/useTradeNotifications";
@@ -104,47 +105,6 @@ export default function TradingPage() {
     }
   }, [mounted, hasSeenOnboarding]);
 
-  if (!mounted) return null;
-
-  if (engine.isLoading) {
-    return (
-      <>
-        <Header />
-        <SimulationLoader message={engine.loadingMessage} />
-      </>
-    );
-  }
-
-  if (engine.error) {
-    return (
-      <div className="min-h-screen bg-crypto-bg flex flex-col items-center justify-center text-crypto-text">
-        <div className="text-center space-y-4">
-          <div className="text-4xl">⚠️</div>
-          <h2 className="text-xl font-bold text-crypto-short">Simulation Error</h2>
-          <p className="text-crypto-text-secondary">{engine.error}</p>
-          <button
-            type="button"
-            onClick={engine.reset}
-            className="bg-crypto-long text-black hover:bg-crypto-long/90 px-4 py-2 rounded-lg font-bold transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const handleNewSession = () => {
-    clearLiquidated();
-    setShowEndModal(false);
-    setShowDifficulty(true);
-  };
-
-  const handleDifficultyConfirm = () => {
-    setShowDifficulty(false);
-    engine.reset();
-  };
-
   const winningTrades = closedTrades.filter((t) => t.pnl > 0);
   const losingTrades = closedTrades.filter((t) => t.pnl < 0);
   const totalWins = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
@@ -196,6 +156,56 @@ export default function TradingPage() {
     }),
   };
 
+  // Persists the finished session to the backend (leaderboard) for logged-in users.
+  const { saveSessionRecord, resetSessionSaver } = useSessionRecordSaver({
+    isLiquidated,
+    stats: endStats,
+    startingWallet: initialWallet,
+    finalWallet: wallet,
+  });
+
+  if (!mounted) return null;
+
+  if (engine.isLoading) {
+    return (
+      <>
+        <Header />
+        <SimulationLoader message={engine.loadingMessage} />
+      </>
+    );
+  }
+
+  if (engine.error) {
+    return (
+      <div className="min-h-screen bg-crypto-bg flex flex-col items-center justify-center text-crypto-text">
+        <div className="text-center space-y-4">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="text-xl font-bold text-crypto-short">Simulation Error</h2>
+          <p className="text-crypto-text-secondary">{engine.error}</p>
+          <button
+            type="button"
+            onClick={engine.reset}
+            className="bg-crypto-long text-black hover:bg-crypto-long/90 px-4 py-2 rounded-lg font-bold transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleNewSession = () => {
+    clearLiquidated();
+    setShowEndModal(false);
+    setShowDifficulty(true);
+    resetSessionSaver();
+  };
+
+  const handleDifficultyConfirm = () => {
+    setShowDifficulty(false);
+    engine.reset();
+  };
+
   // Format elapsed time as "5h 30m 15s" from "05:30:15"
   const formatElapsedPretty = (time: string) => {
     const [h, m, s] = time.split(":").map(Number);
@@ -216,6 +226,7 @@ export default function TradingPage() {
         <MobileTradingView engine={engine} onEnd={() => {
           engine.pause();
           setCapturedRealDateRange(engine.realDateRange);
+          saveSessionRecord("manual");
           setShowEndModal(true);
         }} />
       ) : (
@@ -232,6 +243,7 @@ export default function TradingPage() {
                 onEnd={() => {
                   engine.pause();
                   setCapturedRealDateRange(engine.realDateRange);
+                  saveSessionRecord("manual");
                   setShowEndModal(true);
                 }}
               />

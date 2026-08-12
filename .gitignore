@@ -1,6 +1,14 @@
 # Dependencies
 node_modules/
 
+# Environment (DATABASE_URL etc.) — .env.example is the template
+.env
+
+# Local SQLite database + generated Prisma client
+prisma/dev.db
+prisma/dev.db-journal
+src/generated/
+
 # Next.js
 .next/
 

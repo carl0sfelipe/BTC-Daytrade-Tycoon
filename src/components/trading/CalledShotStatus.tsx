@@ -15,6 +15,7 @@ export default function CalledShotStatus() {
     <motion.div
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
+      data-testid="called-shot-status"
       className="flex items-center justify-between px-3 py-2 rounded-lg bg-crypto-accent-dim border border-crypto-accent/40"
     >
       <span className="text-xs font-semibold text-crypto-accent">

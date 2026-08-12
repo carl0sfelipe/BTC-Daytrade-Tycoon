@@ -33,11 +33,13 @@ export default function DiamondCounter() {
   return (
     <div
       title="Diamonds — earn them by hitting called shots"
+      data-testid="diamond-counter"
       className={computeDiamondPillClass(rewardedHit !== null)}
     >
       <span className="text-sm leading-none">💎</span>
       <motion.span
         key={diamonds}
+        data-testid="diamond-counter-value"
         initial={{ scale: 1.6 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 500, damping: 18 }}

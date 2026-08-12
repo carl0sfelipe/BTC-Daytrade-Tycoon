@@ -1,44 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Backpack, ListChecks, BarChart3, Trophy, ShoppingBag, X } from "lucide-react";
+import DailyMissionsPanel from "@/components/missions/DailyMissionsPanel";
 
 /**
  * Mobile game shell bottom nav (PRD_ROGUELIKE_PVP.md — mobile-first shell,
- * party 2026-08-12, Sally). Trade and Ranking are live; Inventory, Missions
- * and Shop land in later R1.x slices and open an honest "coming soon" sheet.
+ * party 2026-08-12, Sally). Trade and Ranking are live; Missions opens the
+ * daily missions board (R1); Inventory and Shop land in later R1.x slices
+ * and open an honest "coming soon" sheet.
  */
 
-type PlaceholderTab = "inventory" | "missions" | "shop";
+type GameNavSheetTab = "inventory" | "missions" | "shop";
+type ComingSoonTab = Exclude<GameNavSheetTab, "missions">;
 
-const PLACEHOLDER_COPY: Record<PlaceholderTab, { emoji: string; title: string; body: string }> = {
+const SHEET_EMOJI: Record<GameNavSheetTab, string> = {
+  inventory: "🎒",
+  missions: "📋",
+  shop: "🛒",
+};
+
+const COMING_SOON_COPY: Record<ComingSoonTab, { title: string; body: string }> = {
   inventory: {
-    emoji: "🎒",
     title: "Inventory",
     body: "Sabotages and consumables you own will live here. Earn diamonds with called shots — spending them arrives in a future update.",
   },
-  missions: {
-    emoji: "📋",
-    title: "Missions",
-    body: "Run missions with diamond rewards are coming. For now: open a position with a TP target and hit it — that's a called shot.",
-  },
   shop: {
-    emoji: "🛒",
     title: "Shop",
     body: "The sabotage shop (fake spikes, liquidity drains…) unlocks with PvP. Stack diamonds now, spend them on rivals later.",
   },
 };
 
 export default function MobileGameNav() {
-  const [placeholder, setPlaceholder] = useState<PlaceholderTab | null>(null);
+  const [openSheet, setOpenSheet] = useState<GameNavSheetTab | null>(null);
 
   return (
     <>
       <div className="card-surface border border-crypto-border p-1.5 flex items-center justify-around">
-        <PlaceholderButton icon={Backpack} label="Inventory" onClick={() => setPlaceholder("inventory")} />
-        <PlaceholderButton icon={ListChecks} label="Missions" onClick={() => setPlaceholder("missions")} />
+        <SheetTabButton icon={Backpack} label="Inventory" onClick={() => setOpenSheet("inventory")} />
+        <SheetTabButton icon={ListChecks} label="Missions" onClick={() => setOpenSheet("missions")} />
 
         {/* Active tab — trading is the center of the shell */}
         <div className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg bg-crypto-surface-elevated">
@@ -54,19 +56,25 @@ export default function MobileGameNav() {
           <span className="text-[9px] text-crypto-text-muted font-medium">Ranking</span>
         </Link>
 
-        <PlaceholderButton icon={ShoppingBag} label="Shop" onClick={() => setPlaceholder("shop")} />
+        <SheetTabButton icon={ShoppingBag} label="Shop" onClick={() => setOpenSheet("shop")} />
       </div>
 
       <AnimatePresence>
-        {placeholder && (
-          <ComingSoonSheet tab={placeholder} onClose={() => setPlaceholder(null)} />
+        {openSheet && (
+          <GameNavSheet emoji={SHEET_EMOJI[openSheet]} onClose={() => setOpenSheet(null)}>
+            {openSheet === "missions" ? (
+              <DailyMissionsPanel />
+            ) : (
+              <ComingSoonCopy tab={openSheet} />
+            )}
+          </GameNavSheet>
         )}
       </AnimatePresence>
     </>
   );
 }
 
-function PlaceholderButton({
+function SheetTabButton({
   icon: Icon,
   label,
   onClick,
@@ -87,9 +95,16 @@ function PlaceholderButton({
   );
 }
 
-function ComingSoonSheet({ tab, onClose }: { tab: PlaceholderTab; onClose: () => void }) {
-  const copy = PLACEHOLDER_COPY[tab];
-
+/** Shared bottom-sheet shell: backdrop, slide-up panel, emoji + close row. */
+function GameNavSheet({
+  emoji,
+  onClose,
+  children,
+}: {
+  emoji: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   return (
     <>
       <motion.div
@@ -106,9 +121,9 @@ function ComingSoonSheet({ tab, onClose }: { tab: PlaceholderTab; onClose: () =>
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 bg-crypto-surface rounded-t-2xl z-50 border-t border-crypto-border shadow-2xl"
       >
-        <div className="p-5 pb-8 space-y-3">
+        <div className="p-5 pb-8 space-y-3 max-h-[75vh] overflow-y-auto">
           <div className="flex items-start justify-between">
-            <span className="text-3xl">{copy.emoji}</span>
+            <span className="text-3xl">{emoji}</span>
             <button
               type="button"
               onClick={onClose}
@@ -118,15 +133,25 @@ function ComingSoonSheet({ tab, onClose }: { tab: PlaceholderTab; onClose: () =>
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-crypto-text">{copy.title}</h3>
-            <span className="inline-block px-2 py-0.5 rounded-full bg-crypto-accent-dim text-[10px] font-bold text-crypto-accent uppercase tracking-wider">
-              Coming soon
-            </span>
-          </div>
-          <p className="text-sm text-crypto-text-secondary leading-relaxed">{copy.body}</p>
+          {children}
         </div>
       </motion.div>
+    </>
+  );
+}
+
+function ComingSoonCopy({ tab }: { tab: ComingSoonTab }) {
+  const copy = COMING_SOON_COPY[tab];
+
+  return (
+    <>
+      <div className="space-y-1">
+        <h3 className="text-base font-bold text-crypto-text">{copy.title}</h3>
+        <span className="inline-block px-2 py-0.5 rounded-full bg-crypto-accent-dim text-[10px] font-bold text-crypto-accent uppercase tracking-wider">
+          Coming soon
+        </span>
+      </div>
+      <p className="text-sm text-crypto-text-secondary leading-relaxed">{copy.body}</p>
     </>
   );
 }

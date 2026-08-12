@@ -21,6 +21,7 @@ model User {
   authSessions    AuthSession[]
   tradingSessions TradingSessionRecord[]
   tradeCalls      TradeCall[]
+  missionClaims   MissionClaim[]
 }
 
 // Opaque server-side auth session. Token is a random 256-bit hex string
@@ -59,6 +60,22 @@ model TradeCall {
 
   @@index([userId, createdAt])
   @@index([userId, runId])
+}
+
+// One claimed daily mission per user per UTC day (PRD_ROGUELIKE_PVP.md §6).
+// The unique triple is the race backstop: a double-claim loses on insert
+// (P2002) instead of paying diamonds twice. `day` is the "yyyy-mm-dd" UTC key
+// from utcDayKey — the reset is midnight UTC for every player (fairness).
+model MissionClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  missionId String
+  day       String
+  reward    Int
+  claimedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, day])
 }
 
 model TradingSessionRecord {

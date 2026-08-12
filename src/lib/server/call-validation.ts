@@ -4,6 +4,7 @@
  * recomputes it from side/entry/target so payouts can't be inflated.
  */
 import { z } from "zod";
+import { firstZodIssueMessage } from "./zod-issue-message";
 
 export const openCallInputSchema = z.object({
   runId: z.string().min(1).max(64),
@@ -21,18 +22,12 @@ export const resolveCallInputSchema = z.object({
 
 export type ResolveCallInput = z.infer<typeof resolveCallInputSchema>;
 
-function firstIssue(error: z.ZodError): string {
-  const issue = error.issues[0];
-  const path = issue.path.join(".");
-  return path ? `${path}: ${issue.message}` : issue.message;
-}
-
 export function validateOpenCallInput(body: unknown): string | null {
   const result = openCallInputSchema.safeParse(body);
-  return result.success ? null : firstIssue(result.error);
+  return result.success ? null : firstZodIssueMessage(result.error);
 }
 
 export function validateResolveCallInput(body: unknown): string | null {
   const result = resolveCallInputSchema.safeParse(body);
-  return result.success ? null : firstIssue(result.error);
+  return result.success ? null : firstZodIssueMessage(result.error);
 }

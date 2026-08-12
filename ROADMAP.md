@@ -19,10 +19,15 @@ Prioritization now follows the PRD phases:
 1. **Phase R1 — Solo roguelike** — timed runs + permadeath, called shots + diamonds, run events, missions, new mobile shell.
    - [x] **R1.0 (Aug 2026)** — called shots end-to-end (declare at market entry → wick-aware resolution → server-authoritative diamond payout with streak/cooldown/run-cap), `User.diamonds` + `TradeCall` on the server, 10-min run timer with auto-end, 💎 counter + hit celebration, mobile game-shell bottom nav (Inventory/Missions/Trade/Ranking/Shop). Decisions: party 2026-08-12.
    - [ ] **R1.1** — run events (Extreme Volatility — needs data curation), missions.
-     - [ ] Playtest 2026-08-12 findings: hit celebration is a 5s toast — too subtle
-       for the economy's core reward moment (needs confetti/glow treatment); logging
-       in with guest diamonds silently drops the counter to the server balance —
-       decide between migrating guest diamonds on signup or explaining the reset.
+     - [x] Playtest 2026-08-12 findings, both fixed: hit celebration now bursts
+       (DiamondBurst overlay + header glow); guest diamonds migrate at signup
+       (clamped to 150, `guest-diamond-migration.ts`) with a "diamonds secured"
+       toast — login restores the server balance with an explanatory toast
+       instead of silently dropping the counter (Boss decision 2026-08-12,
+       loss-aversion rationale in PRD §11).
+     - [ ] i18n foundation (Boss decision 2026-08-12): EN + PT-BR message
+       catalogs, locale routing, new strings born localizable. Candidate lib:
+       next-intl (App Router native). Full string extraction tracked here.
      - [x] Hit-rate instrumentation per difficulty: `GET /api/calls/stats` aggregates
        resolved calls (hit rate per easy/medium/hard bucket, diamonds paid, calls/run)
        so the reward curve in `diamond-reward.ts` can be tuned against Mary's

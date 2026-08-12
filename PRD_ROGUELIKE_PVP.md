@@ -244,8 +244,6 @@ diamantes idênticos entre servidor e replay.*
 
 ## 11. Decisões em Aberto
 
-- **Idioma**: mock em PT-BR, app localizado em EN — definir mercado-alvo ou
-  i18n desde a Fase 1.
 - **Intensidade variável de sabotagens** (percentuais dos cards): fixo na v1;
   reavaliar como upgrade de item na meta-progressão.
 - **Monetização**: só cosméticos vs. passe de temporada.
@@ -253,6 +251,20 @@ diamantes idênticos entre servidor e replay.*
   revisar guidelines antes do lançamento mobile.
 - **Balanceamento numérico** (payouts, custos, caps): âncoras deste PRD são
   ponto de partida para playtest, não contrato.
+
+### Decisões resolvidas (Boss, 2026-08-12)
+
+- **Idioma → i18n desde já.** Infra de localização (EN + PT-BR) entra na fila
+  R1.1; strings novas nascem localizáveis.
+- **Diamantes de guest → migrar no signup, teto de 150** (1 run cheio,
+  `guest-diamond-migration.ts`). Racional de gamificação: aversão à perda /
+  efeito dote — zerar o saldo pune a conversão; "proteger o loot" a celebra
+  (peak-end). Login nunca migra: o servidor é a verdade, com toast explicando
+  a restauração do saldo.
+- **Domínio**: garimpo + verificação de carrinho (relatório 2026-08-12).
+  Sobreviventes a preço padrão: calledshot.trade ($4.61, renova $5.64),
+  rekt.monster / daytrade.quest / wick.quest / hodl.monster ($1.54, renovam
+  $12.98). "tycoon" está premium em todos os registries ($51–650).
 
 ---
 

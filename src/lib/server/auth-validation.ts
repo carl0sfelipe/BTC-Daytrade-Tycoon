@@ -17,6 +17,13 @@ export const signupInputSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be at most 128 characters"),
+  // Guest balance migrated at signup; the service clamps it server-side
+  // (see guest-diamond-migration.ts), validation only rejects malformed shapes.
+  guestDiamonds: z
+    .number()
+    .int("guestDiamonds must be an integer (whole diamond count)")
+    .min(0, "guestDiamonds must be >= 0")
+    .optional(),
 });
 
 export const loginInputSchema = z.object({

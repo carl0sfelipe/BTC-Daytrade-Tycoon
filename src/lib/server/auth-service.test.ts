@@ -23,7 +23,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   async createUser(data: NewUserData): Promise<AuthUserRecord> {
-    const user: AuthUserRecord = { id: `user-${this.nextId++}`, diamonds: 0, ...data };
+    const user: AuthUserRecord = { id: `user-${this.nextId++}`, ...data };
     this.users.push(user);
     return user;
   }
@@ -109,6 +109,18 @@ describe("signupUser", () => {
     await signupUser(repo, signupInput);
     const result = await signupUser(repo, { ...signupInput, email: "other@example.com" });
     expect(result).toMatchObject({ ok: false, status: 409 });
+  });
+
+  it("migrates an honest guest diamond balance into the new account", async () => {
+    const result = await signupUser(repo, { ...signupInput, guestDiamonds: 87 });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.user.diamonds).toBe(87);
+  });
+
+  it("clamps a tampered guest balance to the one-run cap", async () => {
+    const result = await signupUser(repo, { ...signupInput, guestDiamonds: 999_999 });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.user.diamonds).toBe(150);
   });
 });
 

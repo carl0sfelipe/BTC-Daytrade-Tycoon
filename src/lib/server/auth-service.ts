@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "crypto";
 import { hashPassword, verifyPassword } from "./password-hash";
+import { clampGuestDiamondMigration } from "./guest-diamond-migration";
 import type { AuthRepository, AuthUserRecord } from "./auth-repository";
 import type { LoginInput, SignupInput } from "./auth-validation";
 
@@ -54,7 +55,12 @@ export async function signupUser(repo: AuthRepository, input: SignupInput): Prom
     return { ok: false, error: `Username "${input.username}" is already taken`, status: 409 };
   }
   const passwordHash = await hashPassword(input.password);
-  const user = await repo.createUser({ username: input.username, email, passwordHash });
+  const user = await repo.createUser({
+    username: input.username,
+    email,
+    passwordHash,
+    diamonds: clampGuestDiamondMigration(input.guestDiamonds),
+  });
   return openAuthSession(repo, user);
 }
 

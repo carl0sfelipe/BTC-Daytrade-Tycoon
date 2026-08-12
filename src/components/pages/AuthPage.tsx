@@ -4,8 +4,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, ArrowLeft, Eye, EyeOff, Mail, Lock, User, ChevronRight } from "lucide-react";
 import { loginRequest, signupRequest } from "@/lib/auth-client";
+import { useTradingStore } from "@/store/tradingStore";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthMode = "login" | "signup";
+
+interface DiamondAuthToast {
+  title: string;
+  description: string;
+}
+
+/**
+ * The diamond moment at conversion (Boss decision, 2026-08-12): signup
+ * "secures" the guest loot — never silently zeroes it — and login explains
+ * why the balance changed to the server one. Loss framed as safety.
+ *
+ * @example buildDiamondAuthToast("signup", 87, 87) // { title: "💎 87 diamonds secured", … }
+ */
+export function buildDiamondAuthToast(
+  authMode: AuthMode,
+  guestDiamonds: number,
+  serverDiamonds: number
+): DiamondAuthToast | null {
+  if (authMode === "signup" && serverDiamonds > 0) {
+    return {
+      title: `💎 ${serverDiamonds} diamonds secured`,
+      description: "Your guest loot is now saved to your account — safe on any device.",
+    };
+  }
+  if (authMode === "login" && guestDiamonds !== serverDiamonds) {
+    return {
+      title: `💎 Account balance restored: ${serverDiamonds}`,
+      description: "Your account keeps the server-verified balance across devices.",
+    };
+  }
+  return null;
+}
 
 interface AuthPageProps {
   mode: AuthMode;
@@ -34,6 +68,7 @@ function validateAuthForm(args: {
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>(mode);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +89,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
     }
 
     setIsLoading(true);
+    const guestDiamonds = useTradingStore.getState().diamonds;
     const result =
       authMode === "signup"
-        ? await signupRequest({ username: username.trim(), email: email.trim(), password })
+        ? await signupRequest({ username: username.trim(), email: email.trim(), password, guestDiamonds })
         : await loginRequest({ email: email.trim(), password });
     setIsLoading(false);
 
@@ -64,6 +100,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
       setFormError(result.error ?? "Authentication failed");
       return;
     }
+    const diamondToast = buildDiamondAuthToast(authMode, guestDiamonds, result.user.diamonds);
+    if (diamondToast) toast(diamondToast);
     router.push("/trading");
   };
 

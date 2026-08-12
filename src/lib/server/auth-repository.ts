@@ -17,6 +17,8 @@ export interface NewUserData {
   username: string;
   email: string;
   passwordHash: string;
+  /** Initial balance — guest migration already clamped by the auth service. */
+  diamonds: number;
 }
 
 export interface NewAuthSessionData {

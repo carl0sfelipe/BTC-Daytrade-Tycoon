@@ -16,7 +16,10 @@ export interface AuthRequestResult {
   error: string | null;
 }
 
-async function postAuthJson(path: string, payload: Record<string, string>): Promise<AuthRequestResult> {
+async function postAuthJson(
+  path: string,
+  payload: Record<string, string | number>
+): Promise<AuthRequestResult> {
   try {
     const response = await fetch(path, {
       method: "POST",
@@ -34,14 +37,16 @@ async function postAuthJson(path: string, payload: Record<string, string>): Prom
 }
 
 /**
- * Creates an account and opens a session (httpOnly cookie).
+ * Creates an account and opens a session (httpOnly cookie). `guestDiamonds`
+ * carries the local guest balance for migration — the server clamps it.
  *
- * @example const { user, error } = await signupRequest({ username, email, password });
+ * @example const { user, error } = await signupRequest({ username, email, password, guestDiamonds });
  */
 export function signupRequest(input: {
   username: string;
   email: string;
   password: string;
+  guestDiamonds: number;
 }): Promise<AuthRequestResult> {
   return postAuthJson("/api/auth/signup", input);
 }

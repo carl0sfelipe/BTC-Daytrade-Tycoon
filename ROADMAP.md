@@ -6,6 +6,26 @@ A Next.js 14 TimeWarp Trading Simulator that drops users into real historical Bi
 
 ---
 
+## 🎯 North Star — Roguelike PvP "Run Mode" *(Aug 2026)*
+
+The product direction is consolidated in **[PRD_ROGUELIKE_PVP.md](./PRD_ROGUELIKE_PVP.md)**
+(visual reference: [`docs/vision-roguelike-mobile.jpeg`](./docs/vision-roguelike-mobile.jpeg)):
+short roguelike runs on a shared hidden historical day, a skill-only diamond
+economy earned through pre-declared "called shots", and perception/execution
+sabotage between players — never touching the shared market data.
+
+Prioritization now follows the PRD phases:
+
+1. **Phase R1 — Solo roguelike** — timed runs + permadeath, called shots + diamonds, run events, missions, new mobile shell.
+2. **Phase R2 — Async PvP** — shared daily seed, live run ranking (polling), rival ghosts.
+3. **Phase R3 — Real-time PvP** — matchmaking, WebSocket, live sabotage, fully authoritative server.
+
+The phases below remain valid as the technical backlog; items get pulled
+forward when a PRD phase needs them (e.g. server-authoritative fills, Postgres
+migration, mobile trading drawer).
+
+---
+
 ## Phase 0 — Quality Hardening *(Current — May 2026)*
 
 Post-bug-fix stabilization. Every feature below was driven by production bugs.

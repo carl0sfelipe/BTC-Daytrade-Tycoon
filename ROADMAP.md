@@ -18,16 +18,37 @@ Prioritization now follows the PRD phases:
 
 1. **Phase R1 — Solo roguelike** — timed runs + permadeath, called shots + diamonds, run events, missions, new mobile shell.
    - [x] **R1.0 (Aug 2026)** — called shots end-to-end (declare at market entry → wick-aware resolution → server-authoritative diamond payout with streak/cooldown/run-cap), `User.diamonds` + `TradeCall` on the server, 10-min run timer with auto-end, 💎 counter + hit celebration, mobile game-shell bottom nav (Inventory/Missions/Trade/Ranking/Shop). Decisions: party 2026-08-12.
-   - [ ] **R1.1** — run events (Extreme Volatility — needs data curation), missions.
+   - [ ] **R1.1** — run events pending a product call; everything else shipped
+     (autopilot 2026-08-12, see `_bmad-output/autopilot/2026-08-12-loops.md`).
      - [x] Playtest 2026-08-12 findings, both fixed: hit celebration now bursts
        (DiamondBurst overlay + header glow); guest diamonds migrate at signup
        (clamped to 150, `guest-diamond-migration.ts`) with a "diamonds secured"
        toast — login restores the server balance with an explanatory toast
        instead of silently dropping the counter (Boss decision 2026-08-12,
        loss-aversion rationale in PRD §11).
-     - [ ] i18n foundation (Boss decision 2026-08-12): EN + PT-BR message
-       catalogs, locale routing, new strings born localizable. Candidate lib:
-       next-intl (App Router native). Full string extraction tracked here.
+     - [x] 💎 by end-of-run rank (PRD §3.2): POST /api/sessions ranks the run's
+       return in a rolling 24h field and pays tiered diamonds server-side
+       (`run-rank-reward.ts`); 5-min award cooldown + payload bounds close the
+       replay-farm exploit found in audit. Recap shows "#rank of N — last 24h".
+     - [x] Daily missions (PRD §6): 3 fixed UTC-day missions, progress
+       recomputed server-side, race-safe claims (`MissionClaim` unique key),
+       compensating rollback if the diamond credit fails. Mobile Missions tab
+       is live. Forged-session faucet (~22💎/day) accepted as R1 risk against
+       the R2 replay-verification debt.
+     - [x] Called-shot E2E (test pyramid debt): declare/voided/hit/missed with
+       deterministic mocked candles; fixed the silent no-op mock-binance helper
+       and a flat-candle trap that swapped mocks for random-walk data.
+     - [x] i18n foundation (Boss decision 2026-08-12): own thin interface (no
+       next-intl — provider would refactor the whole RTL harness; lib remains a
+       candidate for the locale-routing/SEO phase). Typed EN + PT-BR catalogs,
+       persisted `gameLocale`, `useGameMessages`, header LocaleToggle, 8
+       roguelike surfaces migrated. Legacy trading surfaces: extraction backlog.
+     - [ ] Run events (Extreme Volatility, PRD §3.3) — **stopped by design, not
+       by code**: the reward-multiplier effect can't be server-authoritative
+       until the R2 `Run` model exists (server doesn't know the run's candle
+       window; a client-asserted event flag is forgeable — same exploit class
+       audit killed in the rank-reward loop). Boss call needed: atmosphere-only
+       slice now vs. full feature on R2. Analysis in the autopilot log.
      - [x] Hit-rate instrumentation per difficulty: `GET /api/calls/stats` aggregates
        resolved calls (hit rate per easy/medium/hard bucket, diamonds paid, calls/run)
        so the reward curve in `diamond-reward.ts` can be tuned against Mary's

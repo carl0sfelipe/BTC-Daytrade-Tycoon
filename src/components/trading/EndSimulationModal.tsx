@@ -2,6 +2,7 @@
 
 import { BarChart3, RotateCcw, Home, Calendar, Clock, Timer, Activity, TrendingDown, Award } from "lucide-react";
 import { getTraderTier } from "@/lib/trading/trader-score";
+import { useGameMessages } from "@/hooks/useGameMessages";
 import RunCallSummary from "./RunCallSummary";
 
 interface EndSimulationModalProps {
@@ -50,6 +51,7 @@ export default function EndSimulationModal({
   onNewSession,
 }: EndSimulationModalProps) {
   const isPositive = stats.pnl >= 0;
+  const messages = useGameMessages();
 
   // Parse date range into start and end
   const [startDate, endDate] = realDateRange.split(" → ");
@@ -68,8 +70,8 @@ export default function EndSimulationModal({
                 <BarChart3 className="w-5 h-5 text-crypto-accent" />
               </div>
               <div>
-                <h2 id="end-session-title" className="text-lg font-bold text-crypto-text">Simulation Ended</h2>
-                <p className="text-xs text-crypto-text-muted">Session ended by player</p>
+                <h2 id="end-session-title" className="text-lg font-bold text-crypto-text">{messages.endSession.title}</h2>
+                <p className="text-xs text-crypto-text-muted">{messages.endSession.endedByPlayer}</p>
               </div>
             </div>
           </div>
@@ -79,16 +81,16 @@ export default function EndSimulationModal({
             <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-crypto-accent" />
-                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Real Historical Period</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.endSession.realHistoricalPeriod}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-crypto-text-muted uppercase">Start</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.start}</span>
                   <span className="text-sm font-bold font-mono text-crypto-text">{startDate || "—"}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-crypto-text-muted uppercase">End</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.end}</span>
                   <span className="text-sm font-bold font-mono text-crypto-text">{endDate || "—"}</span>
                 </div>
               </div>
@@ -98,14 +100,14 @@ export default function EndSimulationModal({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] text-crypto-text-muted">
                     <Clock className="w-3 h-3" />
-                    <span>Your Time</span>
+                    <span>{messages.endSession.yourTime}</span>
                   </div>
                   <span className="text-sm font-bold font-mono text-crypto-text">{elapsedTime}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] text-crypto-text-muted">
                     <Timer className="w-3 h-3" />
-                    <span>Historical Time Covered</span>
+                    <span>{messages.endSession.historicalTimeCovered}</span>
                   </div>
                   <span className="text-sm font-bold font-mono text-crypto-accent">{simulatedHistoricalTime}</span>
                 </div>
@@ -115,24 +117,24 @@ export default function EndSimulationModal({
             {/* Session stats */}
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-center">
-                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Total P&L</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">{messages.endSession.totalPnl}</span>
                 <span className={`text-lg font-bold font-mono ${isPositive ? "text-crypto-long" : "text-crypto-short"}`}>
                   {isPositive ? "+" : ""}${stats.pnl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-center">
-                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Trades</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">{messages.endSession.trades}</span>
                 <span className="text-lg font-bold font-mono text-crypto-text">{stats.trades}</span>
               </div>
               <div className="p-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-center">
-                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">Win Rate</span>
+                <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider block mb-1">{messages.endSession.winRate}</span>
                 <span className="text-lg font-bold font-mono text-crypto-accent">{stats.winRate.toFixed(0)}%</span>
               </div>
             </div>
 
             {/* Return percentage */}
             <div className={`flex items-center justify-between p-4 rounded-xl border ${isPositive ? "bg-crypto-long-dim border-crypto-long/20" : "bg-crypto-short-dim border-crypto-short/20"}`}>
-              <span className="text-sm font-semibold text-crypto-text-secondary">Session Return</span>
+              <span className="text-sm font-semibold text-crypto-text-secondary">{messages.endSession.sessionReturn}</span>
               <span className={`text-2xl font-bold font-mono ${isPositive ? "text-crypto-long" : "text-crypto-short"}`}>
                 {isPositive ? "+" : ""}{stats.returnPercent.toFixed(1)}%
               </span>
@@ -145,7 +147,7 @@ export default function EndSimulationModal({
             <div className="flex items-center justify-between p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border">
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-crypto-accent" />
-                <span className="text-sm font-semibold text-crypto-text-secondary">Trader Score</span>
+                <span className="text-sm font-semibold text-crypto-text-secondary">{messages.endSession.traderScore}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold font-mono text-crypto-text">{stats.traderScore}</span>
@@ -158,9 +160,9 @@ export default function EndSimulationModal({
             {/* Win Streak Badge */}
             {stats.currentStreak >= 2 && (
               <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                <span className="text-2xl" role="img" aria-label="fire">🔥</span>
+                <span className="text-2xl" role="img" aria-label={messages.endSession.fireEmojiAria}>🔥</span>
                 <span className="font-bold text-orange-400">
-                  {stats.currentStreak} Win Streak!
+                  {messages.endSession.winStreak(stats.currentStreak)}
                 </span>
               </div>
             )}
@@ -170,31 +172,31 @@ export default function EndSimulationModal({
               <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-crypto-accent" />
-                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Performance Metrics</span>
+                  <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.endSession.performanceMetrics}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Best Trade</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.bestTrade}</span>
                     <span className="text-sm font-bold font-mono text-crypto-long">+${stats.bestTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Worst Trade</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.worstTrade}</span>
                     <span className="text-sm font-bold font-mono text-crypto-short">${stats.worstTrade.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Avg Duration</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.avgDuration}</span>
                     <span className="text-sm font-bold font-mono text-crypto-text">{formatDuration(stats.avgDurationSeconds)}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Profit Factor</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.profitFactor}</span>
                     <span className="text-sm font-bold font-mono text-crypto-text">{stats.profitFactor === Infinity ? "∞" : stats.profitFactor.toFixed(2)}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Long / Short</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.longShort}</span>
                     <span className="text-sm font-bold font-mono text-crypto-text">{stats.longTrades} / {stats.shortTrades}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Max Streak</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.maxStreak}</span>
                     <span className="text-sm font-bold font-mono text-crypto-text">
                       <span className="text-crypto-long">{stats.maxConsecutiveWins}W</span>
                       {" / "}
@@ -202,7 +204,7 @@ export default function EndSimulationModal({
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-crypto-text-muted uppercase">Max Drawdown</span>
+                    <span className="text-[10px] text-crypto-text-muted uppercase">{messages.endSession.maxDrawdown}</span>
                     <span className={`text-sm font-bold font-mono ${stats.maxDrawdown > 15 ? "text-crypto-short" : stats.maxDrawdown > 5 ? "text-yellow-400" : "text-crypto-long"}`}>
                       <TrendingDown className="w-3 h-3 inline mr-1" />
                       {stats.maxDrawdown.toFixed(1)}%
@@ -220,7 +222,7 @@ export default function EndSimulationModal({
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
                 <Home className="w-4 h-4" />
-                Back
+                {messages.endSession.back}
               </button>
               <button
                 type="button"
@@ -228,7 +230,7 @@ export default function EndSimulationModal({
                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-crypto-accent text-white hover:bg-crypto-accent/90 transition-all text-sm font-bold shadow-glow-accent"
               >
                 <RotateCcw className="w-4 h-4" />
-                New Session
+                {messages.endSession.newSession}
               </button>
             </div>
           </div>

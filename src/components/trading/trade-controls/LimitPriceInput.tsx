@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Settings2, ChevronUp, ChevronDown, X } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface LimitPriceInputProps {
   limitPrice: string;
@@ -22,6 +23,7 @@ export default function LimitPriceInput({
 }: LimitPriceInputProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [customStep, setCustomStep] = useState("");
+  const messages = useGameMessages();
 
   const handleStepDown = () => {
     const val = parseFloat(limitPrice || currentPrice.toFixed(0));
@@ -37,15 +39,15 @@ export default function LimitPriceInput({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
-          Limit Price
+          {messages.tradeControls.limitPriceLabel}
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-crypto-text-secondary">
-            step ${limitStep}
+            {messages.tradeControls.stepAmount(limitStep)}
           </span>
           <button
             type="button"
-            aria-label="Step settings"
+            aria-label={messages.tradeControls.stepSettingsAria}
             onClick={() => setShowSettings(!showSettings)}
             className={`p-1 rounded transition-all ${
               showSettings
@@ -80,10 +82,12 @@ export default function LimitPriceInput({
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-crypto-text-muted">Custom:</span>
+            <span className="text-[10px] text-crypto-text-muted">
+              {messages.tradeControls.customStepLabel}
+            </span>
             <input
               type="text"
-              placeholder="e.g. 25"
+              placeholder={messages.tradeControls.customStepPlaceholder}
               value={customStep}
               onChange={(e) => {
                 setCustomStep(e.target.value);

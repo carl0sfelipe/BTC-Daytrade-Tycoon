@@ -1,5 +1,7 @@
 "use client";
 
+import { useGameMessages } from "@/hooks/useGameMessages";
+
 interface LeverageSelectorProps {
   mode: "simple" | "advanced";
   leverage: number;
@@ -30,20 +32,25 @@ function LeveragePills({
   onChange: (v: number) => void;
 }) {
   const options = [2, 5, 10, 25, 50, 100, 125].filter((o) => o <= maxLeverage);
+  const messages = useGameMessages();
 
   return (
     <div className="space-y-2">
       <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
-        Leverage
+        {messages.tradeControls.leverageLabel}
       </span>
-      <div className="grid grid-cols-6 gap-1.5" role="radiogroup" aria-label="Leverage">
+      <div
+        className="grid grid-cols-6 gap-1.5"
+        role="radiogroup"
+        aria-label={messages.tradeControls.leverageLabel}
+      >
         {options.map((opt) => (
           <button
             type="button"
             key={opt}
             role="radio"
             aria-checked={leverage === opt}
-            aria-label={`${opt}x leverage`}
+            aria-label={messages.tradeControls.leverageOptionAria(opt)}
             onClick={() => onChange(opt)}
             className={`py-1.5 rounded-md text-xs font-bold font-mono transition-all ${
               leverage === opt
@@ -60,7 +67,7 @@ function LeveragePills({
       {leverage >= 50 && (
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-crypto-warning-dim border border-crypto-warning/20">
           <span className="text-[10px] text-crypto-warning font-semibold">
-            ⚠️ High risk of quick liquidation
+            {messages.tradeControls.highLeverageRisk}
           </span>
         </div>
       )}
@@ -75,11 +82,12 @@ function LeverageSlider({
   leverage: number;
   onChange: (v: number) => void;
 }) {
+  const messages = useGameMessages();
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
-          Leverage
+          {messages.tradeControls.leverageLabel}
         </span>
         <span className="text-sm font-bold font-mono text-crypto-accent">
           {leverage}x
@@ -90,7 +98,7 @@ function LeverageSlider({
         min={2}
         max={100}
         value={leverage}
-        aria-label="Leverage slider"
+        aria-label={messages.tradeControls.leverageSliderAria}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
       />

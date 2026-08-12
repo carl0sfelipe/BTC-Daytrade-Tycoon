@@ -12,6 +12,7 @@ import { useTradingStore } from "@/store/tradingStore";
 import type { DailyMissionStatus } from "@/lib/missions/daily-missions";
 import { claimDailyMissionRequest, fetchDailyMissionBoard } from "@/lib/missions-client";
 import { useGameMessages } from "@/hooks/useGameMessages";
+import { resolveMissionCopy } from "@/lib/i18n/mission-copy";
 
 type MissionBoardState =
   | { phase: "loading" }
@@ -148,12 +149,14 @@ function MissionCard({
   claimFailed: boolean;
   onClaim: () => void;
 }) {
+  const messages = useGameMessages();
+  const copy = resolveMissionCopy(mission, messages);
   return (
     <div className="p-3 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-bold text-crypto-text">{mission.title}</p>
-          <p className="text-xs text-crypto-text-secondary">{mission.description}</p>
+          <p className="text-sm font-bold text-crypto-text">{copy.title}</p>
+          <p className="text-xs text-crypto-text-secondary">{copy.description}</p>
         </div>
         <span className="shrink-0 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-[10px] font-bold font-mono text-purple-300">
           +{mission.reward} 💎

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface TpSlEditorProps {
   isLong: boolean;
@@ -16,6 +17,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
   const [showSl, setShowSl] = useState(false);
   const [tpSlStep, setTpSlStep] = useState(100);
   const [showTpSlStep, setShowTpSlStep] = useState(false);
+  const messages = useGameMessages();
 
   const handleApply = () => {
     onApply(tpInput, slInput);
@@ -29,7 +31,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
         <TpSlToggle
           active={showTp}
           hasValue={!!tpInput}
-          label={tpInput ? `TP $${parseFloat(tpInput).toFixed(0)}` : "Set Take Profit"}
+          label={tpInput ? `TP $${parseFloat(tpInput).toFixed(0)}` : messages.tradeControls.setTakeProfit}
           emoji="🎯"
           activeClass="bg-crypto-long-dim border-crypto-long text-crypto-long"
           inactiveClass="bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-long/50 hover:text-crypto-long"
@@ -38,7 +40,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
         <TpSlToggle
           active={showSl}
           hasValue={!!slInput}
-          label={slInput ? `SL $${parseFloat(slInput).toFixed(0)}` : "Set Stop Loss"}
+          label={slInput ? `SL $${parseFloat(slInput).toFixed(0)}` : messages.tradeControls.setStopLoss}
           emoji="🛡️"
           activeClass="bg-crypto-short-dim border-crypto-short text-crypto-short"
           inactiveClass="bg-crypto-surface-elevated border-crypto-border text-crypto-text-secondary hover:border-crypto-short/50 hover:text-crypto-short"
@@ -52,36 +54,40 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
 
       {showTp && (
         <PriceEditor
-          label={`Trigger Price ${isLong ? "▲ above" : "▼ below"}`}
+          label={`${messages.tradeControls.triggerPriceLabel} ${isLong ? messages.positionPanel.triggerAbove : messages.positionPanel.triggerBelow}`}
           placeholder={isLong ? `> ${currentPrice.toFixed(0)}` : `< ${currentPrice.toFixed(0)}`}
           value={tpInput}
           onChange={setTpInput}
           step={tpSlStep}
           basePrice={currentPrice}
           accentColor="crypto-long"
-          orderLabel="Order Price"
+          orderLabel={messages.tradeControls.orderPriceLabel}
+          orderEmptyHint={messages.tradeControls.orderPriceEmptyHint}
+          marketPlaceholder={messages.tradeControls.marketPlaceholder}
           orderValue={tpOrderInput}
           onOrderChange={setTpOrderInput}
           onApply={handleApply}
-          applyLabel="Apply Take Profit"
+          applyLabel={messages.positionPanel.applyTakeProfit}
           disabled={!tpInput}
         />
       )}
 
       {showSl && (
         <PriceEditor
-          label={`Trigger Price ${isLong ? "▼ below" : "▲ above"}`}
+          label={`${messages.tradeControls.triggerPriceLabel} ${isLong ? messages.positionPanel.triggerBelow : messages.positionPanel.triggerAbove}`}
           placeholder={isLong ? `< ${currentPrice.toFixed(0)}` : `> ${currentPrice.toFixed(0)}`}
           value={slInput}
           onChange={setSlInput}
           step={tpSlStep}
           basePrice={currentPrice}
           accentColor="crypto-short"
-          orderLabel="Order Price"
+          orderLabel={messages.tradeControls.orderPriceLabel}
+          orderEmptyHint={messages.tradeControls.orderPriceEmptyHint}
+          marketPlaceholder={messages.tradeControls.marketPlaceholder}
           orderValue={slOrderInput}
           onOrderChange={setSlOrderInput}
           onApply={handleApply}
-          applyLabel="Apply Stop Loss"
+          applyLabel={messages.positionPanel.applyStopLoss}
           disabled={!slInput}
         />
       )}
@@ -112,10 +118,11 @@ function TpSlToggle({ active, hasValue, label, emoji, activeClass, inactiveClass
 
 function StepSelector({ step, onChange }: { step: number; onChange: (s: number) => void }) {
   const [show, setShow] = useState(false);
+  const messages = useGameMessages();
   return (
     <div className="flex items-center justify-end gap-1">
       <button type="button" onClick={() => setShow(!show)} className="text-[10px] font-mono text-crypto-text-secondary hover:text-crypto-text transition-colors">
-        step ${step}
+        {messages.tradeControls.stepAmount(step)}
       </button>
       {show && [10, 50, 100, 250].map((s) => (
         <button type="button" key={s} onClick={() => { onChange(s); setShow(false); }}
@@ -136,6 +143,8 @@ interface PriceEditorProps {
   basePrice: number;
   accentColor: string;
   orderLabel: string;
+  orderEmptyHint: string;
+  marketPlaceholder: string;
   orderValue: string;
   onOrderChange: (v: string) => void;
   onApply: () => void;
@@ -145,7 +154,7 @@ interface PriceEditorProps {
 
 function PriceEditor({
   label, placeholder, value, onChange, step, basePrice, accentColor,
-  orderLabel, orderValue, onOrderChange, onApply, applyLabel, disabled,
+  orderLabel, orderEmptyHint, marketPlaceholder, orderValue, onOrderChange, onApply, applyLabel, disabled,
 }: PriceEditorProps) {
   const borderClass = `border-${accentColor}/30`;
   const focusClass = `focus:border-${accentColor}`;
@@ -154,8 +163,8 @@ function PriceEditor({
 
   return (
     <div className={`space-y-1.5 p-2.5 rounded-lg bg-${accentColor}-dim/10 border border-${accentColor}/20`}>
-      <PriceInputRow label={label} placeholder={placeholder} value={value} onChange={onChange} step={step} basePrice={basePrice} borderClass={borderClass} focusClass={focusClass} />
-      <PriceInputRow label={`${orderLabel} (empty = market)`} placeholder="market" value={orderValue} onChange={onOrderChange} step={step} basePrice={parseFloat(value) || basePrice} borderClass="border-crypto-border" focusClass="focus:border-crypto-accent" />
+      <PriceInputRow label={label} isTriggerRow placeholder={placeholder} value={value} onChange={onChange} step={step} basePrice={basePrice} borderClass={borderClass} focusClass={focusClass} />
+      <PriceInputRow label={`${orderLabel} ${orderEmptyHint}`} placeholder={marketPlaceholder} value={orderValue} onChange={onOrderChange} step={step} basePrice={parseFloat(value) || basePrice} borderClass="border-crypto-border" focusClass="focus:border-crypto-accent" />
       <button type="button" onClick={onApply} disabled={disabled}
         className={`w-full py-1.5 rounded-lg ${dimClass} border border-${accentColor}/30 ${textClass} text-xs font-semibold hover:bg-${accentColor}/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}>
         {applyLabel}
@@ -165,9 +174,10 @@ function PriceEditor({
 }
 
 function PriceInputRow({
-  label, placeholder, value, onChange, step, basePrice, borderClass, focusClass,
+  label, isTriggerRow, placeholder, value, onChange, step, basePrice, borderClass, focusClass,
 }: {
   label: string;
+  isTriggerRow?: boolean;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
@@ -178,7 +188,7 @@ function PriceInputRow({
 }) {
   return (
     <div className="space-y-1">
-      <span className={`text-[9px] uppercase tracking-wider ${label.includes("Trigger") ? "text-crypto-long" : "text-crypto-text-muted"}`}>{label}</span>
+      <span className={`text-[9px] uppercase tracking-wider ${isTriggerRow ? "text-crypto-long" : "text-crypto-text-muted"}`}>{label}</span>
       <div className="flex items-center gap-1">
         <button type="button" onClick={() => onChange(((parseFloat(value) || basePrice) - step).toFixed(2))} className="flex-shrink-0 p-1.5 rounded bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all">
           <ChevronDown className="w-3 h-3" />

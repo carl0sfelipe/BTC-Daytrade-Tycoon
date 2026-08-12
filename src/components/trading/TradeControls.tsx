@@ -26,10 +26,12 @@ import {
 import { calcSliderMax } from "@/lib/trading/margin";
 import { calcLiquidationPrice } from "@/lib/trading";
 import { useTradeSentinel, useTradeSentinelBlocked } from "@/hooks/trade-controls";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 export default function TradeControls() {
   const store = useTradingStore();
   const state = useTradeControlsState();
+  const messages = useGameMessages();
 
   // Store selectors
   const wallet = store.wallet;
@@ -178,7 +180,7 @@ export default function TradeControls() {
       if (state.orderType === "limit") {
         const li = parseFloat(state.limitPrice);
         if (!li || li <= 0) {
-          useTradingStore.setState({ lastActionError: "Enter a valid limit price before placing the order" });
+          useTradingStore.setState({ lastActionError: messages.tradeControls.enterValidLimitPrice });
           return;
         }
         store.addPendingOrder({
@@ -307,7 +309,7 @@ export default function TradeControls() {
         {/* Header */}
         <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
           <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">
-            Order Controls
+            {messages.tradeControls.orderControlsTitle}
           </h3>
           <div className="flex items-center gap-2">
             <CalculatorButton onClick={() => state.setShowCalculator(true)} />
@@ -441,11 +443,12 @@ export default function TradeControls() {
 }
 
 function CalculatorButton({ onClick }: { onClick: () => void }) {
+  const messages = useGameMessages();
   return (
     <button
       type="button"
       onClick={onClick}
-      title="Position Size Calculator"
+      title={messages.tradeControls.calculatorTooltip}
       className="p-1.5 rounded hover:bg-crypto-surface-elevated text-crypto-text-muted hover:text-crypto-text transition-colors"
     >
       <Calculator className="w-3.5 h-3.5" />
@@ -460,6 +463,7 @@ function ModeToggle({
   mode: "simple" | "advanced";
   onToggle: () => void;
 }) {
+  const messages = useGameMessages();
   return (
     <button
       type="button"
@@ -467,7 +471,9 @@ function ModeToggle({
       className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-crypto-surface-elevated border border-crypto-border text-[10px] font-semibold text-crypto-text-secondary hover:text-crypto-text transition-colors"
     >
       <Settings2 className="w-3 h-3" />
-      {mode === "simple" ? "Advanced Mode" : "Simple Mode"}
+      {mode === "simple"
+        ? messages.tradeControls.advancedMode
+        : messages.tradeControls.simpleMode}
     </button>
   );
 }

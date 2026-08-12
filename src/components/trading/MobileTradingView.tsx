@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTradingStore } from "@/store/tradingStore";
+import { useGameMessages } from "@/hooks/useGameMessages";
 import type { ReturnTypeUseTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import type { RunCountdown } from "@/hooks/useRunCountdown";
 import TradingChart from "./TradingChart";
@@ -37,6 +38,7 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
 
   const wallet = useTradingStore((s) => s.wallet);
   const closedTrades = useTradingStore((s) => s.closedTrades);
+  const messages = useGameMessages();
 
   const sessionPnL = closedTrades.reduce((acc, t) => acc + t.pnl, 0);
   const isPositive = sessionPnL >= 0;
@@ -88,7 +90,7 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
                 : "text-crypto-text-muted"
             }`}
           >
-            Chart
+            {messages.mobileTrading.tabChart}
           </button>
           <button
             type="button"
@@ -99,7 +101,7 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
                 : "text-crypto-text-muted"
             }`}
           >
-            History
+            {messages.mobileTrading.tabHistory}
           </button>
         </div>
 
@@ -139,7 +141,9 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
         >
           <ChevronUp className="w-4 h-4 text-crypto-text-secondary" />
           <span className="text-sm font-semibold text-crypto-text">
-            {position ? "Manage Position" : "Open Position"}
+            {position
+              ? messages.mobileTrading.managePosition
+              : messages.mobileTrading.openPosition}
           </span>
         </button>
 
@@ -147,7 +151,7 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
         <div className="mt-2 card-surface p-3">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] text-crypto-text-muted uppercase">Balance</span>
+              <span className="text-[10px] text-crypto-text-muted uppercase">{messages.header.balance}</span>
               <span className="text-sm font-bold font-mono text-crypto-text">
                 ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>

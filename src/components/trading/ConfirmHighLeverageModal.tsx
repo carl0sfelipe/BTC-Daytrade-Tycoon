@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface ConfirmHighLeverageModalProps {
   leverage: number;
@@ -17,6 +18,7 @@ export default function ConfirmHighLeverageModal({
   onSkipChange,
 }: ConfirmHighLeverageModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const messages = useGameMessages();
 
   const handleConfirm = () => {
     if (onSkipChange) {
@@ -39,8 +41,8 @@ export default function ConfirmHighLeverageModal({
                 <AlertTriangle className="w-5 h-5 text-black" />
               </div>
               <div>
-                <h2 id="high-leverage-title" className="text-lg font-bold text-crypto-warning">High Risk Detected</h2>
-                <p className="text-xs text-crypto-text-muted">Confirmation required</p>
+                <h2 id="high-leverage-title" className="text-lg font-bold text-crypto-warning">{messages.highLeverage.title}</h2>
+                <p className="text-xs text-crypto-text-muted">{messages.highLeverage.subtitle}</p>
               </div>
             </div>
           </div>
@@ -49,14 +51,14 @@ export default function ConfirmHighLeverageModal({
             {/* Warning message */}
             <div className="p-4 rounded-xl bg-crypto-surface-elevated border border-crypto-border space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-crypto-text-secondary">Selected Leverage</span>
+                <span className="text-sm text-crypto-text-secondary">{messages.highLeverage.selectedLeverage}</span>
                 <span className="text-2xl font-bold font-mono text-crypto-warning">{leverage}x</span>
               </div>
               <div className="h-px bg-crypto-border" />
               <p className="text-sm text-crypto-text leading-relaxed">
-                You are about to open a position with extreme leverage.
-                <span className="text-crypto-warning font-semibold"> Potential for quick liquidation. </span>
-                A movement of <span data-testid="high-leverage-risk-pct" className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> against your position will result in total margin loss.
+                {messages.highLeverage.warningIntro}
+                <span className="text-crypto-warning font-semibold"> {messages.highLeverage.quickLiquidation} </span>
+                {messages.highLeverage.movementPrefix} <span data-testid="high-leverage-risk-pct" className="font-mono font-semibold text-crypto-text">{(100 / leverage).toFixed(2)}%</span> {messages.highLeverage.movementSuffix}
               </p>
             </div>
 
@@ -64,15 +66,15 @@ export default function ConfirmHighLeverageModal({
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">Automatic liquidation without prior warning</span>
+                <span className="text-xs text-crypto-text-secondary">{messages.highLeverage.bulletAutoLiquidation}</span>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">Potential loss of 100% of allocated margin</span>
+                <span className="text-xs text-crypto-text-secondary">{messages.highLeverage.bulletTotalLoss}</span>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-crypto-warning mt-2 shrink-0" />
-                <span className="text-xs text-crypto-text-secondary">BTC volatility can liquidate in seconds</span>
+                <span className="text-xs text-crypto-text-secondary">{messages.highLeverage.bulletVolatility}</span>
               </div>
             </div>
 
@@ -85,7 +87,7 @@ export default function ConfirmHighLeverageModal({
                 onChange={(e) => setDontShowAgain(e.target.checked)}
                 className="w-4 h-4 rounded border-crypto-border bg-crypto-surface-elevated text-crypto-warning focus:ring-crypto-warning focus:ring-offset-0"
               />
-              <span className="text-sm text-crypto-text-secondary">Don't show this warning again</span>
+              <span className="text-sm text-crypto-text-secondary">{messages.highLeverage.dontShowAgain}</span>
             </label>
 
             {/* Buttons */}
@@ -96,7 +98,7 @@ export default function ConfirmHighLeverageModal({
                 onClick={onCancel}
                 className="py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text transition-all text-sm font-semibold"
               >
-                Cancel
+                {messages.highLeverage.cancel}
               </button>
               <button
                 type="button"
@@ -104,7 +106,7 @@ export default function ConfirmHighLeverageModal({
                 onClick={handleConfirm}
                 className="py-3 rounded-lg bg-crypto-warning text-black hover:bg-crypto-warning/90 transition-all text-sm font-bold shadow-glow-warning"
               >
-                I understand the risks
+                {messages.highLeverage.confirm}
               </button>
             </div>
           </div>

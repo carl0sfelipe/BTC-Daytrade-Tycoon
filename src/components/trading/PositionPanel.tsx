@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { useToast } from "@/hooks/use-toast";
+import { useGameMessages } from "@/hooks/useGameMessages";
 import { EmptyState } from "./position-panel/EmptyState";
 import { PnLDisplay } from "./position-panel/PnLDisplay";
 import { PositionDetails } from "./position-panel/PositionDetails";
@@ -26,13 +27,14 @@ export default function PositionPanel() {
   const lastActionError = useTradingStore((s) => s.lastActionError);
   const clearLastActionError = useTradingStore((s) => s.clearLastActionError);
   const { toast } = useToast();
+  const messages = useGameMessages();
 
   useEffect(() => {
     if (lastActionError) {
-      toast({ title: "⚠️ Invalid Order", description: lastActionError, variant: "destructive" });
+      toast({ title: messages.positionPanel.invalidOrderToastTitle, description: lastActionError, variant: "destructive" });
       clearLastActionError();
     }
-  }, [lastActionError, toast, clearLastActionError]);
+  }, [lastActionError, toast, clearLastActionError, messages]);
 
   if (!position) {
     return <EmptyState lastCloseReason={lastCloseReason} />;
@@ -63,7 +65,7 @@ export default function PositionPanel() {
   return (
     <div className={`card-surface overflow-hidden ${isCritical ? "animate-pulse-glow border-crypto-short/50" : ""}`}>
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Your Position</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">{messages.positionPanel.yourPosition}</h3>
         <SideBadge isLong={isLong} />
       </div>
 

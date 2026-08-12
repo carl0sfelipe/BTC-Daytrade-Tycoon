@@ -1,6 +1,8 @@
 "use client";
 
 import type { Position } from "@/store/tradingStore";
+import { useGameMessages } from "@/hooks/useGameMessages";
+import type { GameMessages } from "@/lib/i18n/game-locale";
 
 interface ActionButtonsProps {
   position: Position | null;
@@ -37,6 +39,9 @@ export default function ActionButtons({
   onBlockedOpen,
   onBlockedUpdate,
 }: ActionButtonsProps) {
+  const messages = useGameMessages();
+  const sideLabel = sideDisplayLabel(side, messages);
+
   // Position open + market order
   if (position && orderType === "market") {
     return (
@@ -48,7 +53,7 @@ export default function ActionButtons({
             onPointerDown={onBlockedUpdate}
             disabled={!canIncrease}
             variant={position.side === "long" ? "long" : "short"}
-            label="INCREASE POSITION"
+            label={messages.tradeControls.increasePosition}
           />
         ) : reduceOnly ? (
           <ActionButton
@@ -57,7 +62,7 @@ export default function ActionButtons({
             onPointerDown={onBlockedUpdate}
             disabled={!canDecrease}
             variant="warning"
-            label="REDUCE POSITION"
+            label={messages.tradeControls.reducePosition}
           />
         ) : (
           <ActionButton
@@ -70,8 +75,8 @@ export default function ActionButtons({
             variant={side === "long" ? "long" : "short"}
             label={
               positionSize >= position.size
-                ? `FLIP TO ${side.toUpperCase()}`
-                : "REDUCE POSITION"
+                ? messages.tradeControls.flipTo(sideLabel.toUpperCase())
+                : messages.tradeControls.reducePosition
             }
           />
         )}
@@ -98,7 +103,7 @@ export default function ActionButtons({
           onPointerDown={onBlockedOpen}
           disabled={!enabled}
           variant={side === "long" ? "long" : "short"}
-          label={`Place ${side === "long" ? "Long" : "Short"} Limit`}
+          label={messages.tradeControls.placeLimit(sideLabel)}
         />
         <CloseButton onClick={onClose} />
       </div>
@@ -108,8 +113,8 @@ export default function ActionButtons({
   // No position
   const noPositionLabel =
     orderType === "limit"
-      ? `Place ${side === "long" ? "Long" : "Short"} Limit`
-      : `Open ${side === "long" ? "Long" : "Short"}`;
+      ? messages.tradeControls.placeLimit(sideLabel)
+      : messages.tradeControls.openSide(sideLabel);
 
   return (
     <ActionButton
@@ -121,6 +126,12 @@ export default function ActionButtons({
       label={noPositionLabel}
     />
   );
+}
+
+function sideDisplayLabel(side: "long" | "short", messages: GameMessages): string {
+  return side === "long"
+    ? messages.tradeControls.sideLong
+    : messages.tradeControls.sideShort;
 }
 
 function ActionButton({
@@ -164,15 +175,16 @@ function ActionButton({
 }
 
 function CloseButton({ onClick }: { onClick: () => void }) {
+  const messages = useGameMessages();
   return (
     <button
       type="button"
       data-testid="trade-controls-close-btn"
-      aria-label="Close Position"
+      aria-label={messages.tradeControls.closePositionAria}
       onClick={onClick}
       className="w-full font-bold py-2.5 px-4 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm"
     >
-      CLOSE POSITION
+      {messages.tradeControls.closePosition}
     </button>
   );
 }

@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Clock, CheckCircle2, XCircle, Filter, Target, Shield, Activity } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { buildEventLog } from "@/lib/trading/event-log";
+import { useGameMessages } from "@/hooks/useGameMessages";
 import EventLog from "./EventLog";
 
 type OrderFilter = "all" | "pending" | "filled" | "canceled" | "events";
+type OrderStatus = "pending" | "filled" | "canceled";
 
 export default function OrdersPanel() {
   const [filter, setFilter] = useState<OrderFilter>("all");
@@ -16,6 +18,7 @@ export default function OrdersPanel() {
   const closedTrades = useTradingStore((s) => s.closedTrades);
   const cancelPendingOrder = useTradingStore((s) => s.cancelPendingOrder);
   const currentPrice = useTradingStore((s) => s.currentPrice);
+  const messages = useGameMessages();
 
   const filtered = ordersHistory.filter((o) => {
     if (filter === "all") return true;
@@ -25,17 +28,23 @@ export default function OrdersPanel() {
   const eventLog = buildEventLog(closedTrades, ordersHistory);
 
   const filters: { key: OrderFilter; label: string }[] = [
-    { key: "all", label: `All (${ordersHistory.length})` },
-    { key: "pending", label: `Pending (${pendingOrders.length})` },
-    { key: "filled", label: `Filled (${ordersHistory.filter((o) => o.status === "filled").length})` },
-    { key: "canceled", label: `Canceled (${ordersHistory.filter((o) => o.status === "canceled").length})` },
-    { key: "events", label: `Events (${eventLog.length})` },
+    { key: "all", label: messages.ordersPanel.filterAll(ordersHistory.length) },
+    { key: "pending", label: messages.ordersPanel.filterPending(pendingOrders.length) },
+    { key: "filled", label: messages.ordersPanel.filterFilled(ordersHistory.filter((o) => o.status === "filled").length) },
+    { key: "canceled", label: messages.ordersPanel.filterCanceled(ordersHistory.filter((o) => o.status === "canceled").length) },
+    { key: "events", label: messages.ordersPanel.filterEvents(eventLog.length) },
   ];
+
+  const statusLabels: Record<OrderStatus, string> = {
+    pending: messages.ordersPanel.statusPending,
+    filled: messages.ordersPanel.statusFilled,
+    canceled: messages.ordersPanel.statusCanceled,
+  };
 
   return (
     <div className="card-surface overflow-hidden">
       <div className="px-4 py-3 border-b border-crypto-border flex items-center justify-between">
-        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">Orders</h3>
+        <h3 className="text-xs font-bold text-crypto-text-secondary uppercase tracking-wider">{messages.ordersPanel.title}</h3>
         <Filter className="w-3.5 h-3.5 text-crypto-text-muted" />
       </div>
 
@@ -64,7 +73,7 @@ export default function OrdersPanel() {
         <div className="px-3 pb-3 space-y-1.5 max-h-[300px] overflow-y-auto">
           {filtered.length === 0 ? (
             <div data-testid="orders-panel-empty" className="flex items-center justify-center py-6">
-              <p className="text-xs text-crypto-text-muted">No orders</p>
+              <p className="text-xs text-crypto-text-muted">{messages.ordersPanel.noOrders}</p>
             </div>
           ) : (
             filtered.map((order) => {
@@ -134,7 +143,7 @@ export default function OrdersPanel() {
                         /* TP/SL: type is the headline, reducing side is secondary */
                         <span className="text-xs font-bold">
                           <span className={isTp ? "text-crypto-long" : "text-crypto-short"}>
-                            {isTp ? "Take Profit" : "Stop Loss"}
+                            {isTp ? messages.positionPanel.takeProfit : messages.positionPanel.stopLoss}
                           </span>
                           {" "}
                           <span className="text-crypto-text-muted font-normal text-[9px] uppercase">
@@ -151,7 +160,7 @@ export default function OrdersPanel() {
                           </span>
                           {" "}
                           <span className="text-crypto-text-secondary capitalize">
-                            {isMarket ? "Market" : "Limit"}
+                            {isMarket ? messages.tradeControls.orderTypeMarket : messages.tradeControls.orderTypeLimit}
                           </span>
                           {" "}
                           <span className="text-crypto-accent">{order.leverage}x</span>
@@ -163,14 +172,14 @@ export default function OrdersPanel() {
                         ${order.size.toLocaleString()}
                         {isTpSl ? (
                           <>
-                            {" "}trigger{" "}
+                            {" "}{messages.ordersPanel.triggerWord}{" "}
                             <span className={`font-semibold ${isTp ? "text-crypto-long" : "text-crypto-short"}`}>
                               ${order.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </span>
                           </>
                         ) : isLimit ? (
                           <>
-                            {" "}trigger{" "}
+                            {" "}{messages.ordersPanel.triggerWord}{" "}
                             <span className="font-semibold text-crypto-accent">
                               ${order.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </span>
@@ -189,14 +198,14 @@ export default function OrdersPanel() {
 
                       {isPending && (
                         <span className="text-[9px] font-mono text-crypto-text-muted">
-                          now ${Math.round(currentPrice).toLocaleString("en-US")}
+                          {messages.ordersPanel.nowAtPrice(Math.round(currentPrice).toLocaleString("en-US"))}
                           {isTpSl && (
                             <span className={
                               isTp
                                 ? (order.side === "long" ? currentPrice >= order.price : currentPrice <= order.price) ? " text-crypto-long font-semibold" : ""
                                 : (order.side === "long" ? currentPrice <= order.price : currentPrice >= order.price) ? " text-crypto-short font-semibold" : ""
                             }>
-                              {" "}· {Math.abs(currentPrice - order.price).toFixed(0)} away
+                              {" "}· {messages.ordersPanel.distanceAway(Math.abs(currentPrice - order.price).toFixed(0))}
                             </span>
                           )}
                         </span>
@@ -212,14 +221,14 @@ export default function OrdersPanel() {
                         ? "bg-crypto-long-dim text-crypto-long"
                         : "bg-crypto-short-dim text-crypto-short"
                     }`}>
-                      {order.status}
+                      {statusLabels[order.status]}
                     </span>
                     {isPending && (
                       <button
                         type="button"
                         data-testid={`orders-panel-cancel-${order.id}`}
                         onClick={(e) => { e.stopPropagation(); cancelPendingOrder(order.id); }}
-                        aria-label="Cancel order"
+                        aria-label={messages.ordersPanel.cancelOrderAria}
                         className="p-1 rounded bg-crypto-short-dim text-crypto-short hover:bg-crypto-short/20 transition-colors"
                       >
                         <XCircle className="w-3 h-3" />
@@ -235,23 +244,23 @@ export default function OrdersPanel() {
                 {isTpSl && isExpanded && (
                   <div className="px-3 pb-2.5 pt-0 flex gap-4 border-t border-crypto-border/40 mt-0">
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Trigger Price</span>
+                      <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">{messages.tradeControls.triggerPriceLabel}</span>
                       <span className={`text-xs font-mono font-semibold ${isTp ? "text-crypto-long" : "text-crypto-short"}`}>
                         ${order.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Order Price</span>
+                      <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">{messages.tradeControls.orderPriceLabel}</span>
                       <span className="text-xs font-mono font-semibold text-crypto-text">
                         {order.executionPrice != null
                           ? `$${order.executionPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
-                          : <span className="text-crypto-text-muted">pending</span>
+                          : <span className="text-crypto-text-muted">{messages.ordersPanel.statusPending}</span>
                         }
                       </span>
                     </div>
                     {order.executionPrice != null && (
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">Slippage</span>
+                        <span className="text-[9px] text-crypto-text-muted uppercase tracking-wider">{messages.ordersPanel.slippage}</span>
                         <span className={`text-xs font-mono font-semibold ${Math.abs(order.executionPrice - order.price) < 1 ? "text-crypto-long" : "text-crypto-warning"}`}>
                           ${Math.abs(order.executionPrice - order.price).toFixed(2)}
                         </span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useGameMessages } from "@/hooks/useGameMessages";
+
 interface OrderTypeToggleProps {
   orderType: "market" | "limit";
   onChange: (type: "market" | "limit") => void;
@@ -34,6 +36,7 @@ function TypeButton({
   isActive: boolean;
   onClick: () => void;
 }) {
+  const messages = useGameMessages();
   return (
     <button
       type="button"
@@ -44,7 +47,9 @@ function TypeButton({
           : "bg-crypto-surface-elevated text-crypto-text-secondary border border-crypto-border"
       }`}
     >
-      {type === "market" ? "Market" : "Limit"}
+      {type === "market"
+        ? messages.tradeControls.orderTypeMarket
+        : messages.tradeControls.orderTypeLimit}
     </button>
   );
 }

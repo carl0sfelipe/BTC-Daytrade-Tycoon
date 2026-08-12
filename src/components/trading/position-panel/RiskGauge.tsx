@@ -1,3 +1,5 @@
+import { useGameMessages } from "@/hooks/useGameMessages";
+
 interface RiskGaugeProps {
   barPercent: number;
   distanceToLiq: number;
@@ -7,11 +9,12 @@ interface RiskGaugeProps {
 
 export function RiskGauge({ barPercent, distanceToLiq, isCritical, isDanger }: RiskGaugeProps) {
   const statusColor = isCritical ? "text-crypto-short" : isDanger ? "text-crypto-warning" : "text-crypto-long";
+  const messages = useGameMessages();
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Distance to Liquidation</span>
+        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.positionPanel.distanceToLiquidation}</span>
         <span className={`text-xs font-bold font-mono tabular-nums ${statusColor}`}>
           {distanceToLiq.toFixed(1)}%
         </span>
@@ -28,9 +31,9 @@ export function RiskGauge({ barPercent, distanceToLiq, isCritical, isDanger }: R
         />
       </div>
       <div className="flex justify-between text-[10px] font-mono text-crypto-text-muted">
-        <span>Safe</span>
-        <span>Dangerous</span>
-        <span>Critical</span>
+        <span>{messages.positionPanel.gaugeSafe}</span>
+        <span>{messages.positionPanel.gaugeDangerous}</span>
+        <span>{messages.positionPanel.gaugeCritical}</span>
       </div>
     </div>
   );

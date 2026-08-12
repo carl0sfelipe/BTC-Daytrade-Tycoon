@@ -1,3 +1,5 @@
+import { useGameMessages } from "@/hooks/useGameMessages";
+
 interface PositionDetailsProps {
   entry: number;
   size: number;
@@ -6,12 +8,13 @@ interface PositionDetailsProps {
 }
 
 export function PositionDetails({ entry, size, leverage, margin }: PositionDetailsProps) {
+  const messages = useGameMessages();
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-      <DetailItem label="Entry Price" value={`$${entry.toFixed(2)}`} />
-      <DetailItem label="Size" value={`$${size.toLocaleString()}`} />
-      <DetailItem label="Leverage" value={`${leverage}x`} accent />
-      <DetailItem label="Margin" value={`$${margin.toFixed(2)}`} />
+      <DetailItem label={messages.positionPanel.entryPrice} value={`$${entry.toFixed(2)}`} />
+      <DetailItem label={messages.positionPanel.size} value={`$${size.toLocaleString()}`} />
+      <DetailItem label={messages.positionPanel.leverage} value={`${leverage}x`} accent />
+      <DetailItem label={messages.positionPanel.margin} value={`$${margin.toFixed(2)}`} />
     </div>
   );
 }

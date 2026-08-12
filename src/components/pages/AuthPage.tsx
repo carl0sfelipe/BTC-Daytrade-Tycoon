@@ -50,23 +50,26 @@ interface AuthPageProps {
 }
 
 /** Mirrors the server-side rules so most mistakes fail fast, before the request. */
-function validateAuthForm(args: {
-  authMode: AuthMode;
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}): string | null {
+function validateAuthForm(
+  args: {
+    authMode: AuthMode;
+    username: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  },
+  copy: GameMessages["auth"]
+): string | null {
   const { authMode, username, email, password, confirmPassword } = args;
   if (authMode === "signup" && username.trim().length < 3) {
-    return "Username must be at least 3 characters";
+    return copy.usernameMinLength;
   }
-  if (!email.trim() || !email.includes("@")) return "Please enter a valid email";
+  if (!email.trim() || !email.includes("@")) return copy.invalidEmail;
   if (authMode === "signup" && password.length < 8) {
-    return "Password must be at least 8 characters";
+    return copy.passwordMinLength;
   }
-  if (authMode === "login" && !password) return "Password is required";
-  if (authMode === "signup" && password !== confirmPassword) return "Passwords don't match";
+  if (authMode === "login" && !password) return copy.passwordRequired;
+  if (authMode === "signup" && password !== confirmPassword) return copy.passwordsDontMatch;
   return null;
 }
 
@@ -87,7 +90,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
     e.preventDefault();
     setFormError(null);
 
-    const localError = validateAuthForm({ authMode, username, email, password, confirmPassword });
+    const localError = validateAuthForm(
+      { authMode, username, email, password, confirmPassword },
+      messages.auth
+    );
     if (localError) {
       setFormError(localError);
       return;
@@ -120,7 +126,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           className="flex items-center gap-2 text-sm text-crypto-text-secondary hover:text-crypto-text transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back
+          {messages.auth.back}
         </button>
       </div>
 
@@ -133,7 +139,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
             </div>
             <h1 className="text-2xl font-bold">BTC Daytrade Tycoon</h1>
             <p className="text-sm text-crypto-text-secondary mt-1">
-              {authMode === "login" ? "Welcome back" : "Create your free account"}
+              {authMode === "login"
+                ? messages.auth.welcomeBack
+                : messages.auth.createFreeAccount}
             </p>
           </div>
 
@@ -149,7 +157,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 authMode === "login" ? "bg-crypto-accent text-white shadow-glow-accent" : "text-crypto-text-secondary hover:text-crypto-text"
               }`}
             >
-              Login
+              {messages.auth.login}
             </button>
             <button
               type="button"
@@ -161,7 +169,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 authMode === "signup" ? "bg-crypto-accent text-white shadow-glow-accent" : "text-crypto-text-secondary hover:text-crypto-text"
               }`}
             >
-              Create Account
+              {messages.auth.createAccount}
             </button>
           </div>
 
@@ -169,12 +177,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {authMode === "signup" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Username</label>
+                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">{messages.auth.usernameLabel}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                   <input
                     type="text"
-                    placeholder="Your nickname"
+                    placeholder={messages.auth.usernamePlaceholder}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
@@ -184,12 +192,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Email</label>
+              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">{messages.auth.emailLabel}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                 <input
                   type="email"
-                  placeholder="you@email.com"
+                  placeholder={messages.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-sm text-crypto-text placeholder:text-crypto-text-muted focus:outline-none focus:border-crypto-accent transition-colors"
@@ -198,7 +206,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Password</label>
+              <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">{messages.auth.passwordLabel}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                 <input
@@ -220,7 +228,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
             {authMode === "signup" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">Confirm Password</label>
+                <label className="text-xs font-medium text-crypto-text-secondary uppercase tracking-wider">{messages.auth.confirmPasswordLabel}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crypto-text-muted" />
                   <input
@@ -247,7 +255,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {authMode === "login" ? "Login" : "Create Account"}
+                  {authMode === "login" ? messages.auth.login : messages.auth.createAccount}
                   <ChevronRight className="w-4 h-4" />
                 </>
               )}
@@ -257,7 +265,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-crypto-border" />
-            <span className="text-xs text-crypto-text-muted">or</span>
+            <span className="text-xs text-crypto-text-muted">{messages.auth.orDivider}</span>
             <div className="h-px flex-1 bg-crypto-border" />
           </div>
 
@@ -267,23 +275,23 @@ export default function AuthPage({ mode }: AuthPageProps) {
             onClick={() => router.push("/trading")}
             className="w-full py-3 rounded-xl bg-crypto-surface-elevated border border-crypto-border text-sm font-semibold text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
-            Continue as Guest (Demo)
+            {messages.auth.continueAsGuest}
           </button>
 
           {/* Footer hint */}
           <p className="text-center text-xs text-crypto-text-muted mt-6">
             {authMode === "login" ? (
               <>
-                Don't have an account?{" "}
+                {messages.auth.noAccountPrompt}{" "}
                 <button type="button" onClick={() => router.push("/auth/signup")} className="text-crypto-accent hover:underline">
-                  Create now
+                  {messages.auth.createNow}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{" "}
+                {messages.auth.haveAccountPrompt}{" "}
                 <button type="button" onClick={() => router.push("/auth/login")} className="text-crypto-accent hover:underline">
-                  Login
+                  {messages.auth.login}
                 </button>
               </>
             )}

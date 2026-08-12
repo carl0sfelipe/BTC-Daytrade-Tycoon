@@ -1,7 +1,14 @@
+import { enGameMessages, type GameMessages } from "@/lib/i18n/messages/en";
+
+/** Locale-resolved copy for order validation errors (Loop B i18n debt). */
+export type TradingValidationMessages = GameMessages["tradingValidation"];
+
 /**
  * Validates TP and SL prices relative to the entry price and position side.
  *
- * Returns an error message string if invalid, or null if valid.
+ * Returns an error message string if invalid, or null if valid. The messages
+ * parameter defaults to English so non-UI callers stay locale-free; the store
+ * injects the player's locale catalog.
  *
  * @example
  * validateTpSl("long", 50000, 55000, 48000) // => null
@@ -11,26 +18,43 @@ export function validateTpSl(
   side: "long" | "short",
   entryPrice: number,
   tpPrice: number | null,
-  slPrice: number | null
+  slPrice: number | null,
+  messages: TradingValidationMessages = enGameMessages.tradingValidation
 ): string | null {
+  const entry = entryPrice.toFixed(2);
   if (tpPrice && tpPrice > 0) {
-    if (side === "long" && entryPrice >= tpPrice) {
-      return `Invalid TP: for LONG the Take Profit must be ABOVE entry ($${entryPrice.toFixed(2)}). Enter a value > $${entryPrice.toFixed(2)}.`;
-    }
-    if (side === "short" && entryPrice <= tpPrice) {
-      return `Invalid TP: for SHORT the Take Profit must be BELOW entry ($${entryPrice.toFixed(2)}). Enter a value < $${entryPrice.toFixed(2)}.`;
-    }
+    if (side === "long" && entryPrice >= tpPrice) return messages.tpAboveEntry(entry);
+    if (side === "short" && entryPrice <= tpPrice) return messages.tpBelowEntry(entry);
   }
-
   if (slPrice && slPrice > 0) {
-    if (side === "long" && entryPrice <= slPrice) {
-      return `Invalid SL: for LONG the Stop Loss must be BELOW entry ($${entryPrice.toFixed(2)}). Enter a value < $${entryPrice.toFixed(2)}.`;
-    }
-    if (side === "short" && entryPrice >= slPrice) {
-      return `Invalid SL: for SHORT the Stop Loss must be ABOVE entry ($${entryPrice.toFixed(2)}). Enter a value > $${entryPrice.toFixed(2)}.`;
-    }
+    if (side === "long" && entryPrice <= slPrice) return messages.slBelowEntry(entry);
+    if (side === "short" && entryPrice >= slPrice) return messages.slAboveEntry(entry);
   }
+  return null;
+}
 
+/**
+ * Validates TP and SL prices against the current market price (used when
+ * editing an open position). Returns an error message string or null.
+ *
+ * @example validateTpSlCurrentPrice("long", 50000, 55000, 48000) // => null
+ */
+export function validateTpSlCurrentPrice(
+  side: "long" | "short",
+  currentPrice: number,
+  tpPrice: number | null,
+  slPrice: number | null,
+  messages: TradingValidationMessages = enGameMessages.tradingValidation
+): string | null {
+  const current = currentPrice.toFixed(2);
+  if (tpPrice && tpPrice > 0) {
+    if (side === "long" && currentPrice >= tpPrice) return messages.tpAboveCurrent(current);
+    if (side === "short" && currentPrice <= tpPrice) return messages.tpBelowCurrent(current);
+  }
+  if (slPrice && slPrice > 0) {
+    if (side === "long" && currentPrice <= slPrice) return messages.slBelowCurrent(current);
+    if (side === "short" && currentPrice >= slPrice) return messages.slAboveCurrent(current);
+  }
   return null;
 }
 
@@ -38,53 +62,20 @@ export function validateTpSl(
  * Validates basic open position parameters.
  *
  * Returns an error message string if invalid, or null if valid.
+ *
+ * @example validateOpenPosition(50000, 1000, 10, 10000, 100) // => null
  */
-export function validateTpSlCurrentPrice(
-  side: "long" | "short",
-  currentPrice: number,
-  tpPrice: number | null,
-  slPrice: number | null
-): string | null {
-  if (tpPrice && tpPrice > 0) {
-    if (side === "long" && currentPrice >= tpPrice) {
-      return `Invalid TP: for LONG the Take Profit must be ABOVE the current price ($${currentPrice.toFixed(2)}). Enter a value > $${currentPrice.toFixed(2)}.`;
-    }
-    if (side === "short" && currentPrice <= tpPrice) {
-      return `Invalid TP: for SHORT the Take Profit must be BELOW the current price ($${currentPrice.toFixed(2)}). Enter a value < $${currentPrice.toFixed(2)}.`;
-    }
-  }
-
-  if (slPrice && slPrice > 0) {
-    if (side === "long" && currentPrice <= slPrice) {
-      return `Invalid SL: for LONG the Stop Loss must be BELOW the current price ($${currentPrice.toFixed(2)}). Enter a value < $${currentPrice.toFixed(2)}.`;
-    }
-    if (side === "short" && currentPrice >= slPrice) {
-      return `Invalid SL: for SHORT the Stop Loss must be ABOVE the current price ($${currentPrice.toFixed(2)}). Enter a value > $${currentPrice.toFixed(2)}.`;
-    }
-  }
-
-  return null;
-}
-
 export function validateOpenPosition(
   entryPrice: number,
   size: number,
   leverage: number,
   wallet: number,
-  margin: number
+  margin: number,
+  messages: TradingValidationMessages = enGameMessages.tradingValidation
 ): string | null {
-  if (!entryPrice || entryPrice <= 0) {
-    return "Invalid entry price";
-  }
-  if (!size || size <= 0) {
-    return "Position size must be greater than 0";
-  }
-  if (!leverage || leverage <= 0) {
-    return "Leverage must be greater than 0";
-  }
-  if (wallet < margin) {
-    return "Insufficient wallet balance";
-  }
-
+  if (!entryPrice || entryPrice <= 0) return messages.invalidEntryPrice;
+  if (!size || size <= 0) return messages.sizeMustBePositive;
+  if (!leverage || leverage <= 0) return messages.leverageMustBePositive;
+  if (wallet < margin) return messages.insufficientBalance;
   return null;
 }

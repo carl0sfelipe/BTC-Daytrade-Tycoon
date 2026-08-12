@@ -5,7 +5,9 @@ import {
   validateTpSl,
   validateTpSlCurrentPrice,
   validateOpenPosition,
+  type TradingValidationMessages,
 } from "@/lib/trading/validation";
+import { resolveGameMessages } from "@/lib/i18n/game-locale";
 import {
   computeClosePosition,
   computeHedgeFlip,
@@ -28,6 +30,12 @@ import { formatStoreState } from "@/lib/trading/format-store-state";
 import { logger } from "@/lib/logger";
 
 const MAX_ORDERS_HISTORY = 500;
+
+// Validation errors surface in toasts, so they must follow the player's
+// locale — the validators' EN default only covers non-UI callers.
+function localeValidationMessages(state: TradingStore): TradingValidationMessages {
+  return resolveGameMessages(state.gameLocale).tradingValidation;
+}
 
 export interface PositionSlice {
   position: Position | null;
@@ -61,18 +69,19 @@ export const createPositionSlice: StateCreator<
 
   openPosition: (side, leverage, positionSize, tpPriceStr, slPriceStr, limitPrice) => {
     const state = get();
+    const validationMessages = localeValidationMessages(state);
     logger.log(`[openPosition] ${side.toUpperCase()} $${positionSize} x${leverage}${limitPrice ? ` limit@${limitPrice}` : ""} tp=${tpPriceStr || "-"} sl=${slPriceStr || "-"}`, formatStoreState(state));
     const entryPrice = limitPrice ? parseFloat(limitPrice) : state.currentPrice;
     const margin = positionSize / leverage;
 
     if (state.position && state.position.side === side) {
-      set({ lastActionError: `Close your existing ${side} position first` });
+      set({ lastActionError: validationMessages.closeExistingPositionFirst(side) });
       return;
     }
 
     // Skip wallet validation for flip/reduce — effective wallet is computed later
     const skipWalletValidation = !!(state.position && state.position.side !== side);
-    const validationError = validateOpenPosition(entryPrice, positionSize, leverage, state.wallet, margin);
+    const validationError = validateOpenPosition(entryPrice, positionSize, leverage, state.wallet, margin, validationMessages);
     if (validationError && !skipWalletValidation) {
       set({ lastActionError: validationError });
       return;
@@ -81,7 +90,7 @@ export const createPositionSlice: StateCreator<
     const tpPrice = tpPriceStr ? parseFloat(tpPriceStr) : null;
     const slPrice = slPriceStr ? parseFloat(slPriceStr) : null;
 
-    const tpSlError = validateTpSl(side, entryPrice, tpPrice, slPrice);
+    const tpSlError = validateTpSl(side, entryPrice, tpPrice, slPrice, validationMessages);
     if (tpSlError) {
       set({ lastActionError: tpSlError });
       return;
@@ -94,7 +103,7 @@ export const createPositionSlice: StateCreator<
         const excessSize = positionSize - existing.size;
         const excessMargin = excessSize / leverage;
         if (state.wallet + returnedMargin + ((existing.side === "long" ? entryPrice - existing.entry : existing.entry - entryPrice) / existing.entry) * existing.size < excessMargin) {
-          set({ lastActionError: "Insufficient funds for hedge flip" });
+          set({ lastActionError: validationMessages.insufficientFundsForHedgeFlip });
           return;
         }
         // Flip closes the old position — settle its called shot first.
@@ -247,7 +256,7 @@ export const createPositionSlice: StateCreator<
     const { side, leverage, size } = state.position;
     const ref = state.currentPrice;
 
-    const error = validateTpSlCurrentPrice(side, ref, tpPrice, slPrice);
+    const error = validateTpSlCurrentPrice(side, ref, tpPrice, slPrice, localeValidationMessages(state));
     if (error) {
       set({ lastActionError: error });
       return;

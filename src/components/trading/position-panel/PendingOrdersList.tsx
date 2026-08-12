@@ -1,5 +1,6 @@
 import { Target, Shield } from "lucide-react";
 import type { PendingOrder } from "@/store/types";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface PendingOrdersListProps {
   tpOrders: PendingOrder[];
@@ -9,11 +10,12 @@ interface PendingOrdersListProps {
 }
 
 export function PendingOrdersList({ tpOrders, slOrders, onCancelTp, onCancelSl }: PendingOrdersListProps) {
+  const messages = useGameMessages();
   if (tpOrders.length === 0 && slOrders.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Pending Orders</span>
+      <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.positionPanel.pendingOrders}</span>
       {tpOrders.map((order) => (
         <OrderRow
           key={order.id}
@@ -51,6 +53,7 @@ function OrderRow({
   bgClass: string;
   onCancel: () => void;
 }) {
+  const messages = useGameMessages();
   return (
     <div className={`flex items-center justify-between p-2 rounded-lg border ${bgClass}`}>
       <div className="flex items-center gap-2">
@@ -62,7 +65,7 @@ function OrderRow({
         onClick={onCancel}
         className="text-[10px] text-crypto-text-muted hover:text-crypto-short transition-colors"
       >
-        Cancel
+        {messages.positionPanel.cancel}
       </button>
     </div>
   );

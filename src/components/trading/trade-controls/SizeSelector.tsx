@@ -1,6 +1,7 @@
 "use client";
 
 import type { Position } from "@/store/tradingStore";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface SizeSelectorProps {
   mode: "simple" | "advanced";
@@ -36,10 +37,15 @@ export default function SizeSelector({
   onChangePercent,
   onChangeAbsolute,
 }: SizeSelectorProps) {
+  const messages = useGameMessages();
   if (position) {
     return (
       <SizeSlider
-        label={isReduceMode ? "Reduce Size" : "Increase Size"}
+        label={
+          isReduceMode
+            ? messages.tradeControls.reduceSizeLabel
+            : messages.tradeControls.increaseSizeLabel
+        }
         positionSize={positionSize}
         sliderMax={sliderMax}
         currentSize={position.size}
@@ -62,7 +68,7 @@ export default function SizeSelector({
 
   return (
     <SizeSlider
-      label="Size"
+      label={messages.tradeControls.sizeLabel}
       positionSize={positionSize}
       sliderMax={sliderMax}
       currentSize={null}
@@ -84,18 +90,25 @@ function SizePills({
   onChangePercent: (pct: number) => void;
 }) {
   const options = [10, 25, 50, 100];
+  const messages = useGameMessages();
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">
-          Position Size
+          {messages.tradeControls.positionSizeLabel}
         </span>
         <span className="text-[10px] font-mono text-crypto-text-secondary">
-          Max: ${Math.floor(wallet * leverage).toLocaleString()}
+          {messages.tradeControls.maxCapacity(
+            Math.floor(wallet * leverage).toLocaleString()
+          )}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Position Size">
+      <div
+        className="grid grid-cols-4 gap-1.5"
+        role="radiogroup"
+        aria-label={messages.tradeControls.positionSizeLabel}
+      >
         {options.map((pct) => {
           const targetSize = Math.floor(wallet * leverage * (pct / 100));
           return (
@@ -104,7 +117,7 @@ function SizePills({
               key={pct}
               role="radio"
               aria-checked={Math.abs(positionSize - targetSize) < 1}
-              aria-label={`${pct}% position size`}
+              aria-label={messages.tradeControls.sizePercentAria(pct)}
               onClick={() => onChangePercent(pct / 100)}
               className={`py-1.5 rounded-md text-xs font-bold transition-all ${
                 Math.abs(positionSize - targetSize) < 1
@@ -137,6 +150,7 @@ function SizeSlider({
   onChangeAbsolute: (v: number) => void;
 }) {
   const safeMax = Math.max(100, sliderMax);
+  const messages = useGameMessages();
 
   const handleInputChange = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, ""), 10);
@@ -156,14 +170,16 @@ function SizeSlider({
         <div className="flex items-center gap-2">
           {currentSize !== null && (
             <span className="text-[10px] font-mono text-crypto-text-secondary">
-              Current: ${Math.floor(currentSize).toLocaleString()}
+              {messages.tradeControls.currentSize(
+                Math.floor(currentSize).toLocaleString()
+              )}
             </span>
           )}
           <input
             type="text"
             inputMode="numeric"
             data-testid="trade-controls-size-input"
-            aria-label="Position size input"
+            aria-label={messages.tradeControls.sizeInputAria}
             value={positionSize.toLocaleString()}
             onChange={(e) => handleInputChange(e.target.value)}
             className="w-20 text-right text-xs font-mono bg-crypto-surface-elevated border border-crypto-border rounded px-2 py-0.5 text-crypto-text focus:border-crypto-accent focus:outline-none"
@@ -177,7 +193,7 @@ function SizeSlider({
         max={safeMax}
         step={100}
         value={positionSize}
-        aria-label="Position size slider"
+        aria-label={messages.tradeControls.sizeSliderAria}
         onChange={(e) => onChangePercent(Number(e.target.value) / safeMax)}
         className="w-full h-1.5 rounded-full appearance-none bg-crypto-surface-elevated accent-crypto-accent cursor-pointer"
       />

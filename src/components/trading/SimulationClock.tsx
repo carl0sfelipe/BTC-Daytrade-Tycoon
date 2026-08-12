@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Pause, Play, Square, RefreshCw } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface SimulationClockProps {
   elapsedTime: string;
@@ -23,6 +24,7 @@ export default function SimulationClock({
   onEnd,
   runCountdown,
 }: SimulationClockProps) {
+  const messages = useGameMessages();
   return (
     <div className="flex flex-wrap items-center justify-between px-4 md:px-5 py-3 card-surface gap-y-3">
       <div className="flex items-center gap-4">
@@ -32,7 +34,7 @@ export default function SimulationClock({
             <Clock className="w-4 h-4 text-crypto-accent" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Simulation Time</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.simulationClock.simulationTime}</span>
             <span className="text-base md:text-lg font-bold font-mono text-crypto-text tabular-nums leading-none mt-0.5">{elapsedTime}</span>
           </div>
         </div>
@@ -42,7 +44,7 @@ export default function SimulationClock({
 
         {runCountdown && (
           <div className="flex flex-col">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Run Ends In</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.simulationClock.runEndsIn}</span>
             <span
               className={`text-base md:text-lg font-bold font-mono tabular-nums leading-none mt-0.5 ${
                 runCountdown.isCritical ? "text-crypto-short animate-pulse" : "text-crypto-warning"
@@ -65,21 +67,21 @@ export default function SimulationClock({
           <button
             type="button"
             onClick={onPause}
-            aria-label="Pause"
+            aria-label={messages.simulationClock.pause}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Pause className="w-4 h-4" />
-            <span className="text-xs font-semibold hidden sm:inline">Pause</span>
+            <span className="text-xs font-semibold hidden sm:inline">{messages.simulationClock.pause}</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={onResume}
-            aria-label="Resume"
+            aria-label={messages.simulationClock.resume}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
           >
             <Play className="w-4 h-4" />
-            <span className="text-xs font-semibold hidden sm:inline">Resume</span>
+            <span className="text-xs font-semibold hidden sm:inline">{messages.simulationClock.resume}</span>
           </button>
         )}
 
@@ -89,7 +91,7 @@ export default function SimulationClock({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-warning-dim border border-crypto-warning/30 text-crypto-warning hover:bg-crypto-warning/20 transition-all"
         >
           <Square className="w-4 h-4" />
-          <span className="text-xs font-semibold">End</span>
+          <span className="text-xs font-semibold">{messages.simulationClock.end}</span>
         </button>
 
         <button
@@ -98,7 +100,7 @@ export default function SimulationClock({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all"
         >
           <RefreshCw className="w-4 h-4" />
-          <span className="text-xs font-semibold">New</span>
+          <span className="text-xs font-semibold">{messages.simulationClock.newSession}</span>
         </button>
       </div>
     </div>

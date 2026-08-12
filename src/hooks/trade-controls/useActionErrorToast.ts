@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 /**
  * Displays trading action errors as toast notifications.
@@ -13,16 +14,17 @@ export function useActionErrorToast(
   clearLastActionError: () => void
 ) {
   const { toast } = useToast();
+  const messages = useGameMessages();
 
   useEffect(() => {
     if (!lastActionError) return;
 
     toast({
-      title: "⚠️ Action Failed",
+      title: messages.tradeControls.actionFailedToastTitle,
       description: lastActionError,
       variant: "destructive",
     });
 
     clearLastActionError();
-  }, [lastActionError, toast, clearLastActionError]);
+  }, [lastActionError, toast, clearLastActionError, messages]);
 }

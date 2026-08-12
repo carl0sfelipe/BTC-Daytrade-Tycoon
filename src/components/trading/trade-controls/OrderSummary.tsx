@@ -2,6 +2,7 @@
 
 import type { Position } from "@/store/tradingStore";
 import { calcAvailableAfterTrade, calcLiquidationPrice } from "@/lib/trading";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface OrderSummaryProps {
   wallet: number;
@@ -80,28 +81,30 @@ export default function OrderSummary({
     return { price, distancePercent };
   })();
 
+  const messages = useGameMessages();
+
   return (
     <div className="space-y-1.5 pt-2 border-t border-crypto-border">
-      <SummaryRow label="Notional Value" value={`$${positionSize.toLocaleString("en-US", { minimumFractionDigits: 2 })}`} />
+      <SummaryRow label={messages.tradeControls.notionalValue} value={`$${positionSize.toLocaleString("en-US", { minimumFractionDigits: 2 })}`} />
       <SummaryRow
-        label="Required Margin"
+        label={messages.tradeControls.requiredMargin}
         value={`$${displayMargin.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
         testId="trade-controls-summary-margin"
       />
       <SummaryRow
-        label="Available after"
+        label={messages.tradeControls.availableAfter}
         value={`$${available.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
         testId="trade-controls-summary-available"
       />
       {liqPreview !== null && (
         <>
           <SummaryRow
-            label="Est. Liq Price"
+            label={messages.tradeControls.estLiqPrice}
             value={`$${liqPreview.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
             testId="trade-controls-summary-liq-preview"
           />
           <SummaryRow
-            label="Distance to Liq"
+            label={messages.tradeControls.distanceToLiq}
             value={`${liqPreview.distancePercent.toFixed(1)}%`}
             testId="trade-controls-summary-liq-distance"
           />

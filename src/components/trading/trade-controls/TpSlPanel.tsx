@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface TpSlPanelProps {
   tpPrice: string;
@@ -32,6 +33,7 @@ export default function TpSlPanel({
   const [showSl, setShowSl] = useState(false);
   const [step, setStep] = useState(100);
   const [showStepSelector, setShowStepSelector] = useState(false);
+  const messages = useGameMessages();
 
   const hasAnyOpen = showTp || showSl;
 
@@ -41,6 +43,7 @@ export default function TpSlPanel({
       <div className="flex items-center gap-2">
         <ToggleButton
           label="TP"
+          emptyLabel={messages.tradeControls.setTakeProfit}
           value={tpPrice}
           isOpen={showTp}
           colorClass="crypto-long"
@@ -51,6 +54,7 @@ export default function TpSlPanel({
         />
         <ToggleButton
           label="SL"
+          emptyLabel={messages.tradeControls.setStopLoss}
           value={slPrice}
           isOpen={showSl}
           colorClass="crypto-short"
@@ -69,7 +73,7 @@ export default function TpSlPanel({
             onClick={() => setShowStepSelector(!showStepSelector)}
             className="text-[10px] font-mono text-crypto-text-secondary hover:text-crypto-text transition-colors"
           >
-            step ${step}
+            {messages.tradeControls.stepAmount(step)}
           </button>
           {showStepSelector &&
             STEP_OPTIONS.map((s) => (
@@ -89,7 +93,7 @@ export default function TpSlPanel({
       {/* TP expanded */}
       {showTp && (
         <TpSlInputGroup
-          label="Trigger Price"
+          label={messages.tradeControls.triggerPriceLabel}
           colorClass="crypto-long"
           value={tpPrice}
           orderValue={tpOrderPrice}
@@ -103,7 +107,7 @@ export default function TpSlPanel({
       {/* SL expanded */}
       {showSl && (
         <TpSlInputGroup
-          label="Trigger Price"
+          label={messages.tradeControls.triggerPriceLabel}
           colorClass="crypto-short"
           value={slPrice}
           orderValue={slOrderPrice}
@@ -119,12 +123,14 @@ export default function TpSlPanel({
 
 function ToggleButton({
   label,
+  emptyLabel,
   value,
   isOpen,
   colorClass,
   onClick,
 }: {
   label: string;
+  emptyLabel: string;
   value: string;
   isOpen: boolean;
   colorClass: string;
@@ -163,7 +169,7 @@ function ToggleButton({
       }}
     >
       {label === "TP" ? "🎯" : "🛡️"}{" "}
-      {value ? `${label} $${parseFloat(value).toFixed(0)}` : `Set ${label === "TP" ? "Take Profit" : "Stop Loss"}`}
+      {value ? `${label} $${parseFloat(value).toFixed(0)}` : emptyLabel}
     </button>
   );
 }
@@ -213,6 +219,7 @@ function TpSlInputGroup({
 }) {
   const borderColor = colorClass === "crypto-long" ? "border-crypto-long/30" : "border-crypto-short/30";
   const focusBorder = colorClass === "crypto-long" ? "focus:border-crypto-long" : "focus:border-crypto-short";
+  const messages = useGameMessages();
 
   return (
     <div className="space-y-1.5 p-2.5 rounded-lg bg-crypto-surface-elevated/50 border border-crypto-border">
@@ -227,10 +234,10 @@ function TpSlInputGroup({
         onChange={onValueChange}
       />
       <PriceInputRow
-        label="Order Price"
-        subLabel="(empty = market)"
+        label={messages.tradeControls.orderPriceLabel}
+        subLabel={messages.tradeControls.orderPriceEmptyHint}
         value={orderValue}
-        placeholder="market"
+        placeholder={messages.tradeControls.marketPlaceholder}
         currentPrice={currentPrice}
         step={step}
         borderColor="border-crypto-border"

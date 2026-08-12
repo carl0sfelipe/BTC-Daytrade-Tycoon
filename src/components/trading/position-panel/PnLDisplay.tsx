@@ -1,4 +1,5 @@
 import { Crosshair } from "lucide-react";
+import { useGameMessages } from "@/hooks/useGameMessages";
 
 interface PnLDisplayProps {
   pnl: number;
@@ -7,6 +8,7 @@ interface PnLDisplayProps {
 }
 
 export function PnLDisplay({ pnl, pnlPercent, realizedPnL }: PnLDisplayProps) {
+  const messages = useGameMessages();
   const isProfit = pnl >= 0;
   const colorClass = isProfit ? "text-crypto-long text-glow-long" : "text-crypto-short text-glow-short";
   const percentColor = isProfit ? "text-crypto-long" : "text-crypto-short";
@@ -15,7 +17,7 @@ export function PnLDisplay({ pnl, pnlPercent, realizedPnL }: PnLDisplayProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-col">
-        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Unrealized P&L</span>
+        <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.positionPanel.unrealizedPnl}</span>
         <div className="flex items-baseline gap-2">
           <span data-testid="position-panel-pnl" className={`text-2xl font-bold font-mono tabular-nums ${colorClass}`}>
             {isProfit ? "+" : ""}${pnl.toFixed(2)}
@@ -26,7 +28,7 @@ export function PnLDisplay({ pnl, pnlPercent, realizedPnL }: PnLDisplayProps) {
         </div>
         {realizedPnL !== 0 && (
           <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Realized P&L</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.positionPanel.realizedPnl}</span>
             <span className={`text-xs font-bold font-mono tabular-nums ${realizedColor}`}>
               {realizedPnL >= 0 ? "+" : ""}${realizedPnL.toFixed(2)}
             </span>

@@ -1,6 +1,8 @@
 "use client";
 
 import type { Position } from "@/store/tradingStore";
+import { useGameMessages } from "@/hooks/useGameMessages";
+import type { GameMessages } from "@/lib/i18n/game-locale";
 
 type Side = "long" | "short";
 
@@ -14,11 +16,12 @@ interface SideTabsProps {
 function getSideLabel(
   position: Position | null,
   orderType: "market" | "limit",
-  tabSide: Side
+  tabSide: Side,
+  messages: GameMessages
 ): string | null {
   if (!position || orderType !== "limit") return null;
-  if (position.side === tabSide) return "Increase";
-  return "Reduce";
+  if (position.side === tabSide) return messages.tradeControls.sideIncrease;
+  return messages.tradeControls.sideReduce;
 }
 
 export default function SideTabs({
@@ -27,18 +30,19 @@ export default function SideTabs({
   orderType,
   onSideChange,
 }: SideTabsProps) {
+  const messages = useGameMessages();
   return (
     <div className="grid grid-cols-2 gap-2">
       <SideButton
         side="long"
         isActive={side === "long"}
-        label={getSideLabel(position, orderType, "long")}
+        label={getSideLabel(position, orderType, "long", messages)}
         onClick={() => onSideChange("long")}
       />
       <SideButton
         side="short"
         isActive={side === "short"}
-        label={getSideLabel(position, orderType, "short")}
+        label={getSideLabel(position, orderType, "short", messages)}
         onClick={() => onSideChange("short")}
       />
     </div>

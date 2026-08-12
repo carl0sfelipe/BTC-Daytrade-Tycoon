@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Zap, Flame, Trophy, Award, BarChart3, TrendingUp, Github } from "lucide-react";
 import { useTradingStore } from "@/store/tradingStore";
 import { getCurrentStreak } from "@/utils/streak";
+import { useGameMessages } from "@/hooks/useGameMessages";
 import DiamondCounter from "./DiamondCounter";
 import LocaleToggle from "./LocaleToggle";
 import DiamondBurst from "@/components/effects/DiamondBurst";
@@ -14,11 +15,12 @@ export default function Header() {
   const wallet = useTradingStore((s) => s.wallet);
   const closedTrades = useTradingStore((s) => s.closedTrades);
   const streak = getCurrentStreak(closedTrades);
+  const messages = useGameMessages();
 
   const navItems = [
-    { href: "/trading", label: "Trading", icon: BarChart3 },
-    { href: "/leaderboard", label: "Rankings", icon: Trophy },
-    { href: "/achievements", label: "Achievements", icon: Award },
+    { href: "/trading", label: messages.header.navTrading, icon: BarChart3 },
+    { href: "/leaderboard", label: messages.header.navRankings, icon: Trophy },
+    { href: "/achievements", label: messages.header.navAchievements, icon: Award },
   ];
 
   return (
@@ -61,11 +63,11 @@ export default function Header() {
           href="https://github.com/carl0sfelipe/BTC-Daytrade-Tycoon"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Contribute on GitHub"
+          aria-label={messages.header.contributeAria}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border text-crypto-text-secondary hover:text-crypto-text hover:border-crypto-text-muted transition-all text-sm font-medium"
         >
           <Github className="w-4 h-4" />
-          <span className="hidden lg:inline">Contribute</span>
+          <span className="hidden lg:inline">{messages.header.contribute}</span>
         </a>
         {streak > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crypto-warning-dim border border-crypto-warning/20">
@@ -82,7 +84,7 @@ export default function Header() {
 
         <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-crypto-surface-elevated border border-crypto-border">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">Balance</span>
+            <span className="text-[10px] text-crypto-text-muted uppercase tracking-wider">{messages.header.balance}</span>
             <span className="text-sm font-bold font-mono text-crypto-text tabular-nums truncate max-w-[100px] md:max-w-none">
               ${wallet.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>

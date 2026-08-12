@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { saveEvidence, captureConsoleLogs } from "./_helper";
 import { seedOnboardingDone } from "./_helpers/ui-actions";
-import { mockBinanceCandles, FLAT_PRICE } from "./_helpers/mock-binance";
+import { FLAT_PRICE } from "./_helpers/mock-binance";
+import { openPinnedTradingSession } from "./_helpers/engine";
 
 const JID = "CALLED-SHOT";
 
@@ -34,51 +35,18 @@ type E2EWindow = Window & {
   };
 };
 
-/**
- * The engine auto-starts ~500ms after candles load (useTimewarpEngine.doLoad).
- * Pausing before that would be undone by the pending auto-start, so anchor on
- * the SimulationClock "Pause" button — it only renders while the engine plays.
- * StrictMode double-mounts schedule a second auto-start that can revive the
- * loop right after this pause; that is harmless because the mocked candles are
- * flat at ENTRY_PRICE, so any surviving tick just re-writes the pinned price.
- */
-async function pauseAutoStartedEngine(page: Page): Promise<void> {
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(() => {
-    (window as E2EWindow).__timewarpEngine?.pause();
-  });
-}
-
-/** Pin a fresh guest session at ENTRY_PRICE (engine must be paused already). */
-async function pinGuestSessionAtEntryPrice(page: Page): Promise<void> {
-  await page.evaluate((price) => {
-    const w = window as E2EWindow;
-    w.__tradingStore?.setState({
-      wallet: 10_000,
-      position: null,
-      closedTrades: [],
-      currentPrice: price,
-      price,
-      diamonds: 0,
-      callStreak: 0,
-      diamondsThisRun: 0,
-      lastRewardedCallAt: null,
-      activeCall: null,
-      lastCallResult: null,
-      runCallLog: [],
-    });
-  }, ENTRY_PRICE);
-}
-
 async function openPinnedGuestTradingSession(page: Page): Promise<void> {
-  // Deterministic data: without the mock, dev-mode double-mounted session
-  // loads can finish late and wipe the store (loadSession → resetStore)
-  // mid-test, killing the position without resolving the call.
-  await mockBinanceCandles(page);
-  await page.goto("/trading");
-  await page.waitForSelector("text=Simulation Time", { timeout: 30_000 });
-  await pauseAutoStartedEngine(page);
-  await pinGuestSessionAtEntryPrice(page);
+  // Pause/pin caveats (auto-start anchor, StrictMode revival, session-load
+  // wipe) live in the shared helper docstrings (e2e/_helpers/engine.ts).
+  await openPinnedTradingSession(page, ENTRY_PRICE, {
+    diamonds: 0,
+    callStreak: 0,
+    diamondsThisRun: 0,
+    lastRewardedCallAt: null,
+    activeCall: null,
+    lastCallResult: null,
+    runCallLog: [],
+  });
 }
 
 /** Belt and suspenders: the entry must still be pinned when the order fires. */

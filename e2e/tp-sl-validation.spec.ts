@@ -1,91 +1,85 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import {
+  seedOnboardingDone,
+  openLongMarketViaUI,
+  openShortMarketViaUI,
+} from "./_helpers/ui-actions";
+import { FLAT_PRICE } from "./_helpers/mock-binance";
+import { openPinnedTradingSession } from "./_helpers/engine";
+
+/**
+ * Regression: order-validation toasts must render the ENGLISH catalog by
+ * default (Loop B i18n debt — pt-BR copy once leaked into lastActionError).
+ *
+ * The invalid TP/SL is applied on an OPEN position through the PositionPanel
+ * editor, so the store validates against the CURRENT price
+ * (validateTpSlCurrentPrice) — price is pinned at FLAT_PRICE by the mock.
+ */
+
+const INVALID_OFFSET = 1_000;
+
+/** Open a 10x / 50% market position through the real trade controls. */
+async function openMarketPositionViaControls(page: Page, side: "long" | "short"): Promise<void> {
+  const openViaUI = side === "long" ? openLongMarketViaUI : openShortMarketViaUI;
+  await openViaUI(page, { leverage: 10, sizePercent: 50 });
+}
+
+/** Fill the PositionPanel TP or SL editor and apply the given trigger price. */
+async function applyTpSlViaPositionPanel(
+  page: Page,
+  kind: "tp" | "sl",
+  triggerPrice: number
+): Promise<void> {
+  await page.getByTestId(`position-panel-${kind}-toggle`).click();
+  await page.getByTestId(`position-panel-${kind}-input`).fill(String(triggerPrice));
+  await page.getByTestId(`position-panel-${kind}-apply`).click();
+}
+
+/** Assert the destructive toast copy is English and free of pt-BR words. */
+async function expectEnglishValidationToast(
+  page: Page,
+  headline: RegExp,
+  direction: "ABOVE" | "BELOW"
+): Promise<void> {
+  const viewport = page.getByTestId("toast-viewport");
+  await expect(viewport.getByText(headline)).toBeVisible();
+
+  const toastText = await viewport.innerText();
+  expect(toastText).toContain("Invalid");
+  expect(toastText).toContain(direction);
+  expect(toastText).not.toMatch(/inv[aá]lido/i);
+  expect(toastText).not.toMatch(/informe/i);
+  expect(toastText).not.toMatch(/acima|abaixo/i);
+}
 
 test.describe("TP/SL validation messages are in English", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/trading");
-    await page.waitForSelector("[data-testid='trade-controls-open-long-btn']", { state: "visible" });
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
+    await seedOnboardingDone(page);
+    await openPinnedTradingSession(page);
   });
 
-  test("invalid TP below entry for LONG shows English error", async ({ page }) => {
-    // Open a LONG position first
-    await page.click("[data-testid='trade-controls-open-long-btn']");
-    await page.waitForSelector("[data-testid='position-panel-pnl']", { state: "visible" });
+  test("invalid TP below price for LONG shows English error", async ({ page }) => {
+    await openMarketPositionViaControls(page, "long");
 
-    // Get current price
-    const priceText = await page.locator("[data-testid='current-price']").textContent();
-    const currentPrice = parseFloat(priceText?.replace("$", "").replace(",", "") || "0");
+    await applyTpSlViaPositionPanel(page, "tp", FLAT_PRICE - INVALID_OFFSET);
 
-    // Try to set TP below current price (invalid for LONG)
-    const invalidTp = (currentPrice - 1000).toFixed(0);
-
-    // Expand TP input
-    await page.click("text=Take Profit");
-    await page.fill("[data-testid='tp-price-input']", invalidTp);
-    await page.click("[data-testid='tp-apply-btn']");
-
-    // Wait for toast
-    await page.waitForSelector("[data-testid='toast']", { state: "visible" });
-
-    // Verify toast text is in English
-    const toastText = await page.locator("[data-testid='toast']").textContent();
-    expect(toastText).toContain("Invalid");
-    expect(toastText).toContain("ABOVE");
-
-    // Verify NO Portuguese text
-    expect(toastText).not.toContain("inválido");
-    expect(toastText).not.toContain("acima");
-    expect(toastText).not.toContain("coloque");
+    await expectEnglishValidationToast(page, /Invalid TP:/, "ABOVE");
   });
 
-  test("invalid SL above entry for LONG shows English error", async ({ page }) => {
-    // Open a LONG position first
-    await page.click("[data-testid='trade-controls-open-long-btn']");
-    await page.waitForSelector("[data-testid='position-panel-pnl']", { state: "visible" });
+  test("invalid SL above price for LONG shows English error", async ({ page }) => {
+    await openMarketPositionViaControls(page, "long");
 
-    const priceText = await page.locator("[data-testid='current-price']").textContent();
-    const currentPrice = parseFloat(priceText?.replace("$", "").replace(",", "") || "0");
+    await applyTpSlViaPositionPanel(page, "sl", FLAT_PRICE + INVALID_OFFSET);
 
-    // Try to set SL above current price (invalid for LONG)
-    const invalidSl = (currentPrice + 1000).toFixed(0);
-
-    // Expand SL input
-    await page.click("text=Stop Loss");
-    await page.fill("[data-testid='sl-price-input']", invalidSl);
-    await page.click("[data-testid='sl-apply-btn']");
-
-    await page.waitForSelector("[data-testid='toast']", { state: "visible" });
-
-    const toastText = await page.locator("[data-testid='toast']").textContent();
-    expect(toastText).toContain("Invalid");
-    expect(toastText).toContain("BELOW");
-
-    expect(toastText).not.toContain("inválido");
-    expect(toastText).not.toContain("abaixo");
-    expect(toastText).not.toContain("coloque");
+    await expectEnglishValidationToast(page, /Invalid SL:/, "BELOW");
   });
 
-  test("invalid TP above entry for SHORT shows English error", async ({ page }) => {
-    // Open a SHORT position
-    await page.click("[data-testid='trade-controls-open-short-btn']");
-    await page.waitForSelector("[data-testid='position-panel-pnl']", { state: "visible" });
+  test("invalid TP above price for SHORT shows English error", async ({ page }) => {
+    await openMarketPositionViaControls(page, "short");
 
-    const priceText = await page.locator("[data-testid='current-price']").textContent();
-    const currentPrice = parseFloat(priceText?.replace("$", "").replace(",", "") || "0");
+    await applyTpSlViaPositionPanel(page, "tp", FLAT_PRICE + INVALID_OFFSET);
 
-    // Try to set TP above current price (invalid for SHORT)
-    const invalidTp = (currentPrice + 1000).toFixed(0);
-
-    await page.click("text=Take Profit");
-    await page.fill("[data-testid='tp-price-input']", invalidTp);
-    await page.click("[data-testid='tp-apply-btn']");
-
-    await page.waitForSelector("[data-testid='toast']", { state: "visible" });
-
-    const toastText = await page.locator("[data-testid='toast']").textContent();
-    expect(toastText).toContain("Invalid");
-    expect(toastText).toContain("BELOW");
-
-    expect(toastText).not.toContain("inválido");
-    expect(toastText).not.toContain("abaixo");
+    await expectEnglishValidationToast(page, /Invalid TP:/, "BELOW");
   });
 });

@@ -113,6 +113,7 @@ export default function LimitPriceInput({
         <div className="relative flex-1">
           <input
             type="text"
+            data-testid="limit-price-input"
             placeholder={currentPrice.toFixed(0)}
             value={limitPrice}
             onChange={(e) => onLimitPriceChange(e.target.value)}

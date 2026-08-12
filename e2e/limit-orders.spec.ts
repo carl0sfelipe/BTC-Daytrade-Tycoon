@@ -1,236 +1,139 @@
-import { test, expect } from '@playwright/test';
-import { saveEvidence, captureConsoleLogs } from './_helper';
+import { test, expect, type Page } from "@playwright/test";
+import { saveEvidence, captureConsoleLogs } from "./_helper";
+import { seedOnboardingDone, openLongMarketViaUI, closePositionViaUI } from "./_helpers/ui-actions";
+import { FLAT_PRICE } from "./_helpers/mock-binance";
+import { openPinnedTradingSession, type E2EBridgeWindow } from "./_helpers/engine";
 
-const JID = 'LIMIT-ORDERS';
+const JID = "LIMIT-ORDERS";
 
-test.describe('Limit Orders E2E', () => {
+/** Switch the order-type toggle to Limit and wait for the price input. */
+async function switchToLimitOrders(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Limit", exact: true }).click();
+  await expect(page.getByTestId("limit-price-input")).toBeVisible();
+}
+
+function readPendingOrdersCount(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const state = (window as E2EBridgeWindow).__tradingStore!.getState() as {
+      pendingOrders: unknown[];
+    };
+    return state.pendingOrders.length;
+  });
+}
+
+/** Force the price and run the pending-order matcher (engine is paused). */
+async function driveLimitPriceHit(page: Page, price: number): Promise<void> {
+  await page.evaluate((p) => {
+    const store = (window as E2EBridgeWindow).__tradingStore!;
+    store.setState({ currentPrice: p, price: p });
+    (store.getState() as { checkPendingOrders: (price: number) => void }).checkPendingOrders(p);
+  }, price);
+}
+
+test.describe("Limit Orders E2E", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
-    });
+    await seedOnboardingDone(page);
   });
 
-  test('create and cancel a limit order', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'production', 'Uses __tradingStore injection');
+  test("create and cancel a limit order", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
-    await saveEvidence(page, JID, '01-page-loaded');
+    await openPinnedTradingSession(page);
+    await switchToLimitOrders(page);
 
-    // Switch to Limit order
-    await page.click('button:has-text("Limit")');
-    await page.waitForTimeout(200);
+    // Long limit 2% below the pinned price → stays pending
+    await page.getByTestId("limit-price-input").fill((FLAT_PRICE * 0.98).toFixed(2));
+    const sizePill = page.getByRole("radio", { name: "25% position size" });
+    await sizePill.click();
+    await expect(sizePill).toBeChecked();
 
-    // Fill limit price (use current price from store)
-    const currentPrice = await page.evaluate(() => {
-      const store = (window as any).__tradingStore;
-      return store.getState().currentPrice;
-    });
-    const limitPrice = (currentPrice * 0.98).toFixed(2);
+    await page.getByRole("button", { name: "Place Long Limit" }).click();
+    await expect.poll(() => readPendingOrdersCount(page)).toBe(1);
+    await expect(page.getByTestId("orders-panel-filter-pending")).toHaveText("Pending (1)");
+    await saveEvidence(page, JID, "02-limit-order-placed");
 
-    // The limit price input is the 3rd text input (TP=0.00, SL=0.00, Limit=currentPrice)
-    const limitInput = page.locator('input[type="text"]').nth(2);
-    await limitInput.fill(limitPrice);
-    await page.waitForTimeout(200);
+    // Cancel it from the Orders panel
+    await page.getByRole("button", { name: "Cancel order" }).click();
+    await expect.poll(() => readPendingOrdersCount(page)).toBe(0);
+    await expect(page.getByTestId("orders-panel-filter-canceled")).toHaveText("Canceled (1)");
+    await saveEvidence(page, JID, "03-order-cancelled");
 
-    // Select size
-    await page.locator('button:has-text("25%")').click();
-    await page.waitForTimeout(200);
-
-    // Place limit order
-    await page.click('button:has-text("Place Long Limit")');
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '02-limit-order-placed');
-
-    // Verify order appears in Orders Panel
-    const ordersPanel = page.locator('.card-surface').filter({ hasText: 'Orders' });
-    await expect(ordersPanel.locator('text=Pending').first()).toBeVisible({ timeout: 5000 });
-
-    const orderRow = ordersPanel.locator('div').filter({ hasText: /limit/i }).first();
-    await expect(orderRow).toBeVisible();
-
-    // Cancel the pending order
-    const cancelBtn = ordersPanel.locator('button').filter({ hasText: /Cancel/i }).first();
-    await expect(cancelBtn).toBeVisible();
-    await cancelBtn.click();
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '03-order-cancelled');
-
-    // Verify order status changed to Canceled
-    await expect(ordersPanel.locator('text=Canceled').first()).toBeVisible({ timeout: 5000 });
-
-    await saveLogs('create-cancel');
+    await saveLogs("create-cancel");
   });
 
-  test('limit order executes when price hits', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'production', 'Uses __tradingStore injection');
+  test("limit order executes when price hits", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await openPinnedTradingSession(page);
+    await switchToLimitOrders(page);
 
-    // Pause engine so we control price
-    await page.evaluate(() => {
-      const engine = (window as any).__timewarpEngine;
-      if (engine && engine.pause) engine.pause();
-    });
-    await page.waitForTimeout(300);
+    // Long limit 1% ABOVE the pinned price → pending until price rises to it
+    const limitPrice = FLAT_PRICE * 1.01;
+    await page.getByTestId("limit-price-input").fill(limitPrice.toFixed(2));
+    const sizePill = page.getByRole("radio", { name: "50% position size" });
+    await sizePill.click();
+    await expect(sizePill).toBeChecked();
 
-    // Set a known price
-    const knownPrice = 50000;
-    await page.evaluate((price) => {
-      const store = (window as any).__tradingStore;
-      store.setState({ currentPrice: price, price });
-    }, knownPrice);
-    await page.waitForTimeout(300);
+    await page.getByRole("button", { name: "Place Long Limit" }).click();
+    await expect.poll(() => readPendingOrdersCount(page)).toBe(1);
+    await expect(page.getByTestId("orders-panel-filter-pending")).toHaveText("Pending (1)");
+    await saveEvidence(page, JID, "04-limit-above-price");
 
-    // Place a limit order ABOVE current price so it executes immediately
-    const limitPrice = (knownPrice * 1.01).toFixed(2);
+    await driveLimitPriceHit(page, limitPrice);
+    await expect(page.getByTestId("position-panel-pnl")).toBeVisible();
+    await expect(page.getByTestId("orders-panel-filter-filled")).toHaveText("Filled (1)");
+    await saveEvidence(page, JID, "06-limit-executed");
 
-    await page.click('button:has-text("Limit")');
-    await page.waitForTimeout(200);
-    // The limit price input is the 3rd text input (TP=0.00, SL=0.00, Limit=currentPrice)
-    const limitInput = page.locator('input[type="text"]').nth(2);
-    await limitInput.fill(limitPrice);
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
-    await page.waitForTimeout(200);
-
-    await page.click('button:has-text("Place Long Limit")');
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '04-limit-above-price');
-
-    // Order should still be pending (price hasn't hit yet)
-    const ordersPanel = page.locator('.card-surface').filter({ hasText: 'Orders' });
-    await expect(ordersPanel.locator('text=Pending').first()).toBeVisible({ timeout: 3000 });
-
-    // Now move price to hit the limit
-    await page.evaluate((price) => {
-      const store = (window as any).__tradingStore;
-      store.setState({ currentPrice: price, price });
-    }, Number(limitPrice));
-    await page.waitForTimeout(1000);
-    await saveEvidence(page, JID, '05-price-hit-limit');
-
-    // Force checkPendingOrders to run
-    await page.evaluate(() => {
-      const store = (window as any).__tradingStore;
-      const state = store.getState();
-      state.checkPendingOrders(state.currentPrice);
-    });
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '06-limit-executed');
-
-    // Verify position was opened
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await expect(posPanel.locator('text=Close Position').first()).toBeVisible({ timeout: 5000 });
-
-    // Verify order shows as Filled
-    await expect(ordersPanel.locator('text=Filled').first()).toBeVisible({ timeout: 5000 });
-
-    // Cleanup
-    await posPanel.locator('text=Close Position').first().click();
-    await page.waitForTimeout(500);
-
-    await saveLogs('limit-execution');
+    await closePositionViaUI(page);
+    await saveLogs("limit-execution");
   });
 
-  test('limit order on opposite side reduces existing position', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'production', 'Uses __tradingStore injection');
+  test("limit order on opposite side reduces existing position", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await openPinnedTradingSession(page);
 
-    // Pause engine
-    await page.evaluate(() => {
-      const engine = (window as any).__timewarpEngine;
-      if (engine && engine.pause) engine.pause();
-    });
-    await page.waitForTimeout(300);
+    // LONG $50k (10x, 50% of $10k wallet) at the pinned price
+    await openLongMarketViaUI(page, { leverage: 10, sizePercent: 50 });
 
-    // Reset store
-    await page.evaluate(() => {
-      (window as any).__tradingStore.setState({
-        wallet: 10000,
-        position: null,
-        closedTrades: [],
-        pendingOrders: [],
-        ordersHistory: [],
-        currentPrice: 50000,
-        price: 50000,
-      });
-    });
-    await page.waitForTimeout(300);
+    // Opposite-side (SHORT) limit for $500 — in Reduce Only it must only
+    // shrink the long, never flip it.
+    await switchToLimitOrders(page);
+    const shortTab = page.getByTestId("trade-controls-side-short");
+    await shortTab.click();
+    await expect(shortTab).toHaveClass(/bg-crypto-short/);
 
-    // Open LONG position
-    await page.click('text=LONG');
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("10x")').click();
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
-    await page.waitForTimeout(200);
-    await page.click('button:has-text("Open Long")');
-    await page.waitForTimeout(800);
+    await page.getByTestId("limit-price-input").fill("51000");
+    const sizeSlider = page.getByTestId("trade-controls-size-slider");
+    await sizeSlider.fill("500");
+    await expect(sizeSlider).toHaveValue("500");
 
-    // Verify position is open
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await expect(posPanel.locator('text=Close Position').first()).toBeVisible();
+    await page.getByRole("button", { name: "Place Short Limit" }).click();
+    await expect.poll(() => readPendingOrdersCount(page)).toBe(1);
+    await saveEvidence(page, JID, "07-reduce-limit-placed");
 
-    // Place opposite-side limit order (SHORT)
-    const limitPrice = '51000';
-    await page.click('button:has-text("Limit")');
-    await page.waitForTimeout(200);
-    await page.click('text=SHORT');
-    await page.waitForTimeout(200);
-    // The limit price input is the 3rd text input (TP=0.00, SL=0.00, Limit=currentPrice)
-    const limitInput = page.locator('input[type="text"]').nth(2);
-    await limitInput.fill(limitPrice);
-    await page.waitForTimeout(200);
-    // Use a small size for reduction
-    await page.evaluate(() => {
-      const slider = document.querySelector('input[type="range"]') as HTMLInputElement;
-      if (slider) slider.value = '500';
-      slider?.dispatchEvent(new Event('input', { bubbles: true }));
-      slider?.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await page.waitForTimeout(300);
+    await driveLimitPriceHit(page, 51_000);
 
-    await page.click('button:has-text("Place Short Limit")');
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '07-reduce-limit-placed');
+    // Position survives, reduced exactly by the limit size: 50000 − 500
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const state = (window as E2EBridgeWindow).__tradingStore!.getState() as {
+            position: { size: number; side: string } | null;
+          };
+          return state.position && { size: state.position.size, side: state.position.side };
+        })
+      )
+      .toEqual({ size: 49_500, side: "long" });
+    await saveEvidence(page, JID, "08-reduce-limit-executed");
 
-    // Move price to hit the limit
-    await page.evaluate(() => {
-      const store = (window as any).__tradingStore;
-      store.setState({ currentPrice: 51000, price: 51000 });
-      const state = store.getState();
-      state.checkPendingOrders(51000);
-    });
-    await page.waitForTimeout(1000);
-    await saveEvidence(page, JID, '08-reduce-limit-executed');
-
-    // Position should still exist but smaller
-    const panelText = await posPanel.innerText();
-    console.log('Position panel after reduce:', panelText.substring(0, 400));
-
-    // Should show a smaller size or be closed
-    // With $50k position reduced by $500, size should be ~$49.5k
-    expect(panelText).toMatch(/\$4[\d,]+/); // still has position in $40k+ range
-
-    // Close remaining position
-    if (await posPanel.locator('text=Close Position').first().isVisible().catch(() => false)) {
-      await posPanel.locator('text=Close Position').first().click();
-      await page.waitForTimeout(500);
-    }
-
-    await saveLogs('limit-reduce');
+    await closePositionViaUI(page);
+    await saveLogs("limit-reduce");
   });
 });

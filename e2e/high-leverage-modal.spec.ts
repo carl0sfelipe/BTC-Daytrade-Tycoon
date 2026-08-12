@@ -1,96 +1,78 @@
-import { test, expect } from '@playwright/test';
-import { saveEvidence, captureConsoleLogs } from './_helper';
+import { test, expect, type Page } from "@playwright/test";
+import { saveEvidence, saveViewportEvidence, captureConsoleLogs } from "./_helper";
+import { seedOnboardingDone, closePositionViaUI } from "./_helpers/ui-actions";
+import { openPinnedTradingSession } from "./_helpers/engine";
 
-const JID = 'HIGH-LEV-MODAL';
+const JID = "HIGH-LEV-MODAL";
 
-test.describe('High Leverage Warning Modal', () => {
+/**
+ * The default session caps leverage at 50x (sessionSlice maxLeverage), so 50x
+ * is both the highest pill on screen AND the modal threshold
+ * (ConfirmHighLeverageModal shows for leverage >= 50).
+ */
+async function armLong50x(page: Page): Promise<void> {
+  const longTab = page.getByTestId("trade-controls-side-long");
+  await longTab.click();
+  await expect(longTab).toHaveClass(/bg-crypto-long/);
+
+  const leveragePill = page.getByRole("radio", { name: "50x leverage" });
+  await leveragePill.click();
+  await expect(leveragePill).toBeChecked();
+
+  const sizePill = page.getByRole("radio", { name: "50% position size" });
+  await sizePill.click();
+  await expect(sizePill).toBeChecked();
+}
+
+test.describe("High Leverage Warning Modal", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
-    });
+    await seedOnboardingDone(page);
   });
 
-  test('≥50x leverage shows confirmation modal in simple mode', async ({ page }) => {
+  test("≥50x leverage shows confirmation modal in simple mode", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await openPinnedTradingSession(page, undefined, { skipHighLeverageWarning: false });
+    await armLong50x(page);
 
-    // Reset state
-    await page.evaluate(() => {
-      (window as any).__tradingStore.setState({ wallet: 10000, position: null, skipHighLeverageWarning: false });
-    });
-    await page.waitForTimeout(300);
-
-    // Select 100x leverage
-    await page.click('text=LONG');
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("100x")').click();
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
-    await page.waitForTimeout(200);
-
-    // Open position — should trigger high-leverage modal
-    await page.click('button:has-text("Open Long")');
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '01-modal-appears');
-
-    // Verify warning modal is visible (look for dialog overlay, not card-surface)
-    const modal = page.locator('[role="dialog"], .fixed.inset-0').filter({ hasText: /risk|warning|High Leverage|50x|100x/i });
-    await expect(modal.first()).toBeVisible({ timeout: 5000 });
-
-    // Confirm the trade
-    const confirmBtn = page.locator('button').filter({ hasText: /Confirm|I understand|Accept/i }).first();
+    // Submitting at 50x must pop the warning modal, not open the position
+    await page.getByTestId("trade-controls-action-btn").click();
+    const confirmBtn = page.getByTestId("high-leverage-confirm");
     await expect(confirmBtn).toBeVisible();
+    // 100/leverage: at 50x a 2.00% adverse move liquidates
+    await expect(page.getByTestId("high-leverage-risk-pct")).toHaveText("2.00%");
+    // Viewport-only: the modal rides React-local pendingTrade state, and a
+    // fullPage screenshot's viewport resize can remount the controls and
+    // dismiss it before the confirm click below.
+    await saveViewportEvidence(page, JID, "01-modal-appears");
+
+    // Confirm → position opens
     await confirmBtn.click();
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '02-after-confirm');
+    await expect(page.getByTestId("position-panel-pnl")).toBeVisible();
+    await saveEvidence(page, JID, "02-after-confirm");
 
-    // Position should now be open
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await expect(posPanel.locator('text=Close Position').first()).toBeVisible();
-
-    // Close position
-    await posPanel.locator('text=Close Position').first().click();
-    await page.waitForTimeout(500);
-
-    await saveLogs('modal-simple');
+    await closePositionViaUI(page);
+    await saveLogs("modal-simple");
   });
 
-  test('modal does not appear when skip flag is set', async ({ page }) => {
+  test("modal does not appear when skip flag is set", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await openPinnedTradingSession(page, undefined, { skipHighLeverageWarning: true });
+    await armLong50x(page);
 
-    // Reset state and set skip flag
-    await page.evaluate(() => {
-      (window as any).__tradingStore.setState({ wallet: 10000, position: null, skipHighLeverageWarning: true });
-    });
-    await page.waitForTimeout(300);
+    // Submit WITHOUT any confirm click: the PnL can only appear if no dialog
+    // interposed, which is exactly what the skip flag promises.
+    await page.getByTestId("trade-controls-action-btn").click();
+    await expect(page.getByTestId("position-panel-pnl")).toBeVisible();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+    await saveEvidence(page, JID, "03-no-modal");
 
-    // Select 100x and open
-    await page.click('text=LONG');
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("100x")').click();
-    await page.waitForTimeout(200);
-    await page.locator('button:has-text("50%")').click();
-    await page.waitForTimeout(200);
-    await page.click('button:has-text("Open Long")');
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '03-no-modal');
-
-    // Position should be open immediately without modal
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await expect(posPanel.locator('text=Close Position').first()).toBeVisible();
-
-    await posPanel.locator('text=Close Position').first().click();
-    await page.waitForTimeout(500);
-
-    await saveLogs('skip-flag');
+    await closePositionViaUI(page);
+    await saveLogs("skip-flag");
   });
 });

@@ -1,24 +1,36 @@
 import { test, expect } from "@playwright/test";
 import type { SentinelSession } from "@/lib/sentinel";
 import sessionData from "./fixtures/sentinel-session.json";
+import { seedOnboardingDone } from "./_helpers/ui-actions";
+import { openPinnedTradingSession, type E2EBridgeWindow } from "./_helpers/engine";
+
+type SentinelBridgeWindow = Window & {
+  __sentinelContext?: { clock: { now: () => number } };
+  __sentinelSession?: SentinelSession;
+};
 
 test.describe("Sentinel Replay Engine — Deterministic Session Replay", () => {
-  test("replays a recorded session with frozen clock", async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await seedOnboardingDone(page);
+  });
+
+  test("replays a recorded session with frozen clock", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const session = sessionData as unknown as SentinelSession;
 
-    await page.goto("/trading");
-    await page.waitForSelector("text=Simulation Time", { timeout: 15000 });
+    // Pin the session so the replayed snapshots are deterministic
+    // (fixture assumes wallet $10k and a $1000 default order size).
+    await openPinnedTradingSession(page);
 
-    // Inject session and freeze clock
     await page.evaluate((sess) => {
-      (window as unknown as { __sentinelSession?: SentinelSession }).__sentinelSession = sess;
+      (window as SentinelBridgeWindow).__sentinelSession = sess;
     }, session);
 
-    // Verify clock is frozen at initial time
-    const clockNow = await page.evaluate(() => {
-      const store = (window as unknown as { __tradingStore?: { getState: () => { clock?: { now: () => number } } } }).__tradingStore;
-      return store?.getState().clock?.now() ?? -1;
-    });
+    // The Sentinel clock rides window.__sentinelContext (the store never
+    // carried it) and counts wall ms since engine start — never negative.
+    const clockNow = await page.evaluate(
+      () => (window as SentinelBridgeWindow).__sentinelContext?.clock.now() ?? -1
+    );
     expect(clockNow).toBeGreaterThanOrEqual(0);
 
     // Replay each UI action by semantic locator
@@ -47,7 +59,7 @@ test.describe("Sentinel Replay Engine — Deterministic Session Replay", () => {
       // Validate state divergence after action
       if (!event.engineSnapshot) continue;
       const stateValid = await page.evaluate((expectedSnapshot) => {
-        const store = (window as unknown as { __tradingStore?: { getState: () => Record<string, unknown> } }).__tradingStore;
+        const store = (window as E2EBridgeWindow).__tradingStore;
         if (!store) return false;
         const state = store.getState();
 

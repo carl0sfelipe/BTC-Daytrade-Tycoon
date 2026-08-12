@@ -29,6 +29,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <TpSlToggle
+          testId="position-panel-tp-toggle"
           active={showTp}
           hasValue={!!tpInput}
           label={tpInput ? `TP $${parseFloat(tpInput).toFixed(0)}` : messages.tradeControls.setTakeProfit}
@@ -38,6 +39,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
           onClick={() => { setShowTp(!showTp); if (!showTp) setShowSl(false); }}
         />
         <TpSlToggle
+          testId="position-panel-sl-toggle"
           active={showSl}
           hasValue={!!slInput}
           label={slInput ? `SL $${parseFloat(slInput).toFixed(0)}` : messages.tradeControls.setStopLoss}
@@ -54,6 +56,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
 
       {showTp && (
         <PriceEditor
+          testIdPrefix="position-panel-tp"
           label={`${messages.tradeControls.triggerPriceLabel} ${isLong ? messages.positionPanel.triggerAbove : messages.positionPanel.triggerBelow}`}
           placeholder={isLong ? `> ${currentPrice.toFixed(0)}` : `< ${currentPrice.toFixed(0)}`}
           value={tpInput}
@@ -74,6 +77,7 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
 
       {showSl && (
         <PriceEditor
+          testIdPrefix="position-panel-sl"
           label={`${messages.tradeControls.triggerPriceLabel} ${isLong ? messages.positionPanel.triggerBelow : messages.positionPanel.triggerAbove}`}
           placeholder={isLong ? `< ${currentPrice.toFixed(0)}` : `> ${currentPrice.toFixed(0)}`}
           value={slInput}
@@ -95,7 +99,8 @@ export function TpSlEditor({ isLong, currentPrice, onApply }: TpSlEditorProps) {
   );
 }
 
-function TpSlToggle({ active, hasValue, label, emoji, activeClass, inactiveClass, onClick }: {
+function TpSlToggle({ testId, active, hasValue, label, emoji, activeClass, inactiveClass, onClick }: {
+  testId: string;
   active: boolean;
   hasValue: boolean;
   label: string;
@@ -110,7 +115,7 @@ function TpSlToggle({ active, hasValue, label, emoji, activeClass, inactiveClass
     ? activeClass.replace("bg-", "bg-").replace("border-", "border-").replace("/30", "-dim/30").replace("/20", "/20")
     : inactiveClass;
   return (
-    <button type="button" onClick={onClick} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${cls}`}>
+    <button type="button" data-testid={testId} onClick={onClick} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${cls}`}>
       {emoji} {label}
     </button>
   );
@@ -135,6 +140,7 @@ function StepSelector({ step, onChange }: { step: number; onChange: (s: number) 
 }
 
 interface PriceEditorProps {
+  testIdPrefix: string;
   label: string;
   placeholder: string;
   value: string;
@@ -153,7 +159,7 @@ interface PriceEditorProps {
 }
 
 function PriceEditor({
-  label, placeholder, value, onChange, step, basePrice, accentColor,
+  testIdPrefix, label, placeholder, value, onChange, step, basePrice, accentColor,
   orderLabel, orderEmptyHint, marketPlaceholder, orderValue, onOrderChange, onApply, applyLabel, disabled,
 }: PriceEditorProps) {
   const borderClass = `border-${accentColor}/30`;
@@ -163,9 +169,9 @@ function PriceEditor({
 
   return (
     <div className={`space-y-1.5 p-2.5 rounded-lg bg-${accentColor}-dim/10 border border-${accentColor}/20`}>
-      <PriceInputRow label={label} isTriggerRow placeholder={placeholder} value={value} onChange={onChange} step={step} basePrice={basePrice} borderClass={borderClass} focusClass={focusClass} />
-      <PriceInputRow label={`${orderLabel} ${orderEmptyHint}`} placeholder={marketPlaceholder} value={orderValue} onChange={onOrderChange} step={step} basePrice={parseFloat(value) || basePrice} borderClass="border-crypto-border" focusClass="focus:border-crypto-accent" />
-      <button type="button" onClick={onApply} disabled={disabled}
+      <PriceInputRow inputTestId={`${testIdPrefix}-input`} label={label} isTriggerRow placeholder={placeholder} value={value} onChange={onChange} step={step} basePrice={basePrice} borderClass={borderClass} focusClass={focusClass} />
+      <PriceInputRow inputTestId={`${testIdPrefix}-order-input`} label={`${orderLabel} ${orderEmptyHint}`} placeholder={marketPlaceholder} value={orderValue} onChange={onOrderChange} step={step} basePrice={parseFloat(value) || basePrice} borderClass="border-crypto-border" focusClass="focus:border-crypto-accent" />
+      <button type="button" data-testid={`${testIdPrefix}-apply`} onClick={onApply} disabled={disabled}
         className={`w-full py-1.5 rounded-lg ${dimClass} border border-${accentColor}/30 ${textClass} text-xs font-semibold hover:bg-${accentColor}/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}>
         {applyLabel}
       </button>
@@ -174,8 +180,9 @@ function PriceEditor({
 }
 
 function PriceInputRow({
-  label, isTriggerRow, placeholder, value, onChange, step, basePrice, borderClass, focusClass,
+  inputTestId, label, isTriggerRow, placeholder, value, onChange, step, basePrice, borderClass, focusClass,
 }: {
+  inputTestId: string;
   label: string;
   isTriggerRow?: boolean;
   placeholder: string;
@@ -194,7 +201,7 @@ function PriceInputRow({
           <ChevronDown className="w-3 h-3" />
         </button>
         <div className="relative flex-1">
-          <input type="text" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)}
+          <input type="text" data-testid={inputTestId} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)}
             className={`w-full px-2 py-1.5 pr-7 rounded-lg bg-crypto-surface-elevated border ${borderClass} text-xs font-mono text-crypto-text placeholder:text-crypto-text-muted focus:outline-none ${focusClass}`} />
           {value && (
             <button type="button" onClick={() => onChange("")} className="absolute right-1 top-1/2 -translate-y-1/2 text-crypto-text-muted hover:text-crypto-short">

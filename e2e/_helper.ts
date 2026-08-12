@@ -20,12 +20,33 @@ function getJourneyDir(journeyId: string): string {
 }
 
 export async function saveEvidence(page: Page, journeyId: string, label: string): Promise<void> {
+  await captureEvidenceFiles(page, journeyId, label, true);
+}
+
+/**
+ * Viewport-only evidence. Use it while UI backed by React-local state must
+ * stay mounted: the fullPage screenshot temporarily resizes the viewport,
+ * which can flip the responsive breakpoint and remount the trade controls,
+ * wiping armed side/leverage/pendingTrade (modal) state mid-flow.
+ *
+ * @example await saveViewportEvidence(page, JID, '01-modal-appears');
+ */
+export async function saveViewportEvidence(page: Page, journeyId: string, label: string): Promise<void> {
+  await captureEvidenceFiles(page, journeyId, label, false);
+}
+
+async function captureEvidenceFiles(
+  page: Page,
+  journeyId: string,
+  label: string,
+  fullPage: boolean
+): Promise<void> {
   const dir = getJourneyDir(journeyId);
   const timestamp = Date.now();
 
   // Screenshot
   try {
-    await page.screenshot({ path: `${dir}/${journeyId}-${label}-${timestamp}.png`, fullPage: true });
+    await page.screenshot({ path: `${dir}/${journeyId}-${label}-${timestamp}.png`, fullPage });
   } catch {
     // ignore
   }

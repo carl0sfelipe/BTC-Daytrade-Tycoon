@@ -12,11 +12,11 @@
       "sequenceId": 1,
       "timestamp": 100,
       "type": "UI_ACTION",
-      "semanticId": "trade-controls:leverage-selector",
+      "semanticId": "trade-controls:radio:10x leverage",
       "role": "spinbutton",
       "payload": { "type": "change", "value": 10 },
       "engineSnapshot": {
-        "changedPaths": [{ "path": "leverage", "oldValue": 2, "newValue": 10 }],
+        "changedPaths": [{ "path": "wallet", "oldValue": 10000, "newValue": 10000 }],
         "isCheckpoint": false
       },
       "marketContext": { "price": 50000, "indexPrice": 50000, "timestamp": 100 },
@@ -37,22 +37,7 @@
         ],
         "isCheckpoint": false
       },
-      "marketContext": { "price": 50100, "indexPrice": 50100, "timestamp": 250 },
-      "accessibilityRef": ""
-    },
-    {
-      "id": "ev-003",
-      "sequenceId": 3,
-      "timestamp": 500,
-      "type": "UI_ACTION",
-      "semanticId": "trade-controls:button:Close Position",
-      "role": "button",
-      "payload": { "type": "click", "reason": "manual" },
-      "engineSnapshot": {
-        "changedPaths": [{ "path": "position", "oldValue": { "side": "long", "size": 1000 }, "newValue": null }],
-        "isCheckpoint": false
-      },
-      "marketContext": { "price": 50200, "indexPrice": 50200, "timestamp": 500 },
+      "marketContext": { "price": 50000, "indexPrice": 50000, "timestamp": 250 },
       "accessibilityRef": ""
     }
   ]

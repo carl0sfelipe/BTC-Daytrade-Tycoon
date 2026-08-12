@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export async function seedOnboardingDone(page: Page) {
   await page.addInitScript(() => {
@@ -9,50 +9,70 @@ export async function seedOnboardingDone(page: Page) {
   });
 }
 
+interface MarketOrderOptions {
+  leverage: number;
+  sizePercent: 10 | 25 | 50 | 100;
+}
+
+/**
+ * Arm side, leverage and size on the trade controls, waiting for each control
+ * to reflect the click (replaces the old fixed 200ms sleeps). Role selectors
+ * are exact-match: `button:has-text("10%")` used to collide with the
+ * called-shot "+10%" pill (strict mode violation).
+ */
+async function armMarketOrderControls(
+  page: Page,
+  side: "long" | "short",
+  opts: MarketOrderOptions
+): Promise<void> {
+  const sideTab = page.getByTestId(`trade-controls-side-${side}`);
+  await sideTab.click();
+  await expect(sideTab).toHaveClass(side === "long" ? /bg-crypto-long/ : /bg-crypto-short/);
+
+  const leveragePill = page.getByRole("radio", { name: `${opts.leverage}x leverage` });
+  await leveragePill.click();
+  await expect(leveragePill).toBeChecked();
+
+  const sizePill = page.getByRole("radio", { name: `${opts.sizePercent}% position size` });
+  await sizePill.click();
+  await expect(sizePill).toBeChecked();
+}
+
+/**
+ * Click the open button and wait for the position to exist (position panel
+ * PnL renders). ≥50x leverage in simple mode pops the high-leverage warning
+ * first — click through it when it shows up.
+ */
+async function submitMarketOrderAndAwaitPosition(page: Page): Promise<void> {
+  await page.getByTestId("trade-controls-action-btn").click();
+
+  const understandRisksBtn = page.locator('button:has-text("I understand the risks")');
+  const positionPnl = page.getByTestId("position-panel-pnl");
+  await expect(understandRisksBtn.or(positionPnl)).toBeVisible();
+  if (await understandRisksBtn.isVisible()) {
+    await understandRisksBtn.click();
+  }
+  await expect(positionPnl).toBeVisible();
+}
+
 export async function openLongMarketViaUI(
   page: Page,
-  opts: { leverage: number; sizePercent: 10 | 25 | 50 | 100 }
-) {
-  await page.click("text=LONG");
-  await page.waitForTimeout(200);
-  await page.locator(`button:has-text("${opts.leverage}x")`).click();
-  await page.waitForTimeout(200);
-  await page.locator(`button:has-text("${opts.sizePercent}%")`).click();
-  await page.waitForTimeout(200);
-  await page.click('button:has-text("Open Long")');
-  await page.waitForTimeout(800);
-
-  // Handle high-leverage warning modal if shown
-  const understandBtn = page.locator('button:has-text("I understand the risks")');
-  if (await understandBtn.isVisible().catch(() => false)) {
-    await understandBtn.click();
-    await page.waitForTimeout(800);
-  }
+  opts: MarketOrderOptions
+): Promise<void> {
+  await armMarketOrderControls(page, "long", opts);
+  await submitMarketOrderAndAwaitPosition(page);
 }
 
 export async function openShortMarketViaUI(
   page: Page,
-  opts: { leverage: number; sizePercent: 10 | 25 | 50 | 100 }
-) {
-  await page.click("text=SHORT");
-  await page.waitForTimeout(200);
-  await page.locator(`button:has-text("${opts.leverage}x")`).click();
-  await page.waitForTimeout(200);
-  await page.locator(`button:has-text("${opts.sizePercent}%")`).click();
-  await page.waitForTimeout(200);
-  await page.click('button:has-text("Open Short")');
-  await page.waitForTimeout(800);
-
-  // Handle high-leverage warning modal if shown
-  const understandBtn = page.locator('button:has-text("I understand the risks")');
-  if (await understandBtn.isVisible().catch(() => false)) {
-    await understandBtn.click();
-    await page.waitForTimeout(800);
-  }
+  opts: MarketOrderOptions
+): Promise<void> {
+  await armMarketOrderControls(page, "short", opts);
+  await submitMarketOrderAndAwaitPosition(page);
 }
 
-export async function closePositionViaUI(page: Page) {
+export async function closePositionViaUI(page: Page): Promise<void> {
   const posPanel = page.locator(".card-surface").filter({ hasText: "Your Position" });
   await posPanel.locator("text=Close Position").first().click();
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId("position-panel-empty")).toBeVisible();
 }

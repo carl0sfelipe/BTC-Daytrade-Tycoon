@@ -15,6 +15,7 @@ import MarketStatus from "../layout/MarketStatus";
 import MobileGameNav from "../layout/MobileGameNav";
 import SimulationClock from "./SimulationClock";
 import OrdersPanel from "./OrdersPanel";
+import VolatilityEventBanner from "./VolatilityEventBanner";
 
 interface MobileTradingViewProps {
   engine: ReturnTypeUseTimewarpEngine;
@@ -58,6 +59,14 @@ export default function MobileTradingView({ engine, onEnd, runCountdown }: Mobil
           onReset={engine.reset}
           onEnd={onEnd}
           runCountdown={runCountdown}
+        />
+      </div>
+
+      {/* Extreme Volatility run event (PRD §3.3) */}
+      <div className="mx-3 mt-2 empty:hidden">
+        <VolatilityEventBanner
+          candles={engine.candles}
+          currentTimeSec={engine.currentTimeSec}
         />
       </div>
 

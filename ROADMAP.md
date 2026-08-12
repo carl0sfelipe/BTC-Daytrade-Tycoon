@@ -43,12 +43,13 @@ Prioritization now follows the PRD phases:
        candidate for the locale-routing/SEO phase). Typed EN + PT-BR catalogs,
        persisted `gameLocale`, `useGameMessages`, header LocaleToggle, 8
        roguelike surfaces migrated. Legacy trading surfaces: extraction backlog.
-     - [ ] Run events (Extreme Volatility, PRD §3.3) — **stopped by design, not
-       by code**: the reward-multiplier effect can't be server-authoritative
-       until the R2 `Run` model exists (server doesn't know the run's candle
-       window; a client-asserted event flag is forgeable — same exploit class
-       audit killed in the rank-reward loop). Boss call needed: atmosphere-only
-       slice now vs. full feature on R2. Analysis in the autopilot log.
+     - [x] Run events — atmosphere slice (Boss picked option (a), 2026-08-12):
+       deterministic detection of real high-volatility windows in the loaded
+       buffer (max 2/run, frozen per run, synthetic fallback data refuses to
+       fire events), 10s countdown + 45s active banner, i18n copy that promises
+       "bigger moves" — never multiplied rewards. The official reward
+       multiplier stays R2 debt: it can't be server-authoritative until the
+       `Run` model exists (client-asserted event flags are forgeable).
      - [x] Hit-rate instrumentation per difficulty: `GET /api/calls/stats` aggregates
        resolved calls (hit rate per easy/medium/hard bucket, diamonds paid, calls/run)
        so the reward curve in `diamond-reward.ts` can be tuned against Mary's

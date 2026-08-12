@@ -8,6 +8,12 @@ export interface BinanceCandle {
   close: number;
   volume: number;
   closeTime: number;
+  /**
+   * Present (true) only on candles produced by generateFallbackCandles —
+   * random-walk data, NOT real market history. Consumers that must only act
+   * on real data (e.g. volatility events, PRD §3.3) check this flag.
+   */
+  isSynthetic?: true;
 }
 
 export interface SimulatedCandle {
@@ -17,6 +23,8 @@ export interface SimulatedCandle {
   low: number;
   close: number;
   volume: number;
+  /** Carried over from BinanceCandle.isSynthetic by the normalizers. */
+  isSynthetic?: true;
 }
 
 const BINANCE_API =
@@ -186,6 +194,7 @@ export function normalizeCandlesToBasePrice(
       low: basePrice * lowPct,
       close: basePrice * closePct,
       volume: c.volume,
+      isSynthetic: c.isSynthetic,
     };
   });
 
@@ -335,6 +344,7 @@ export function normalizeCandlesWithContinuity(
     low: c.low * scale,
     close: c.close * scale,
     volume: c.volume,
+    isSynthetic: c.isSynthetic,
   }));
 
   diag.log(
@@ -455,6 +465,7 @@ export function generateFallbackCandles(
       close,
       volume,
       closeTime,
+      isSynthetic: true,
     });
 
     price = close;

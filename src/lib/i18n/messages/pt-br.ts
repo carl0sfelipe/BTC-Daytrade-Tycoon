@@ -67,6 +67,11 @@ export const ptBrGameMessages: GameMessages = {
     claimed: "Resgatada ✓",
     claimFailed: "Falha no resgate — tente de novo",
   },
+  volatilityEvent: {
+    incomingBanner: (seconds) => `⚡ Volatilidade Extrema em ${seconds}s`,
+    activeBanner: (seconds) => `⚡ VOLATILIDADE EXTREMA — faltam ${seconds}s`,
+    activeHint: "Movimentos maiores — calls mais ousadas acertam",
+  },
   runRecap: {
     sectionTitle: "Called Shots",
     diamondEmojiAria: "diamante",

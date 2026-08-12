@@ -19,6 +19,7 @@ import OnboardingModal from "@/components/trading/OnboardingModal";
 import MobileTradingView from "@/components/trading/MobileTradingView";
 import DifficultySelector from "@/components/trading/DifficultySelector";
 import CalledShotStatus from "@/components/trading/CalledShotStatus";
+import VolatilityEventBanner from "@/components/trading/VolatilityEventBanner";
 import { useTimewarpEngine } from "@/hooks/useTimewarpEngine";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useSessionRecordSaver } from "@/hooks/useSessionRecordSaver";
@@ -279,6 +280,11 @@ export default function TradingPage() {
 
               {/* Side column */}
               <div className="col-span-12 lg:col-span-4 space-y-4">
+                {/* Extreme Volatility run event (PRD §3.3) */}
+                <VolatilityEventBanner
+                  candles={engine.candles}
+                  currentTimeSec={engine.currentTimeSec}
+                />
                 <CalledShotStatus />
                 <PositionPanel />
                 <TradeControls />

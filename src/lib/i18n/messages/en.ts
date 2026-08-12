@@ -72,6 +72,14 @@ export const enGameMessages = {
     claimed: "Claimed ✓",
     claimFailed: "Claim failed — try again",
   },
+  // Copy promises "bigger moves" only — never a reward multiplier. The event
+  // highlights real historical volatility; payout already scales via
+  // targetPercent × leverage (PRD_ROGUELIKE_PVP.md §3.3, Boss 2026-08-12).
+  volatilityEvent: {
+    incomingBanner: (seconds: number) => `⚡ Extreme Volatility in ${seconds}s`,
+    activeBanner: (seconds: number) => `⚡ EXTREME VOLATILITY — ${seconds}s left`,
+    activeHint: "Bigger moves — bolder calls land",
+  },
   runRecap: {
     sectionTitle: "Called Shots",
     diamondEmojiAria: "diamond",

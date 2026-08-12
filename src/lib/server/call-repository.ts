@@ -38,6 +38,8 @@ export interface CallRepository {
   resolveCall(id: string, status: TradeCallStatus, reward: number, resolvedAt: Date): Promise<void>;
   /** Resolved calls, newest first — used to derive the hit streak. */
   listResolvedCalls(userId: string, limit: number): Promise<TradeCallRecord[]>;
+  /** All users' resolved calls since a date — economy calibration stats. */
+  listResolvedCallsSince(since: Date, limit: number): Promise<TradeCallRecord[]>;
   /** Diamonds already paid out inside one run (per-run cap guard). */
   sumRunRewards(userId: string, runId: string): Promise<number>;
   /** Most recent call that actually paid diamonds (cooldown guard). */
@@ -76,6 +78,15 @@ export class PrismaCallRepository implements CallRepository {
   async listResolvedCalls(userId: string, limit: number): Promise<TradeCallRecord[]> {
     const rows = await this.db.tradeCall.findMany({
       where: { userId, status: { not: "pending" } },
+      orderBy: { resolvedAt: "desc" },
+      take: limit,
+    });
+    return rows.map(toRecord);
+  }
+
+  async listResolvedCallsSince(since: Date, limit: number): Promise<TradeCallRecord[]> {
+    const rows = await this.db.tradeCall.findMany({
+      where: { status: { not: "pending" }, resolvedAt: { gte: since } },
       orderBy: { resolvedAt: "desc" },
       take: limit,
     });

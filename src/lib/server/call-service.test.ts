@@ -49,6 +49,12 @@ class FakeCallRepository implements CallRepository {
       .slice(0, limit);
   }
 
+  async listResolvedCallsSince(since: Date, limit: number): Promise<TradeCallRecord[]> {
+    return this.calls
+      .filter((c) => c.status !== "pending" && (c.resolvedAt?.getTime() ?? 0) >= since.getTime())
+      .slice(0, limit);
+  }
+
   async sumRunRewards(userId: string, runId: string): Promise<number> {
     return this.calls
       .filter((c) => c.userId === userId && c.runId === runId)

@@ -18,7 +18,15 @@ Prioritization now follows the PRD phases:
 
 1. **Phase R1 — Solo roguelike** — timed runs + permadeath, called shots + diamonds, run events, missions, new mobile shell.
    - [x] **R1.0 (Aug 2026)** — called shots end-to-end (declare at market entry → wick-aware resolution → server-authoritative diamond payout with streak/cooldown/run-cap), `User.diamonds` + `TradeCall` on the server, 10-min run timer with auto-end, 💎 counter + hit celebration, mobile game-shell bottom nav (Inventory/Missions/Trade/Ranking/Shop). Decisions: party 2026-08-12.
-   - [ ] **R1.1** — run events (Extreme Volatility — needs data curation), missions, hit-rate instrumentation per difficulty.
+   - [ ] **R1.1** — run events (Extreme Volatility — needs data curation), missions.
+     - [ ] Playtest 2026-08-12 findings: hit celebration is a 5s toast — too subtle
+       for the economy's core reward moment (needs confetti/glow treatment); logging
+       in with guest diamonds silently drops the counter to the server balance —
+       decide between migrating guest diamonds on signup or explaining the reset.
+     - [x] Hit-rate instrumentation per difficulty: `GET /api/calls/stats` aggregates
+       resolved calls (hit rate per easy/medium/hard bucket, diamonds paid, calls/run)
+       so the reward curve in `diamond-reward.ts` can be tuned against Mary's
+       30–45% target band.
 2. **Phase R2 — Async PvP** — shared daily seed, live run ranking (polling), rival ghosts. Debt to collect: call verification by deterministic replay, real `Run` model server-side.
 3. **Phase R3 — Real-time PvP** — matchmaking, WebSocket, live sabotage, fully authoritative server.
 

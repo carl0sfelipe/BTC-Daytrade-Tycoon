@@ -1,144 +1,110 @@
-import { test, expect } from '@playwright/test';
-import { saveEvidence, captureConsoleLogs } from './_helper';
-import { openLongMarketViaUI } from './_helpers/ui-actions';
+import { test, expect, type Page } from "@playwright/test";
+import { saveEvidence, captureConsoleLogs } from "./_helper";
+import { openLongMarketViaUI, seedOnboardingDone } from "./_helpers/ui-actions";
+import { openPinnedTradingSession, type E2EBridgeWindow } from "./_helpers/engine";
 
-const JID = 'TRAILING-STOP';
+const JID = "TRAILING-STOP";
 
 /**
- * PRODUCT REGRESSION — both tests parked as fixme.
- *
- * Refactor 3193d78 ("extract TradingChart and TradeControls into
- * sub-components and hooks") dropped the trailing-stop input UI from
- * TradeControls: the store action (setTrailingStop) and its unit tests, the
- * trailingStopInput state in useTradeControlsState and the PositionPanel
- * TrailingStopIndicator all survived, but no component calls setTrailingStop
- * anymore. Users cannot set a trailing stop from the UI. Un-fixme these tests
- * (and modernize their selectors/sleeps) when the input is restored.
+ * Trailing-stop UI restored after refactor 3193d78 dropped it: the control
+ * lives in trade-controls/TrailingStopControl (testids trailing-stop-input /
+ * trailing-stop-set / trailing-stop-remove). These flows exercise the full
+ * loop — arm via UI, stop ratchets as price rises, retracement closes.
  */
-test.describe('Trailing Stop-Loss E2E', () => {
+
+interface TrailingStoreShape {
+  checkPosition: (price: number) => void;
+  position: {
+    trailingStopPercent: number | null;
+    trailingStopPrice: number | null;
+  } | null;
+  closedTrades: { reason?: string }[];
+}
+
+function readTrailingStopState(page: Page) {
+  return page.evaluate(() => {
+    const s = (window as E2EBridgeWindow).__tradingStore!.getState() as unknown as TrailingStoreShape;
+    return {
+      percent: s.position?.trailingStopPercent ?? null,
+      price: s.position?.trailingStopPrice ?? null,
+    };
+  });
+}
+
+test.describe("Trailing Stop-Loss E2E", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));
-    });
+    await seedOnboardingDone(page);
   });
 
-  test.fixme('trailing stop closes long position when price retraces', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'production', 'Uses __tradingStore injection');
+  test("trailing stop closes long position when price retraces", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
     const { startCapture, saveLogs } = captureConsoleLogs(page, JID);
     startCapture();
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
-
-    // Pause engine for deterministic control
-    await page.evaluate(() => {
-      const engine = (window as any).__timewarpEngine;
-      if (engine && engine.pause) engine.pause();
-      (window as any).__tradingStore.setState({
-        wallet: 1000,
-        position: null,
-        closedTrades: [],
-        currentPrice: 50000,
-        price: 50000,
-      });
-    });
-    await page.waitForTimeout(500);
-
-    // Open LONG $1000 via UI
+    await openPinnedTradingSession(page);
     await openLongMarketViaUI(page, { leverage: 10, sizePercent: 10 });
-    await saveEvidence(page, JID, '01-long-opened');
+    await saveEvidence(page, JID, "01-long-opened");
 
-    // Set trailing stop to 5%
-    const controls = page.locator('.card-surface').filter({ hasText: 'Order Controls' });
-    const tsInput = controls.locator('input[type="number"]').first();
-    await tsInput.fill('5');
-    await page.waitForTimeout(200);
-    await controls.locator('text=Set').first().click();
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '02-trailing-set');
+    // Arm a 5% trailing stop via the restored UI (pinned 50k → stop 47500)
+    await page.getByTestId("trailing-stop-input").fill("5");
+    const setButton = page.getByTestId("trailing-stop-set");
+    await expect(setButton).toBeEnabled();
+    await setButton.click();
 
-    // Verify PositionPanel shows trailing stop indicator
-    const posPanel = page.locator('.card-surface').filter({ hasText: 'Your Position' });
-    await expect(posPanel.locator('text=Trailing Stop').first()).toBeVisible();
+    const posPanel = page.locator(".card-surface").filter({ hasText: "Your Position" });
+    await expect(posPanel.getByText("Trailing Stop")).toBeVisible();
+    await expect.poll(() => readTrailingStopState(page)).toEqual({ percent: 5, price: 47_500 });
+    await saveEvidence(page, JID, "02-trailing-set");
 
-    // Move price UP 10% (to 55000) — trailing stop should follow
-    await page.evaluate(() => {
-      const store = (window as any).__tradingStore;
-      store.setState({ currentPrice: 55000, price: 55000 });
-      store.getState().checkPosition(55000);
+    // Price up 10% — the stop must ratchet up (~52250). setState +
+    // checkPosition + readback run in ONE evaluate so a StrictMode-survivor
+    // tick cannot interleave (see the pauseAutoStartedEngine caveat).
+    const stopAfterRise = await page.evaluate(() => {
+      const store = (window as E2EBridgeWindow).__tradingStore!;
+      store.setState({ currentPrice: 55_000, price: 55_000 });
+      (store.getState() as unknown as TrailingStoreShape).checkPosition(55_000);
+      const s = store.getState() as unknown as TrailingStoreShape;
+      return s.position?.trailingStopPrice ?? null;
     });
-    await page.waitForTimeout(500);
-    await saveEvidence(page, JID, '03-price-up');
+    expect(stopAfterRise).toBeGreaterThan(47_500);
+    await saveEvidence(page, JID, "03-price-up");
 
-    // Verify trailing stop price moved up (should be ~52250)
-    const storeAfterRise = await page.evaluate(() => {
-      const s = (window as any).__tradingStore.getState();
-      return { tsPrice: s.position?.trailingStopPrice };
-    });
-    expect(storeAfterRise.tsPrice).toBeGreaterThan(47500);
-
-    // Move price DOWN below trailing stop — position should close
-    await page.evaluate(() => {
-      (window as any).__tradingStore.setState({ currentPrice: 52000, price: 52000 });
-      (window as any).__tradingStore.getState().checkPosition(52000);
-    });
-    await page.waitForTimeout(800);
-    await saveEvidence(page, JID, '04-trailing-hit');
-
-    // Position should be closed with reason trailing_stop
-    const storeState = await page.evaluate(() => {
-      const s = (window as any).__tradingStore.getState();
+    // Retrace below the ratcheted stop → position closes as trailing_stop
+    const afterRetrace = await page.evaluate(() => {
+      const store = (window as E2EBridgeWindow).__tradingStore!;
+      store.setState({ currentPrice: 52_000, price: 52_000 });
+      (store.getState() as unknown as TrailingStoreShape).checkPosition(52_000);
+      const s = store.getState() as unknown as TrailingStoreShape;
       return {
         hasPosition: !!s.position,
         closedTradesCount: s.closedTrades.length,
         lastReason: s.closedTrades[0]?.reason,
       };
     });
-    expect(storeState.hasPosition).toBe(false);
-    expect(storeState.closedTradesCount).toBe(1);
-    expect(storeState.lastReason).toBe('trailing_stop');
+    expect(afterRetrace).toEqual({
+      hasPosition: false,
+      closedTradesCount: 1,
+      lastReason: "trailing_stop",
+    });
 
-    await saveLogs('trailing-stop-long');
+    await expect(page.getByTestId("position-panel-empty")).toBeVisible();
+    await saveEvidence(page, JID, "04-trailing-hit");
+
+    await saveLogs("trailing-stop-long");
   });
 
-  test.fixme('remove trailing stop clears it from position', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'production', 'Uses __tradingStore injection');
+  test("remove trailing stop clears it from position", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "production", "Uses __tradingStore injection");
 
-    await page.goto('/trading');
-    await page.waitForSelector('text=Simulation Time', { timeout: 30000 });
-    await page.waitForTimeout(1500);
-
-    await page.evaluate(() => {
-      const engine = (window as any).__timewarpEngine;
-      if (engine && engine.pause) engine.pause();
-      (window as any).__tradingStore.setState({
-        wallet: 1000,
-        position: null,
-        closedTrades: [],
-        currentPrice: 50000,
-        price: 50000,
-      });
-    });
-    await page.waitForTimeout(500);
-
+    await openPinnedTradingSession(page);
     await openLongMarketViaUI(page, { leverage: 10, sizePercent: 10 });
 
-    const controls = page.locator('.card-surface').filter({ hasText: 'Order Controls' });
-    const tsInput = controls.locator('input[type="number"]').first();
-    await tsInput.fill('3');
-    await controls.locator('text=Set').first().click();
-    await page.waitForTimeout(300);
+    await page.getByTestId("trailing-stop-input").fill("3");
+    await page.getByTestId("trailing-stop-set").click();
+    await expect.poll(() => readTrailingStopState(page)).toEqual({ percent: 3, price: 48_500 });
 
-    // Remove trailing stop
-    await controls.locator('text=Remove').first().click();
-    await page.waitForTimeout(300);
-
-    const storeState = await page.evaluate(() => {
-      const s = (window as any).__tradingStore.getState();
-      return { tsPercent: s.position?.trailingStopPercent, tsPrice: s.position?.trailingStopPrice };
-    });
-    expect(storeState.tsPercent).toBeNull();
-    expect(storeState.tsPrice).toBeNull();
+    await page.getByTestId("trailing-stop-remove").click();
+    await expect.poll(() => readTrailingStopState(page)).toEqual({ percent: null, price: null });
+    await expect(page.getByTestId("trailing-stop-input")).toHaveValue("");
   });
 });

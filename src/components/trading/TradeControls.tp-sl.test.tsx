@@ -50,8 +50,10 @@ describe("TradeControls — TP/SL input flows", () => {
   });
 });
 
-describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
+// Revived with the TrailingStopControl restoration (UI dropped by 3193d78).
+describe("TradeControls — trailing stop input", () => {
   beforeEach(() => {
+    resetStore();
     useTradingStore.setState({
       wallet: 9900, currentPrice: 50000,
       position: {
@@ -66,15 +68,15 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
 
   it("Set button is disabled when value > 20 (bug B2 regression)", () => {
     renderWithSentinel(<TradeControls />);
-    fireEvent.change(screen.getByPlaceholderText("0.0"), { target: { value: "25" } });
-    expect(screen.getByText("Set")).toBeDisabled();
+    fireEvent.change(screen.getByTestId("trailing-stop-input"), { target: { value: "25" } });
+    expect(screen.getByTestId("trailing-stop-set")).toBeDisabled();
   });
 
   it("Set button enabled with valid value and updates store", () => {
     renderWithSentinel(<TradeControls />);
-    fireEvent.change(screen.getByPlaceholderText("0.0"), { target: { value: "5" } });
-    expect(screen.getByText("Set")).not.toBeDisabled();
-    fireEvent.click(screen.getByText("Set"));
+    fireEvent.change(screen.getByTestId("trailing-stop-input"), { target: { value: "5" } });
+    expect(screen.getByTestId("trailing-stop-set")).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId("trailing-stop-set"));
     expect(useTradingStore.getState().position!.trailingStopPercent).toBe(5);
   });
 
@@ -88,12 +90,18 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
       },
     });
     renderWithSentinel(<TradeControls />);
-    fireEvent.click(screen.getByText("Remove"));
+    fireEvent.click(screen.getByTestId("trailing-stop-remove"));
     expect(useTradingStore.getState().position!.trailingStopPercent).toBeNull();
-    expect(screen.getByText("Set")).toBeInTheDocument();
+    expect(screen.getByTestId("trailing-stop-set")).toBeInTheDocument();
+    expect(screen.getByTestId("trailing-stop-input")).toHaveValue(null);
   });
 
-  it("limit order in hedge mode disabled when insufficient excess funds (bug B1 regression)", () => {
+  // Bug B1 regression (a5a87eb), re-encoded for the b96bb3b capacity model:
+  // the affordability guard moved from the action button into calcSliderMax.
+  // With effectiveWallet negative (wallet $5, close PnL −$200) the slider
+  // collapses to its $100 floor, so the UI can only arm a partial reduce —
+  // an unaffordable hedge flip cannot be placed at all.
+  it("limit order in hedge mode cannot arm an unaffordable flip (bug B1 regression)", () => {
     useTradingStore.setState({
       wallet: 5,
       position: {
@@ -106,13 +114,19 @@ describe.skip("TradeControls — trailing stop input (UI disabled)", () => {
     });
     renderWithSentinel(<TradeControls />);
 
-    fireEvent.click(screen.getByText("LONG"));
+    fireEvent.click(screen.getByTestId("trade-controls-side-long"));
     fireEvent.click(screen.getByText("Limit"));
-    fireEvent.change(screen.getByPlaceholderText("60000.00"), { target: { value: "58000" } });
+    // LimitPriceInput placeholder drifted to toFixed(0) while this test was
+    // parked — the testid is the stable selector.
+    fireEvent.change(screen.getByTestId("limit-price-input"), { target: { value: "58000" } });
 
     const slider = getSlider();
+    expect(slider.getAttribute("max")).toBe("100");
     fireEvent.change(slider, { target: { value: slider.getAttribute("max") } });
+    fireEvent.click(screen.getByTestId("trade-controls-action-btn"));
 
-    expect(screen.getByTestId("trade-controls-action-btn")).toBeDisabled();
+    const placedOrder = useTradingStore.getState().pendingOrders[0];
+    expect(placedOrder.size).toBe(100);
+    expect(placedOrder.size).toBeLessThan(1000);
   });
 });

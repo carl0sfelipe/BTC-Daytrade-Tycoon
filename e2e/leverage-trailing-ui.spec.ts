@@ -6,12 +6,10 @@ import { openPinnedTradingSession, type E2EBridgeWindow } from "./_helpers/engin
 const JID = "LEV-TRAIL-UI";
 
 /**
- * PRODUCT REGRESSION (trailing stop): refactor 3193d78 extracted TradeControls
- * into sub-components and dropped the trailing-stop input UI. The store action
- * (setTrailingStop), its unit tests and the PositionPanel indicator survived,
- * but no component calls setTrailingStop anymore — the feature has no UI entry
- * point. The two trailing tests below are parked as fixme until the input is
- * restored; their bodies still describe the expected UX contract.
+ * Trailing-stop UI restored after refactor 3193d78 dropped it: the control
+ * lives in trade-controls/TrailingStopControl and only renders with an open
+ * position outside reduce mode. Stable selectors: trailing-stop-input,
+ * trailing-stop-set, trailing-stop-remove.
  */
 
 function readPositionLeverage(page: Page) {
@@ -58,7 +56,7 @@ test.describe("Leverage and Trailing Stop via UI", () => {
     await saveEvidence(page, JID, "01-leverage-updated");
   });
 
-  test.fixme("trailing stop Set button is disabled for values over 20", async ({ page }, testInfo) => {
+  test("trailing stop Set button is disabled for values over 20", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "production", "Uses store injection for setup");
 
     await openPinnedTradingSession(page, undefined, { skipHighLeverageWarning: true });
@@ -70,17 +68,17 @@ test.describe("Leverage and Trailing Stop via UI", () => {
     });
 
     // Type invalid value (> 20) into trailing stop input
-    const tsInput = page.getByPlaceholder("0.0");
+    const tsInput = page.getByTestId("trailing-stop-input");
     await tsInput.fill("25");
 
     // Set button must be disabled (bug B2 regression in E2E)
-    const setBtn = page.getByRole("button", { name: "Set" });
+    const setBtn = page.getByTestId("trailing-stop-set");
     await expect(setBtn).toBeDisabled();
 
     await saveEvidence(page, JID, "02-trailing-disabled-over-20");
   });
 
-  test.fixme("trailing stop Set and Remove flow updates store via UI", async ({ page }, testInfo) => {
+  test("trailing stop Set and Remove flow updates store via UI", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === "production", "Uses store injection for setup");
 
     await openPinnedTradingSession(page, undefined, { skipHighLeverageWarning: true });
@@ -92,9 +90,9 @@ test.describe("Leverage and Trailing Stop via UI", () => {
     });
 
     // Type valid trailing stop value and click Set
-    const tsInput = page.getByPlaceholder("0.0");
+    const tsInput = page.getByTestId("trailing-stop-input");
     await tsInput.fill("5");
-    const setBtn = page.getByRole("button", { name: "Set" });
+    const setBtn = page.getByTestId("trailing-stop-set");
     await expect(setBtn).toBeEnabled();
     await setBtn.click();
 
@@ -110,7 +108,7 @@ test.describe("Leverage and Trailing Stop via UI", () => {
       .toBe(5);
 
     // Remove clears it
-    const removeBtn = page.getByRole("button", { name: "Remove" });
+    const removeBtn = page.getByTestId("trailing-stop-remove");
     await expect(removeBtn).toBeVisible();
     await removeBtn.click();
     await expect

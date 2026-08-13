@@ -5,6 +5,11 @@ const JID = 'TRADING-01';
 
 test.describe('Trading Simulator Smoke', () => {
   test('full simulation journey', async ({ page }) => {
+    // The ~21.5s of deliberate observation sleeps below (evidence screenshots
+    // at the 3s/10s/20s marks of a LIVE session) leave no headroom inside the
+    // default 30s budget — the test passed at 29.8s alone and tipped over at
+    // the tail of a full-suite run. slow() triples the timeout.
+    test.slow();
     // Prevent onboarding from showing
     await page.addInitScript(() => {
       localStorage.setItem('trading-storage', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 0 }));

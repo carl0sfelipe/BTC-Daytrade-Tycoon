@@ -173,6 +173,14 @@ export const enGameMessages = {
     sizeLabel: "Size",
     reduceSizeLabel: "Reduce Size",
     increaseSizeLabel: "Increase Size",
+    // Trailing-stop strings reproduce the original UI texts from 3193d78^
+    // (the refactor that accidentally dropped the control).
+    trailingStopLabel: "Trailing Stop",
+    trailingStopActiveAt: (formattedStopPrice: string) => `@${formattedStopPrice}`,
+    trailingStopPlaceholder: "0.0",
+    trailingStopInputAria: "Trailing stop percent",
+    trailingStopSet: "Set",
+    trailingStopRemove: "Remove",
     setTakeProfit: "Set Take Profit",
     setStopLoss: "Set Stop Loss",
     stepAmount: (stepDollars: number) => `step $${stepDollars}`,

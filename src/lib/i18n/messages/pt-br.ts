@@ -163,6 +163,14 @@ export const ptBrGameMessages: GameMessages = {
     sizeLabel: "Tamanho",
     reduceSizeLabel: "Reduzir Tamanho",
     increaseSizeLabel: "Aumentar Tamanho",
+    // "Trailing Stop" fica em inglês: jargão de trading consolidado, igual a
+    // Long/Short e ao rótulo já usado no painel de posição.
+    trailingStopLabel: "Trailing Stop",
+    trailingStopActiveAt: (formattedStopPrice) => `@${formattedStopPrice}`,
+    trailingStopPlaceholder: "0.0",
+    trailingStopInputAria: "Percentual do trailing stop",
+    trailingStopSet: "Definir",
+    trailingStopRemove: "Remover",
     setTakeProfit: "Definir Take Profit",
     setStopLoss: "Definir Stop Loss",
     stepAmount: (stepDollars) => `passo $${stepDollars}`,

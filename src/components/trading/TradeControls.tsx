@@ -17,6 +17,7 @@ import {
   ReduceOnlyToggle,
   LeverageSelector,
   SizeSelector,
+  TrailingStopControl,
   TpSlPanel,
   CalledShotPicker,
   LimitPriceInput,
@@ -380,6 +381,18 @@ export default function TradeControls() {
             onChangePercent={setSizePercent}
             onChangeAbsolute={setSizeAbsolute}
           />
+
+          {/* Trailing Stop — original placement (3193d78^): below the size
+              slider, only while increasing an open position (not reduce mode) */}
+          {position && !caps.isReduceMode && (
+            <TrailingStopControl
+              trailingStopPercent={position.trailingStopPercent}
+              trailingStopPrice={position.trailingStopPrice}
+              inputValue={state.trailingStopInput}
+              onInputChange={state.setTrailingStopInput}
+              onSetTrailingStop={store.setTrailingStop}
+            />
+          )}
 
           {state.orderType === "limit" && (
             <LimitPriceInput

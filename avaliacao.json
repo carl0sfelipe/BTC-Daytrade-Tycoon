@@ -1,0 +1,54 @@
+{
+  "repo": "BTC-Daytrade-Tycoon",
+  "o_que_faz": "Simulador de daytrade de futuros de Bitcoin baseado em dados históricos reais (dez/2017 a dez/2025): o jogador é jogado em um dia real escondido, com o tempo rodando 60x mais rápido e preço deslocado para níveis atuais, eliminando viés de hindsight. Tem autenticação real (scrypt + sessões httpOnly), persistência via Prisma+SQLite, leaderboard global, e uma economia roguelike de diamantes com called shots, missões diárias e runs com permadeath. Já está implantado e acessível em btc-daytrade-tycoon.vercel.app.",
+  "stack": [
+    "Next.js 14 (App Router)",
+    "React 18",
+    "TypeScript 5.3",
+    "Tailwind CSS v3",
+    "Zustand (persist)",
+    "Prisma 7 + SQLite (better-sqlite3)",
+    "lightweight-charts v5",
+    "Radix UI / shadcn/ui",
+    "React Hook Form",
+    "Zod",
+    "Vitest + React Testing Library",
+    "Playwright",
+    "GitHub Actions (CI)",
+    "Binance REST API (dados históricos)"
+  ],
+  "maturidade": "MVP funcional",
+  "maturidade_nota": 8,
+  "diferencial": "Mecânica TimeWarp única: dias reais de Bitcoin com a data escondida e preço offset para o nível atual, matando o hindsight bias — não há eixo de tempo nem calendário, o jogador negocia só por price action. Além disso, o modo roguelike PvP de 'called shots' com resolução server-side e economia de diamantes é um caminho de produto claro e incomum para simuladores de trading.",
+  "diferencial_nota": 8,
+  "problemas": [
+    "Estatísticas de sessão são reportadas pelo cliente; verificação por replay server-side está marcada como débito futuro no README e no schema.prisma",
+    "SQLite não escala para multi-usuário em produção; o próprio schema recomenda migrar para Postgres",
+    "Exploit conhecido de replay-farm no faucet de diamantes (~22 diamantes/dia) aceito como risco R1",
+    "Sem configs de deploy versionadas (Dockerfile, vercel.json) — depende do deploy padrão da Vercel",
+    "Arquivos acima do limite de 500 linhas do AGENTS.md (src/test/golden-ticks.ts tem 533; TradeControls.matrix.test.tsx e .slider.test.tsx têm 519 e 516)",
+    "Algumas suítes de teste estacionadas como fixme/skip (commit 6ae4844)"
+  ],
+  "originalidade": "ideia nova",
+  "originalidade_nota": 9,
+  "monetizacao": "Freemium de jogo: a economia de diamantes (called shots, missões diárias, recompensas por rank) é o natural veículo para compras in-app ou pass premium; leaderboard competitivo e runs com permadeath criam motivação de retenção. Ainda não há cobrança implementada e a nota final depende de fechar a verificação server-side para dar confiança à economia.",
+  "monetizacao_nota": 5,
+  "esforco_lancamento_1mes": "baixo",
+  "principais_riscos": [
+    "Trapaça/exploit: stats client-reported e replay-farm de diamantes podem desvalorizar leaderboard e economia",
+    "Monetização de simulador de trading pode atrair percepção de jogo de aposta e escrutínio regulatório",
+    "Dependência da API pública Binance para dados históricos (rate limits, mudanças de contrato)",
+    "SQLite como banco de produção não escala com base de usuários real",
+    "Sem evidência de tração/usuários reais além do deploy demo"
+  ],
+  "proximos_passos": [
+    "Implementar verificação por replay server-side (débito R2 do PRD_ROGUELIKE_PVP.md)",
+    "Migrar datasource para Postgres para produção multi-usuário",
+    "Fechar o exploit de replay-farm no faucet de diamantes",
+    "Concluir fases R1.1/R2 do roadmap (run events, missões restantes)",
+    "Versionar configs de deploy (Dockerfile/vercel.json) e estratégia de monetização dos diamantes",
+    "Reduzir arquivos acima de 500 linhas para cumprir os limites do AGENTS.md"
+  ],
+  "score_final": 7,
+  "veredito": "forte"
+}
